@@ -1,5 +1,5 @@
 import { TILE_TYPES } from '../levels/TileMap.js';
-import { C }          from './PhysicsEngine.js';
+import { C }          from './PhysicsConstants.js';
 
 export class CollisionSystem {
     /**

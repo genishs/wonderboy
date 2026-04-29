@@ -1,25 +1,10 @@
 import { CollisionSystem } from './CollisionSystem.js';
+import { C }              from './PhysicsConstants.js';
 
 /**
- * Physics constants tuned to replicate original Wonder Boy's "slippery" feel.
- * Agent 2 (Physics & Controller Engineer) is responsible for fine-tuning these values.
+ * Agent 2 (Physics & Controller Engineer) owns this file.
+ * Tune constants in PhysicsConstants.js — not here.
  */
-export const C = Object.freeze({
-    GRAVITY:           0.40,   // px / frame²
-    MAX_FALL_SPEED:    10.0,
-    WALK_ACCEL:        0.50,
-    MAX_WALK_SPEED:    3.50,
-    FRICTION_GROUND:   0.80,   // deceleration multiplier per frame
-    FRICTION_AIR:      0.95,
-    FRICTION_ICE:      0.97,   // Area 4 ice stages
-    JUMP_VELOCITY:    -8.50,   // initial vy on jump
-    JUMP_HOLD_BOOST:  -0.15,   // extra upward each held frame
-    JUMP_HOLD_FRAMES:  12,     // max frames variable jump is active
-    BOARD_SPEED_MULT:  1.60,
-    BOARD_FRICTION:    0.90,
-    TILE:              48,      // display px per tile
-});
-
 export class PhysicsEngine {
     constructor() {
         this.collision = new CollisionSystem();
@@ -39,14 +24,13 @@ export class PhysicsEngine {
         }
     }
 
-    _updatePlayer({ id, transform: tf, velocity: v, physics: ph, player: pl }, state, level, input) {
+    _updatePlayer({ transform: tf, velocity: v, physics: ph, player: pl }, state, level, input) {
         const onBoard  = state.hasSkateboard;
         const maxSpeed = C.MAX_WALK_SPEED * (onBoard ? C.BOARD_SPEED_MULT : 1);
         const friction = ph.onIce    ? C.FRICTION_ICE
                        : onBoard     ? C.BOARD_FRICTION
                        : ph.onGround ? C.FRICTION_GROUND : C.FRICTION_AIR;
 
-        // Horizontal
         if (input.right) {
             v.vx = Math.min(v.vx + C.WALK_ACCEL, maxSpeed);
             pl.facingRight = true;
@@ -58,34 +42,27 @@ export class PhysicsEngine {
             if (Math.abs(v.vx) < 0.05) v.vx = 0;
         }
 
-        // Jump
         if (input.jumpPressed && ph.onGround) {
-            v.vy             = C.JUMP_VELOCITY;
-            ph.onGround      = false;
-            ph.jumpHoldLeft  = C.JUMP_HOLD_FRAMES;
-            pl.isJumping     = true;
+            v.vy            = C.JUMP_VELOCITY;
+            ph.onGround     = false;
+            ph.jumpHoldLeft = C.JUMP_HOLD_FRAMES;
+            pl.isJumping    = true;
         }
         if (ph.jumpHoldLeft > 0) {
             if (input.jump) { v.vy += C.JUMP_HOLD_BOOST; ph.jumpHoldLeft--; }
             else             { ph.jumpHoldLeft = 0; }
         }
 
-        // Gravity
         if (!ph.onGround) v.vy = Math.min(v.vy + C.GRAVITY, C.MAX_FALL_SPEED);
 
-        // Integrate
         tf.x += v.vx;
         tf.y += v.vy;
 
-        // Collide
         ph.onGround = false;
         ph.onIce    = false;
         this.collision.resolveTiles(tf, v, ph, level);
 
-        // Left-edge boundary
         if (tf.x < 0) { tf.x = 0; v.vx = 0; }
-
-        // Fell into pit
         if (tf.y > level.height * C.TILE + 300) state.takeDamage();
     }
 
@@ -106,7 +83,6 @@ export class PhysicsEngine {
         ph.onGround = false;
         this.collision.resolveTiles(tf, v, ph, level);
 
-        // Reverse at edges / walls when patrol AI
         if (ph.onGround && en.ai === 'patrol') {
             const probe = tf.x + (en.dir > 0 ? tf.w + 1 : -1);
             if (!this.collision.solidAt(probe, tf.y + tf.h + 1, level) ||
