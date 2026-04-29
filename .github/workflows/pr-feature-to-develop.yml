@@ -1,0 +1,61 @@
+name: PR Validation — feature/* → develop
+
+on:
+  pull_request:
+    branches: [develop]
+
+jobs:
+  validate:
+    name: Syntax & Structure Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JavaScript syntax
+        run: |
+          echo "=== JavaScript syntax check ==="
+          FAIL=0
+          while IFS= read -r f; do
+            node --check "$f" && echo "✓ $f" || { echo "✗ $f"; FAIL=1; }
+          done < <(find . -name "*.js" ! -path "*/node_modules/*")
+          [ $FAIL -eq 0 ] && echo "All JS files OK" || exit 1
+
+      - name: Verify required file structure
+        run: |
+          echo "=== File structure check ==="
+          files=(
+            "index.html"
+            "game.js"
+            "src/core/GameLoop.js"
+            "src/core/ECS.js"
+            "src/core/StateManager.js"
+            "src/core/InputHandler.js"
+            "src/physics/PhysicsEngine.js"
+            "src/physics/CollisionSystem.js"
+            "src/graphics/Renderer.js"
+            "src/levels/LevelManager.js"
+            "src/levels/LevelData.js"
+            "src/levels/TileMap.js"
+            "src/mechanics/GameMechanics.js"
+            "src/mechanics/WeaponSystem.js"
+            "src/audio/AudioManager.js"
+          )
+          FAIL=0
+          for f in "${files[@]}"; do
+            [ -f "$f" ] && echo "✓ $f" || { echo "✗ MISSING: $f"; FAIL=1; }
+          done
+          [ $FAIL -eq 0 ] || exit 1
+
+      - name: Guard: no debugger statements
+        run: |
+          if grep -rn "debugger" src/ --include="*.js"; then
+            echo "ERROR: Remove debugger statements before merging."
+            exit 1
+          fi
+          echo "✓ No debugger statements"
+
+      - name: Guard: no console.error left in production paths
+        run: |
+          COUNT=$(grep -rn "console\.error" src/ --include="*.js" | wc -l)
+          echo "console.error occurrences: $COUNT"
+          # Warn only, do not fail (some error logging is acceptable)
