@@ -9,6 +9,7 @@ Authoritative data shape for sprite/tile/bg modules. **design-lead** owns this f
 // Index 0 in PALETTE is reserved for transparent (use '#00000000' or any value with alpha 00).
 
 export const PALETTE = ['#00000000', '#1a1a2e', '#e94560', '#f5f5f5', /* … */];
+// Palette entries may use 8-digit hex `#rrggbbaa` for partial alpha; index 0 remains reserved for fully transparent.
 
 export const FRAMES = {
   idle:   [/* frame */ [/* row */ [0, 0, 1, 1, ...], /* row */ [...], ...], /* frame */ [...] ],
