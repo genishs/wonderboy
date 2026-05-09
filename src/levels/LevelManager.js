@@ -52,17 +52,18 @@ export class LevelManager {
     update(dt, ecs, state) {
         if (!this.currentLevel || !this.playerEntity) return;
 
-        if (this._isPhase1Test) {
-            this.scrollX = 0; // locked camera
-            return;
-        }
-
         const tf = ecs.getComponent(this.playerEntity, 'transform');
         if (!tf) return;
 
-        // Smooth camera: player locked ~1/3 from left
-        const target = tf.x - Math.floor(VIEWPORT_W / 3);
-        this.scrollX = Math.max(0, Math.min(target, (this.currentLevel.cols - 16) * TILE));
+        // Smooth camera: player locked ~1/3 from left.
+        // Both Phase 1 (test stage) and legacy Area 1 use the same scroll math.
+        const target    = tf.x - Math.floor(VIEWPORT_W / 3);
+        const maxScroll = Math.max(0, (this.currentLevel.cols - 16) * TILE);
+        this.scrollX    = Math.max(0, Math.min(target, maxScroll));
+
+        // Phase 1 owns its own collision/spawn paths (HeroController + CombatSystem +
+        // EnemyAI). Don't run the legacy hazard/enemy/goal checks here.
+        if (this._isPhase1Test) return;
 
         this._checkItems(ecs, state);
         this._checkEnemies(ecs, state);

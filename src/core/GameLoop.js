@@ -34,14 +34,18 @@ export class GameLoop {
     }
 
     _update(dt) {
-        const { ecs, state, input, physics, levelManager, mechanics, audio } = this.systems;
+        const { ecs, state, input, physics, levelManager, mechanics, audio, renderer } = this.systems;
         if (state.gameState === 'PAUSED') return;
 
-        input.update();
         mechanics.update(dt, ecs, state, input);
         physics.update(dt, ecs, state, levelManager.currentLevel, input);
         levelManager.update(dt, ecs, state);
         audio.update(dt, state);
+        if (renderer && typeof renderer.tick === 'function') renderer.tick();
+
+        // Edge detection requires _prev to reflect the PREVIOUS fixed-step frame.
+        // Calling update() at the END leaves _prev populated correctly for the next frame.
+        input.update();
     }
 
     _render() {
