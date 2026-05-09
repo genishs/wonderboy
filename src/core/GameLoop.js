@@ -34,14 +34,23 @@ export class GameLoop {
     }
 
     _update(dt) {
-        const { ecs, state, input, physics, levelManager, mechanics, audio } = this.systems;
-        if (state.gameState === 'PAUSED') return;
+        const { ecs, state, input, physics, levelManager, mechanics, audio, renderer } = this.systems;
 
-        input.update();
+        // mechanics.update owns the pause toggle (in the Phase 1 wrapper) so it must
+        // run even when state is PAUSED — otherwise we can pause but never unpause.
         mechanics.update(dt, ecs, state, input);
-        physics.update(dt, ecs, state, levelManager.currentLevel, input);
-        levelManager.update(dt, ecs, state);
-        audio.update(dt, state);
+
+        if (state.gameState !== 'PAUSED') {
+            physics.update(dt, ecs, state, levelManager.currentLevel, input);
+            levelManager.update(dt, ecs, state);
+            audio.update(dt, state);
+            if (renderer && typeof renderer.tick === 'function') renderer.tick();
+        }
+
+        // Edge detection requires _prev to reflect the PREVIOUS fixed-step frame.
+        // Calling update() at the END leaves _prev populated correctly for the next
+        // frame — including paused frames so isPressed/isReleased stay correct.
+        input.update();
     }
 
     _render() {
