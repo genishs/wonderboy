@@ -1,19 +1,20 @@
 // owning agent: dev-lead
-// TODO: Phase 1 damage resolution — hero contact, hero projectile vs enemy,
-//       enemy projectile vs hero. Manages iframes, knockback, hp, hurt-lock.
+// TODO: Phase 1 damage resolution.
 //
-// Damage rules (per docs/briefs/phase1-cast.md §):
-//   - Hero with iframes > 0 ignores all incoming damage.
-//   - Stoneflake despawns on first enemy hit.
-//   - Sapling closed = zero contact damage; windup/firing = full contact damage.
-//   - Enemies do not friendly-fire each other (ownerKind === 'enemy' passes through enemies).
+// v0.25.2: HP / iframes / knockback removed.
+//   - Any contact between hero and a damaging enemy = immediate game over.
+//   - Any contact between hero and an enemy projectile = immediate game over.
+//   - Sapling closed state still deals zero damage (timing-puzzle design intent).
+//   - Stoneflake despawns on first enemy hit; enemies still have HP for their kill count.
 
-import { HERO, CRAWLSPINE, GLASSMOTH, SAPLING } from '../config/PhaseOneTunables.js';
+import { CRAWLSPINE, GLASSMOTH, SAPLING } from '../config/PhaseOneTunables.js';
 
 const DAMAGING_SAPLING_STATES = new Set(['windup', 'firing']);
 
 export class CombatSystem {
     update(ecs, state) {
+        if (state.gameState === 'GAME_OVER') return;
+
         const players = ecs.query('transform', 'velocity', 'physics', 'player');
         if (!players.length) return;
         const player = players[0];
@@ -25,8 +26,6 @@ export class CombatSystem {
 
     _heroVsEnemyContact(ecs, state, player) {
         const ptf = player.transform;
-        const pl  = player.player;
-        if (pl.iframes > 0 || pl.hp <= 0) return;
 
         for (const e of ecs.query('transform', 'enemy')) {
             const en = e.enemy;
@@ -36,7 +35,7 @@ export class CombatSystem {
             if (en.type === 'sapling' && !DAMAGING_SAPLING_STATES.has(en.ai)) continue;
 
             if (!this._overlaps(ptf, e.transform)) continue;
-            this._damageHero(state, player, e.transform.x + e.transform.w / 2);
+            this._killHero(state, player);
             return;
         }
     }
@@ -57,35 +56,24 @@ export class CombatSystem {
 
     _enemyProjectileVsHero(ecs, state, player) {
         const ptf = player.transform;
-        const pl  = player.player;
         const projectiles = ecs.query('transform', 'projectile').filter(r => r.projectile.ownerKind === 'enemy');
         for (const proj of projectiles) {
             if (!this._overlaps(proj.transform, ptf)) continue;
-            // Iframed hero: dart passes through (don't despawn) — gives a coverage cushion.
-            if (pl.iframes > 0 || pl.hp <= 0) continue;
-            this._damageHero(state, player, proj.transform.x + proj.transform.w / 2);
+            this._killHero(state, player);
             ecs.destroyEntity(proj.id);
+            return;
         }
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    _damageHero(state, player, sourceX) {
-        const tf = player.transform, v = player.velocity, pl = player.player;
-        if (pl.iframes > 0 || pl.hp <= 0) return;
-
-        pl.hp = Math.max(0, pl.hp - 1);
-        state.heroHp = pl.hp;
-        pl.iframes = HERO.iframesHurt;
-        pl.hurtFrames = HERO.hurtLockFrames;
-        pl.hurtSourceX = sourceX;
-
-        const sign = Math.sign((tf.x + tf.w / 2) - sourceX) || (pl.facingRight ? -1 : 1);
-        v.vx = sign * HERO.knockbackVx;
-        v.vy = HERO.knockbackVy;
-
-        if (pl.hp <= 0) {
-            state.setGameState('GAME_OVER');
-        }
+    _killHero(state, player) {
+        if (state.gameState === 'GAME_OVER') return;
+        const v  = player.velocity;
+        const pl = player.player;
+        v.vx = 0;
+        v.vy = 0;
+        pl.aiState = 'dead';
+        state.killHero();
     }
 
     _damageEnemy(e, dmg, state) {
@@ -108,7 +96,6 @@ export class CombatSystem {
                 sapling:    SAPLING.hurtFrames,
             };
             en.hurtFrames = hurtBy[en.type] ?? 4;
-            // Sapling does not knockback (rooted) — already no v.vx mutation here.
         }
     }
 

@@ -6,6 +6,53 @@
 
 ---
 
+## v0.25.2 — Phase 1 패치: HP 제거 + Z/X 키 매핑
+
+**릴리즈:** 2026-05-09 (예정)
+**태그:** `main` 의 `v0.25.2`
+**Pages:** https://genishs.github.io/wonderboy/
+
+v0.25.1 브라우저 스모크 후 사용자 피드백에서 HP 하트 + Vitality 바가 생명을 이중으로 트래킹하는 구조 중복과 점프 키 위치의 어색함이 지적됐습니다. v0.25.2 는 Phase 1 을 단일 생명선으로 단순화하고 점프/공격을 Z/X 로 옮깁니다.
+
+### 수정 내역
+
+- **HP 시스템 제거.** hp/iframe/hurt-lock/knockback 모두 삭제. 데미지 상태의 적과 접촉, 적 원거리 무기 피격, Vitality 가 0 에 도달하면 즉시 게임오버. Vitality 가 단일 생명선.
+- **HP 하트 HUD 제거.** Vitality 바만 남음.
+- **점프 키 = Z** (Space 는 접근성 대체로 유지). `↑` 와 `W` 는 더 이상 점프 아님 — 플레이어가 기대하는 D-pad 와 충돌.
+- **공격 키 = X 단독** (Ctrl 제거 — 일부 환경에서 브라우저 단축키와 충돌).
+- **이중-init 버그 수정 (스크롤·잔상 두 이슈의 동일 근본 원인).**
+  `game.js` 가 click·keydown·touchstart 세 이벤트에 `{once: true}` 로 `init` 을 등록했는데, 이 옵션은 **각 리스너만** 한 번 발화 후 제거합니다. 그래서 사용자가 캔버스 클릭(→init 1차)→화살표 키 입력(→keydown 리스너 살아있어서 init 2차)이 발생, 두 번째 init 가 `loadPhase1Test()` 를 재실행해 **두 번째 플레이어 엔티티를 스폰 위치에 만들고** `levelManager.playerEntity` 를 그 멈춰있는 엔티티로 덮어씌웠습니다. 결과: 카메라가 멈춘 엔티티를 추적해 스크롤 안 됨(이슈 3), 스폰 자리에 박제된 플레이어 잔상(이슈 4). 함수 레벨 `_initFired` 가드 + 형제 리스너 명시적 `removeEventListener` 추가. 단일 init 원천 확보.
+- **Sapling closed 상태 = 0 데미지 유지** — 1-hit-kill 환경에서도 디자인 의도 보존.
+- `docs/briefs/phase1-cast.md` 에 **Changelog 섹션** 추가하여 hp/iframe 피벗과 키 바인딩 변경을 문서화.
+
+### 영향받은 파일
+
+- `src/core/InputHandler.js`, `src/core/StateManager.js`,
+  `src/mechanics/HeroController.js`, `src/mechanics/CombatSystem.js`,
+  `src/graphics/Renderer.js`, `src/levels/LevelManager.js`,
+  `src/config/PhaseOneTunables.js`
+- `game.js` (이중-init 가드)
+- `README.md`, `README.ko.md` (키 테이블)
+- `docs/briefs/phase1-cast.md` (Changelog 섹션)
+- `docs/release-notes.md`, `docs/release-notes.ko.md` (이 항목)
+
+### 변경되지 않은 것
+
+- 캐스트 정체성 (Reed Bramblestep + Crawlspine + Glassmoth + Bristlecone Sapling), 스프라이트 모듈, 팔레트, FSM 토폴로지.
+- 카메라 스크롤, 애니메이션 타이밍, 적 감각 튜닝 (v0.25.1 의 모든 사항 그대로).
+- CI 워크플로우, 배포 파이프라인, 브랜치 전략.
+
+### 이 패치의 PR
+
+- #11 `docs(release): bilingual docs (PR 1) — release-master 영역` (이 패치 전에 이미 머지됨)
+- next: `release(v0.25.2): HP removal + Z/X keys` (이 PR 패밀리)
+
+### 트리뷰트 자세
+
+모든 변경은 본 프로젝트 자체 제작 오리지널 캐릭터와 코드에 적용됨. 저작권 보호 자료의 참조 또는 재현 없음.
+
+---
+
 ## v0.25.1 — Phase 1 패치: 입력 엣지 + 애니메이션 타이밍 + 스크롤 + 적 감각
 
 **릴리즈:** 2026-05-09 (예정)

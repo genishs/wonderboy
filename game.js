@@ -94,7 +94,23 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
 const gameLoop = new GameLoop({ ecs, state, input, physics, renderer, levelManager, mechanics, audio });
 
 // ── Init ────────────────────────────────────────────────────────────────────
+// v0.25.2: guard against double-init. We register init on click, keydown, AND
+// touchstart so any of the three can start the game (Web Audio gesture). Each
+// listener is `{once: true}` which only removes ITSELF after firing — so when
+// the user clicks (firing init) and then presses an arrow key, the surviving
+// keydown listener fires init a second time. That double-init re-runs
+// loadPhase1Test which creates a SECOND player entity at the spawn position
+// and overwrites levelManager.playerEntity to point at the stationary one,
+// stalling camera follow and leaving a "ghost" sprite at the spawn. Guard
+// once at the function level + explicitly drop the sibling listeners.
+let _initFired = false;
 async function init() {
+    if (_initFired) return;
+    _initFired = true;
+    document.removeEventListener('click',      init);
+    document.removeEventListener('keydown',    init);
+    document.removeEventListener('touchstart', init);
+
     await audio.init();
 
     // Build sprite cache from Design's modules
