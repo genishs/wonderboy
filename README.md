@@ -1,5 +1,7 @@
 # Wonder Boy Tribute
 
+> **한국어 버전:** [README.ko.md](./README.ko.md)
+
 > An original, fan-made action-platformer in the spirit of Sega's 1986/87 Wonder Boy series.
 > Built in Vanilla JavaScript + HTML5 Canvas, deployed to GitHub Pages.
 
@@ -24,8 +26,8 @@
 | Key             | Action                                        |
 |-----------------|-----------------------------------------------|
 | ← → / A D       | Move                                          |
-| ↑ / W / Space   | Jump (variable height — hold longer = higher) |
-| X / Ctrl        | Throw weapon                                  |
+| Z / Space       | Jump (hold longer = higher)                   |
+| X               | Throw weapon                                  |
 | P / Esc         | Pause                                         |
 
 **Mobile** (touch): left third → move left; bottom-right third → jump; top-right third → attack.

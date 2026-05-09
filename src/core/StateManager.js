@@ -36,15 +36,28 @@ export class StateManager {
     }
 
     setHeroHp(hp, hpMax) {
+        // v0.25.2: HP system removed for Phase 1; vitality is the single life-line.
+        // Keep this setter as a no-op for backward compatibility with the legacy
+        // Area-1 spawn path (which has not been reactivated in Phase 1).
         this.heroHp    = hp;
         if (typeof hpMax === 'number') this.heroMaxHp = hpMax;
         this._emit('heroHpChange', this.heroHp);
     }
 
+    /**
+     * v0.25.2: any contact with an enemy / enemy projectile, or vitality reaching 0,
+     * triggers an immediate game over. No HP, no iframes, no knockback, no skateboard
+     * absorb in Phase 1.
+     */
+    killHero() {
+        if (this.gameState === GAME_STATES.GAME_OVER) return;
+        this.setGameState(GAME_STATES.GAME_OVER);
+        this._emit('playerDied');
+    }
+
+    /** @deprecated v0.25.2 — use killHero() in Phase 1. Retained for legacy path only. */
     damageHero(amount = 1) {
-        this.heroHp = Math.max(0, this.heroHp - amount);
-        this._emit('heroHpChange', this.heroHp);
-        if (this.heroHp <= 0) this.setGameState(GAME_STATES.GAME_OVER);
+        this.killHero();
     }
 
     // ── State machine ──────────────────────────────────────────────────────
@@ -99,9 +112,8 @@ export class StateManager {
         this._emit('hungerChange', this.hunger);
 
         if (this.hunger <= 0) {
-            const died = this.takeDamage();
-            if (!died) this.hunger = 30;  // small refill if skateboard blocked
-            else        this.hunger = 40;
+            // v0.25.2: vitality reaching 0 = immediate game over (Phase 1 single life-line).
+            this.killHero();
         }
     }
 

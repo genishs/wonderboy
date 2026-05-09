@@ -3,10 +3,12 @@
 //
 // All velocities in px/frame, all gravities in px/frame^2, all timers in frames.
 // The game loop runs a fixed 60 fps timestep, so 1 frame = ~16.67 ms.
-// Source of suggested values: docs/briefs/phase1-cast.md §4.
+// Source of suggested values: docs/briefs/phase1-cast.md §4 (with v0.25.x overrides).
+//
+// v0.25.2: HP / iframes / hurt-lock / knockback removed. Vitality is the single
+// life-line; any enemy contact or enemy projectile hit = immediate game over.
 
 export const HERO = Object.freeze({
-    maxHp:           3,
     walkSpeed:       3.5,
     jumpVy0:        -11.0,
     gravity:         0.55,
@@ -16,11 +18,6 @@ export const HERO = Object.freeze({
     attackCooldown:  10,
     attackOverlay:   8,
     maxProjectiles:  2,
-    iframesHurt:     36,
-    hurtLockFrames:  12,
-    knockbackVx:     3.0,
-    knockbackVy:    -2.0,
-    blinkFrames:     4,
 });
 
 export const STONEFLAKE = Object.freeze({

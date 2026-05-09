@@ -618,3 +618,43 @@ no console errors." Suggested smoke check for the dev-lead:
    currency). If v0.25 is meant to demo a pickup loop, we need a "stoneflake
    pebble" or "moss-fruit" pickup spec — that's a Phase 2 mechanic in my read,
    but flag it now if you want it pulled forward.
+
+---
+
+## Changelog
+
+Edits after the brief was first published (per `docs/briefs/README.md`).
+
+### 2026-05-09 — v0.25.2 (post-browser-smoke pivot)
+
+Driven by user feedback after browser-testing v0.25.1. Three of the five "Open
+questions" above are now decided differently from the original publication:
+
+- **Q1 Hero HP at Phase 1 — REVISED.** The hero's HP system is **removed**.
+  Vitality (the existing hunger gauge) is the **single life-line**: any contact
+  with a damaging enemy state, any enemy projectile hit, or vitality reaching
+  zero triggers an immediate game over. No hp counter, no i-frames, no
+  knockback, no hit-blink. The intent is "one wrong step ends the run, but
+  vitality keeps you moving."
+- **Q2 Run vs. walk — DECIDED.** No run button in v0.25.x. May be revisited
+  in v0.50 (Phase 2).
+- **Q3 Glassmoth translucency — DECIDED in v0.25.** 8-digit hex `#rrggbbaa`
+  permitted in palette entries (see `docs/design/contracts.md`).
+- **Q4 Sapling closed-state damage — UNCHANGED.** Closed = 0 contact damage
+  remains. Even with 1-hit-kill, the closed silhouette is still a navigable
+  rest-beat in the rhythm.
+- **Q5 Death drops — DECIDED.** No drops in Phase 1; revisit in Phase 3
+  mechanics work.
+
+**Key bindings updated** (v0.25.2):
+
+- Jump: `Z` (Space kept as accessibility alternate). `↑` and `W` no longer jump.
+- Attack: `X`. `Ctrl` removed (avoided browser-shortcut collision).
+
+**Smoke check #4 in §"Test-stage acceptance" above is now obsolete.** With HP
+removed, "three hits exactly to die" no longer applies. New smoke gate: any
+single hit ends the run.
+
+The cast itself (Reed Bramblestep + Crawlspine + Glassmoth + Bristlecone Sapling)
+is unchanged in identity, silhouette, FSM topology, and color-mood. Only the
+hero's hurt FSM and tunable set changed.
