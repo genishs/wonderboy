@@ -26,6 +26,16 @@ collapses Phase 1 to a single life-line and switches to Z/X for jump/attack.
   no longer jump — they were colliding with players' D-pad expectations.
 - **Attack tightened to X only** (Ctrl dropped — was colliding with browser
   shortcuts on some setups).
+- **Double-init bug fixed (root cause for "stuck camera" + "ghost player at spawn").**
+  `game.js` registered `init` on click, keydown, and touchstart with
+  `{once: true}`. Each listener removed only itself after firing, so the user
+  clicked to start (firing init), then pressed an arrow key (firing init
+  AGAIN). The second init re-ran `loadPhase1Test()` and spawned a second
+  player entity at the spawn position, overwriting `levelManager.playerEntity`
+  to point at the stationary one — which stalled camera follow (issue 3) and
+  left a visible ghost at the spawn (issue 4). Added a function-level
+  `_initFired` guard plus explicit `removeEventListener` calls for the sibling
+  listeners. Single source of init.
 - **Sapling closed-state still 0 damage** — design intent preserved even with
   1-hit-kill.
 - `docs/briefs/phase1-cast.md` gets a **Changelog section** documenting the
@@ -37,6 +47,7 @@ collapses Phase 1 to a single life-line and switches to Z/X for jump/attack.
   `src/mechanics/HeroController.js`, `src/mechanics/CombatSystem.js`,
   `src/graphics/Renderer.js`, `src/levels/LevelManager.js`,
   `src/config/PhaseOneTunables.js`
+- `game.js` (init guard for double-init bug)
 - `README.md`, `README.ko.md` (key tables)
 - `docs/briefs/phase1-cast.md` (Changelog section)
 - `docs/release-notes.md`, `docs/release-notes.ko.md` (this entry)
