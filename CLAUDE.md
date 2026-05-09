@@ -1,5 +1,7 @@
 # Wonder Boy Tribute — Agent Harness
 
+> **한국어 버전:** [CLAUDE.ko.md](./CLAUDE.ko.md)
+
 A fan-made, **original** action-platformer in the spirit of Sega's 1986/87 Wonder Boy series.
 Implemented in **Vanilla JavaScript + HTML5 Canvas** (no runtime dependencies, no build tooling).
 Deployed to **GitHub Pages** at https://genishs.github.io/wonderboy/.
@@ -144,6 +146,21 @@ Open http://localhost:8080.
 - File header comment: owning agent + a one-line TODO summary.
 - `TILE = 48` is fixed across the codebase — do not change without an architecture-level PR.
 - Canvas coordinates: top-left origin, x→right, y→down.
+
+---
+
+## Documentation policy (bilingual)
+
+User-facing docs ship in two languages: an English `name.md` (authoritative) and a Korean `name.ko.md` alongside it. The Korean version exists for fast reading by the project owner; the English version remains canonical for tooling, agents, and CI checks.
+
+- Translate prose only. Code blocks, file paths, identifiers, tunable numbers, and tables of fixed values stay verbatim.
+- Preserve original names (Reed Bramblestep, Crawlspine, Glassmoth, Bristlecone Sapling, stoneflake, seeddart) and tag names (v0.25, v0.25.1, …) in both versions.
+- Code comments, source file headers, and `assets/sprites/*.js` data files stay English-only.
+- `.claude/agents/*.md` files keep their English body authoritative (it is a system prompt). Add a top-level `## 한국어 요약` section so a human reader can grasp the role at a glance; the agent reads the whole file but the English instructions remain primary.
+- New docs in either language MUST be paired before the PR merges. release-master enforces this in review.
+
+Files explicitly NOT translated:
+- `assets/sprites/*.js`, `src/**/*.js`, workflow YAML, `package.json`, `index.html`, `.gitignore`, etc.
 
 ---
 

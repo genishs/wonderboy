@@ -1,5 +1,7 @@
 # Wonder Boy Tribute
 
+> **한국어 버전:** [README.ko.md](./README.ko.md)
+
 > An original, fan-made action-platformer in the spirit of Sega's 1986/87 Wonder Boy series.
 > Built in Vanilla JavaScript + HTML5 Canvas, deployed to GitHub Pages.
 
