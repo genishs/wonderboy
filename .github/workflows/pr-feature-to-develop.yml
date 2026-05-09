@@ -1,8 +1,9 @@
-name: PR Validation — feature/* → develop
+name: "PR Validation: feature/* to develop"
 
 on:
   pull_request:
     branches: [develop]
+  workflow_dispatch:
 
 jobs:
   validate:
