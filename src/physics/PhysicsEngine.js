@@ -14,12 +14,20 @@ export class PhysicsEngine {
         if (!level) return;
 
         for (const p of ecs.query('transform', 'velocity', 'physics', 'player')) {
+            // Phase 1 hero is owned by HeroController — skip the legacy player path.
+            if (p.player._phase1) continue;
             this._updatePlayer(p, state, level, input);
         }
         for (const proj of ecs.query('transform', 'velocity', 'projectile')) {
+            // Stoneflakes & seeddarts are owned by their own systems — only step legacy 'axe' projectiles here.
+            if (proj.projectile.type !== 'axe') continue;
             this._updateProjectile(proj, level, ecs);
         }
         for (const e of ecs.query('transform', 'velocity', 'physics', 'enemy')) {
+            // Phase 1 enemies handle their own motion (via EnemyAI). Only step true 'patrol' enemies
+            // (which Phase 1 also marks for crawlspines, but EnemyAI manages them above the physics step).
+            // To prevent double-gravity for non-walking enemies, gate by ai === 'patrol'.
+            if (e.enemy.ai !== 'patrol') continue;
             this._updateEnemy(e, level, ecs);
         }
     }
