@@ -1,4 +1,4 @@
-name: "PR Validation: feature/* to develop"
+name: "PR Validation"
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    name: Syntax & Structure Check
+    name: Syntax and Structure Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,9 +17,18 @@ jobs:
           echo "=== JavaScript syntax check ==="
           FAIL=0
           while IFS= read -r f; do
-            node --check "$f" && echo "✓ $f" || { echo "✗ $f"; FAIL=1; }
-          done < <(find . -name "*.js" ! -path "*/node_modules/*")
-          [ $FAIL -eq 0 ] && echo "All JS files OK" || exit 1
+            if node --check "$f"; then
+              echo "OK: $f"
+            else
+              echo "BAD: $f"
+              FAIL=1
+            fi
+          done < <(find . -name "*.js" -not -path "./node_modules/*")
+          if [ $FAIL -eq 0 ]; then
+            echo "All JS files OK"
+          else
+            exit 1
+          fi
 
       - name: Verify required file structure
         run: |
@@ -51,20 +60,26 @@ jobs:
           )
           FAIL=0
           for f in "${files[@]}"; do
-            [ -f "$f" ] && echo "✓ $f" || { echo "✗ MISSING: $f"; FAIL=1; }
+            if [ -f "$f" ]; then
+              echo "OK: $f"
+            else
+              echo "MISSING: $f"
+              FAIL=1
+            fi
           done
-          [ $FAIL -eq 0 ] || exit 1
+          if [ $FAIL -ne 0 ]; then
+            exit 1
+          fi
 
-      - name: Guard: no debugger statements
+      - name: Guard - no debugger statements
         run: |
           if grep -rn "debugger" src/ --include="*.js"; then
             echo "ERROR: Remove debugger statements before merging."
             exit 1
           fi
-          echo "✓ No debugger statements"
+          echo "OK: no debugger statements"
 
-      - name: Guard: no console.error left in production paths
+      - name: Guard - count console.error
         run: |
           COUNT=$(grep -rn "console\.error" src/ --include="*.js" | wc -l)
           echo "console.error occurrences: $COUNT"
-          # Warn only, do not fail (some error logging is acceptable)
