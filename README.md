@@ -26,8 +26,8 @@
 | Key             | Action                                        |
 |-----------------|-----------------------------------------------|
 | ← → / A D       | Move                                          |
-| ↑ / W / Space   | Jump (variable height — hold longer = higher) |
-| X / Ctrl        | Throw weapon                                  |
+| Z / Space       | Jump (hold longer = higher)                   |
+| X               | Throw weapon                                  |
 | P / Esc         | Pause                                         |
 
 **Mobile** (touch): left third → move left; bottom-right third → jump; top-right third → attack.

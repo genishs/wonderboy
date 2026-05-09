@@ -86,23 +86,17 @@ export class LevelManager {
         ecs.addComponent(player, 'player',     {
             facingRight: true,
             isJumping: false,
-            hp: HERO.maxHp,
-            hpMax: HERO.maxHp,
-            iframes: 0,
             attackCooldown: 0,
             attackOverlayFrames: 0,
-            hurtFrames: 0,
             coyoteTimer: 0,
             jumpBuffer: 0,
-            hurtSourceX: 0,
             aiState: 'idle',
             _phase1: true,
         });
         ecs.addComponent(player, 'sprite', { name: 'hero', anim: 'idle', frame: 0, scale: 3, flip: false, color: '#4a7c3a' });
         this.playerEntity = player;
 
-        // Initialize state HP
-        if (typeof state.setHeroHp === 'function') state.setHeroHp(HERO.maxHp, HERO.maxHp);
+        // v0.25.2: HP system removed. Vitality (state.hunger) is the single life-line.
 
         // Enemies
         for (const [col, row, type, dir] of PHASE1_STAGE_DATA.enemies) {

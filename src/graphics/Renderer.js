@@ -107,11 +107,7 @@ export class Renderer {
         const sx  = tf.x - scrollX;
         const sy  = tf.y;
 
-        // Hero iframe blink: alternating 4-frame visible/skipped pattern
-        if (pl && pl.iframes > 0) {
-            const block = Math.floor(pl.iframes / 4);
-            if (block % 2 === 0) return; // skip render this frame block
-        }
+        // v0.25.2: iframe blink removed — hero is 1-hit-kill, no invincibility.
 
         // Resolve sprite-cache entry by sp.name (Phase 1 path) or fall back to placeholder.
         const cache = this.spriteCache;
@@ -270,23 +266,9 @@ export class Renderer {
         ctx.fillText(`SCORE ${String(state.score).padStart(6,'0')}`, PAD, 20);
         ctx.fillText(`HI    ${String(state.highScore).padStart(6,'0')}`, PAD, 38);
 
-        // Hero hearts (Phase 1) + lives count
-        ctx.textAlign = 'right';
-        const hp = state.heroHp ?? state.lives;
-        const hpMax = state.heroMaxHp ?? 3;
-        const heartsX = this.width - PAD;
-        ctx.fillStyle = '#FFF';
-        ctx.fillText(`HP`, heartsX - hpMax * 18 - 32, 20);
-        for (let i = 0; i < hpMax; i++) {
-            const x = heartsX - (hpMax - i) * 18;
-            ctx.fillStyle = (i < hp) ? '#E94560' : '#3A1A20';
-            ctx.fillRect(x, 8, 14, 14);
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, 8, 14, 14);
-        }
+        // v0.25.2: HP heart row removed. Vitality bar is the single life-line in Phase 1.
 
-        // Vitality bar (kept from legacy; harmless in Phase 1)
+        // Vitality bar — Phase 1 single life-line (depletes over time; reaching 0 = game over).
         const bw = 140, bh = 14;
         const bx = (this.width - bw) / 2, by = 6;
         const ratio = state.hunger / state.maxHunger;

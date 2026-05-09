@@ -1,6 +1,62 @@
 # Release notes
 
+> **한국어 버전:** [release-notes.ko.md](./release-notes.ko.md)
+
 Owned by `release-master`. One section per quartile tag, newest on top.
+
+---
+
+## v0.25.2 — Phase 1 patch: HP removal + Z/X key bindings
+
+**Released:** 2026-05-09 (planned)
+**Tag:** `v0.25.2` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+User feedback after v0.25.1's browser smoke pointed at a structural overlap (HP
+hearts + Vitality bar both tracking life) and an awkward jump-key choice. v0.25.2
+collapses Phase 1 to a single life-line and switches to Z/X for jump/attack.
+
+### Fixes
+
+- **HP system removed.** No more hp/iframes/hurt-lock/knockback. Any contact
+  with a damaging enemy state, any enemy projectile hit, or vitality reaching
+  zero triggers an immediate game over. Vitality is the single life-line.
+- **HP heart HUD removed**; only the Vitality bar remains.
+- **Jump moved to Z key** (Space kept as accessibility alternate). `↑` and `W`
+  no longer jump — they were colliding with players' D-pad expectations.
+- **Attack tightened to X only** (Ctrl dropped — was colliding with browser
+  shortcuts on some setups).
+- **Sapling closed-state still 0 damage** — design intent preserved even with
+  1-hit-kill.
+- `docs/briefs/phase1-cast.md` gets a **Changelog section** documenting the
+  hp/iframes pivot and key-binding change.
+
+### Files touched
+
+- `src/core/InputHandler.js`, `src/core/StateManager.js`,
+  `src/mechanics/HeroController.js`, `src/mechanics/CombatSystem.js`,
+  `src/graphics/Renderer.js`, `src/levels/LevelManager.js`,
+  `src/config/PhaseOneTunables.js`
+- `README.md`, `README.ko.md` (key tables)
+- `docs/briefs/phase1-cast.md` (Changelog section)
+- `docs/release-notes.md`, `docs/release-notes.ko.md` (this entry)
+
+### What did NOT change
+
+- Cast identity (Reed Bramblestep + Crawlspine + Glassmoth + Bristlecone
+  Sapling), sprite modules, palette, FSM topology.
+- Camera scroll, animation timing, enemy feel tunings (all from v0.25.1 stay).
+- CI workflow, deploy pipeline, branch strategy.
+
+### PRs in this patch
+
+- #11 `docs(release): bilingual docs (PR 1) — release-master 영역` (already merged before this patch)
+- next: `release(v0.25.2): HP removal + Z/X keys` (this PR family)
+
+### Tribute posture
+
+All changes apply to original characters and original code authored for this
+project. No reference to or reproduction of copyrighted material.
 
 ---
 
