@@ -23,10 +23,20 @@ export class Renderer {
         this.height       = h;
         this._imgs        = new Map(); // legacy image registry (unused for Phase 1)
         this.spriteCache  = null;       // wired by game.js after init
-        this._frame       = 0;          // global frame counter for animation timing
+        this._frame       = 0;          // (legacy) render-rate frame counter — unused for anim timing
+        this._simFrame    = 0;          // fixed-step simulation frame counter (driven by GameLoop.tick())
     }
 
     // ── Frame lifecycle ────────────────────────────────────────────────────
+    /**
+     * Called once per fixed-step simulation frame from GameLoop._update.
+     * Drives animation indices so they stay locked to the 60 Hz simulation rate
+     * regardless of the host monitor's refresh rate.
+     */
+    tick() {
+        this._simFrame++;
+    }
+
     clear() {
         this.ctx.fillStyle = '#5C94FC';
         this.ctx.fillRect(0, 0, this.width, this.height);
@@ -144,8 +154,16 @@ export class Renderer {
         const frames = animKey ? entry.frames[animKey] : null;
         if (!frames || frames.length === 0) return;
 
+        // Reset anim cycle when the chosen anim key changes — keeps idle→walk→jump
+        // transitions from popping into a random mid-cycle frame.
+        if (sp._lastAnim !== animKey) {
+            sp._lastAnim = animKey;
+            sp._animStartFrame = this._simFrame;
+        }
+
         const fps = meta.fps || 8;
-        const f = Math.floor((this._frame * fps / 60)) % frames.length;
+        const elapsed = this._simFrame - (sp._animStartFrame ?? this._simFrame);
+        const f = Math.floor(elapsed * fps / 60) % frames.length;
         const canvas = frames[f];
 
         const drawW = meta.w * scale;
@@ -180,7 +198,14 @@ export class Renderer {
             const atkAnim = pickAnim(entry, 'attack', ['attack', 'idle']);
             if (atkAnim && atkAnim !== animKey) {
                 const af = entry.frames[atkAnim];
-                const aIdx = Math.floor((this._frame * fps / 60)) % af.length;
+                // Reset attack-overlay cycle on each fresh attack (overlay went 0 -> positive
+                // since the last render) or when the resolved attack-anim key changes.
+                if (!sp._attackOverlayWasActive || sp._lastAttackAnim !== atkAnim) {
+                    sp._lastAttackAnim = atkAnim;
+                    sp._attackStartFrame = this._simFrame;
+                }
+                const atkElapsed = this._simFrame - (sp._attackStartFrame ?? this._simFrame);
+                const aIdx = Math.floor(atkElapsed * fps / 60) % af.length;
                 const aCanvas = af[aIdx];
                 if (flip) {
                     ctx.save();
@@ -191,6 +216,9 @@ export class Renderer {
                     ctx.drawImage(aCanvas, drawX, drawY, drawW, drawH);
                 }
             }
+            sp._attackOverlayWasActive = true;
+        } else if (pl) {
+            sp._attackOverlayWasActive = false;
         }
 
         if (restoreAlpha) ctx.globalAlpha = 1;

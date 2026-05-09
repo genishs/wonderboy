@@ -1,30 +1,42 @@
 // owning agent: dev-lead
-// TODO: hand-coded one-screen Phase 1 test stage (16x12 tiles, no scroll).
+// TODO: hand-coded Phase 1 test stage (32x12 tiles, scrolls horizontally).
 //
-// Layout (rows 0=top, 11=bottom; cols 0..15):
-//   floor: rows 10-11 fully solid (ground)
-//   left platform : row 7 cols 5-7  (one-way)
-//   right platform: row 7 cols 11-13 (one-way)
-//   player spawn  : col 1 row 9 (just above floor)
-//   crawlspine A  : col 4  row 9
-//   crawlspine B  : col 11 row 9
-//   glassmoth     : col 8  drifting at altitude
-//   sapling       : col 6  row 6 (sitting on left platform)
+// Layout (rows 0=top, 11=bottom; cols 0..31):
+//   floor: rows 10-11 fully solid (cols 0..31)
+//   platform A (one-way) row 7  cols 5..7
+//   platform B (one-way) row 7  cols 11..13
+//   platform C (one-way) row 5  cols 12..14    (high middle)
+//   platform D (one-way) row 7  cols 18..20
+//   platform E (one-way) row 5  cols 23..25    (high right)
+//   platform F (one-way) row 7  cols 27..29
+//
+// Spawns:
+//   playerStart  : col 1, row 9
+//   crawlspine   : col 5  row 9  dir +1
+//   sapling      : col 6  row 6   (on platform A)
+//   glassmoth    : col 14 row 3  dir +1
+//   sapling      : col 19 row 6   (on platform D)
+//   crawlspine   : col 22 row 9  dir -1
+//   glassmoth    : col 26 row 3  dir -1
+//
+// Walls at col 0 and col 31 are implicit — Crawlspines turn at the canvas edge.
 
 import { TileMap, TILE_TYPES } from './TileMap.js';
 
 export const PHASE1_STAGE_DATA = {
     id: 'phase1-test',
-    cols: 16,
+    cols: 32,
     rows: 12,
     tileData: buildTiles(),
     items: [],
     enemies: [
         // [col, row, type, dir]
-        [4,  9, 'crawlspine', -1],
-        [11, 9, 'crawlspine',  1],
-        [8,  3, 'glassmoth',   1], // drifts at altitude
-        [6,  6, 'sapling',    -1], // on left platform; faces left initially
+        [5,  9, 'crawlspine',  1],
+        [6,  6, 'sapling',    -1], // on platform A
+        [14, 3, 'glassmoth',   1], // mid-air drift, baseY ~ row 3
+        [19, 6, 'sapling',     1], // on platform D
+        [22, 9, 'crawlspine', -1],
+        [26, 3, 'glassmoth',  -1], // mid-air drift on right
     ],
     playerStart: { col: 1, row: 9 },
     goalX: 99, // off-stage; phase 1 has no goal
@@ -34,19 +46,31 @@ export const buildPhase1TestMap = () => new TileMap(PHASE1_STAGE_DATA);
 
 function buildTiles() {
     const tiles = [];
-    const COLS = 16;
+    const COLS = 32;
 
-    // Solid floor rows 10 and 11
+    // Solid floor rows 10 and 11 across the whole stage
     for (let c = 0; c < COLS; c++) {
         tiles.push([c, 10, TILE_TYPES.GROUND]);
         tiles.push([c, 11, TILE_TYPES.GROUND]);
     }
 
-    // Left one-way platform (row 7, cols 5..7)
+    // Platform A (one-way) row 7  cols 5..7
     for (let c = 5; c <= 7; c++) tiles.push([c, 7, TILE_TYPES.PLATFORM]);
 
-    // Right one-way platform (row 7, cols 11..13)
+    // Platform B (one-way) row 7  cols 11..13
     for (let c = 11; c <= 13; c++) tiles.push([c, 7, TILE_TYPES.PLATFORM]);
+
+    // Platform C (one-way) row 5  cols 12..14   (high middle)
+    for (let c = 12; c <= 14; c++) tiles.push([c, 5, TILE_TYPES.PLATFORM]);
+
+    // Platform D (one-way) row 7  cols 18..20
+    for (let c = 18; c <= 20; c++) tiles.push([c, 7, TILE_TYPES.PLATFORM]);
+
+    // Platform E (one-way) row 5  cols 23..25   (high right)
+    for (let c = 23; c <= 25; c++) tiles.push([c, 5, TILE_TYPES.PLATFORM]);
+
+    // Platform F (one-way) row 7  cols 27..29
+    for (let c = 27; c <= 29; c++) tiles.push([c, 7, TILE_TYPES.PLATFORM]);
 
     return tiles;
 }

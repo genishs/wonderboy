@@ -73,6 +73,11 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
             if (stateArg.gameState === 'PLAYING') stateArg.setGameState('PAUSED');
             else if (stateArg.gameState === 'PAUSED') stateArg.setGameState('PLAYING');
         }
+        // GameLoop now calls mechanics.update even while PAUSED so the toggle
+        // above can fire. After handling that, short-circuit so the rest of the
+        // Phase 1 systems (hero, projectiles, AI, combat, state heartbeat) freeze.
+        if (stateArg.gameState === 'PAUSED') return;
+
         // Drive hero, projectiles, AI, combat
         heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, stoneflakeSystem);
         stoneflakeSystem.update(ecsArg, levelManager.currentLevel);
