@@ -1,8 +1,9 @@
-/**
- * Agent 3 (Graphics & Animation Director) owns this file.
- * Current state: placeholder rectangles for all sprites.
- * Replace _drawEntity() and drawBackground() with SpriteSheet calls once assets land in assets/sprites/.
- */
+// owning agent: dev-lead
+// TODO: Renderer — placeholder rectangles for unmapped entities; SpriteCache draws
+//       for entities the Design team has shipped. Phase 1 adds anchor-formula draws,
+//       facing-flip via ctx.scale(-1, 1), and iframe-blink for hurt hero.
+
+import { pickAnim } from './SpriteCache.js';
 
 const TILE_COLORS = {
     1: '#7B4F2E',  // ground / earth
@@ -17,16 +18,19 @@ const TILE_COLORS = {
 
 export class Renderer {
     constructor(ctx, w, h) {
-        this.ctx    = ctx;
-        this.width  = w;
-        this.height = h;
-        this._imgs  = new Map(); // name → HTMLImageElement
+        this.ctx          = ctx;
+        this.width        = w;
+        this.height       = h;
+        this._imgs        = new Map(); // legacy image registry (unused for Phase 1)
+        this.spriteCache  = null;       // wired by game.js after init
+        this._frame       = 0;          // global frame counter for animation timing
     }
 
     // ── Frame lifecycle ────────────────────────────────────────────────────
     clear() {
         this.ctx.fillStyle = '#5C94FC';
         this.ctx.fillRect(0, 0, this.width, this.height);
+        this._frame++;
     }
 
     // ── Title / start screen ───────────────────────────────────────────────
@@ -49,12 +53,9 @@ export class Renderer {
         ctx.fillText('PRESS ANY KEY OR CLICK TO START', this.width / 2, this.height / 2 + 60);
     }
 
-    // ── Parallax background (Agent 3: implement ParallaxBackground layers) ─
+    // ── Parallax background (placeholder for Phase 2) ─────────────────────
     drawBackground(scrollX = 0) {
-        // TODO: Agent 3 — replace with multi-layer parallax scrolling
-        // Layer 0 (far): sky (already drawn in clear())
-        // Layer 1 (mid): distant mountains / clouds at 0.3× scroll
-        // Layer 2 (near): trees / hills at 0.6× scroll
+        // intentionally empty — sky already painted by clear()
     }
 
     // ── Tile map ───────────────────────────────────────────────────────────
@@ -83,29 +84,151 @@ export class Renderer {
     // ── Entities ───────────────────────────────────────────────────────────
     drawEntities(ecs, scrollX = 0) {
         for (const e of ecs.query('transform', 'sprite')) {
+            // Pull supplemental components for renderer logic
+            e.player = ecs.getComponent(e.id, 'player');
+            e.enemy  = ecs.getComponent(e.id, 'enemy');
+            e.projectile = ecs.getComponent(e.id, 'projectile');
             this._drawEntity(e, scrollX);
         }
     }
 
-    _drawEntity({ transform: tf, sprite: sp, player: pl, enemy: en }, scrollX) {
+    _drawEntity({ transform: tf, sprite: sp, player: pl, enemy: en, projectile: pj }, scrollX) {
         const ctx = this.ctx;
         const sx  = tf.x - scrollX;
         const sy  = tf.y;
 
-        if (sp.image && this._imgs.has(sp.sheet)) {
-            // TODO: Agent 3 — draw from SpriteSheet using sp.frame
-        } else {
-            // Placeholder: colored rectangle
-            ctx.fillStyle = sp.color ?? '#FF8C00';
-            ctx.fillRect(sx, sy, tf.w, tf.h);
+        // Hero iframe blink: alternating 4-frame visible/skipped pattern
+        if (pl && pl.iframes > 0) {
+            const block = Math.floor(pl.iframes / 4);
+            if (block % 2 === 0) return; // skip render this frame block
+        }
 
-            // Direction indicator
-            if (pl) {
-                ctx.fillStyle = '#FFF';
-                const eyeX = pl.facingRight ? sx + tf.w - 10 : sx + 4;
-                ctx.fillRect(eyeX, sy + 8, 6, 6);
+        // Resolve sprite-cache entry by sp.name (Phase 1 path) or fall back to placeholder.
+        const cache = this.spriteCache;
+        const entry = (sp.name && cache?.has(sp.name)) ? cache.get(sp.name) : null;
+
+        if (entry) {
+            this._drawCached(entry, sp, tf, scrollX, pl, en, pj);
+            return;
+        }
+
+        // Placeholder: colored rectangle
+        const color = sp.color ?? this._fallbackColor(en, pj) ?? '#FF8C00';
+        // Death fade for enemies waiting on deathFrames
+        let alpha = 1;
+        if (en && en.ai === 'dead') {
+            const f = en.deathFrames || 0;
+            const max = (en.type === 'crawlspine' ? 30 : 45);
+            alpha = Math.max(0, f / max);
+            ctx.globalAlpha = alpha;
+        }
+        ctx.fillStyle = color;
+        ctx.fillRect(sx, sy, tf.w, tf.h);
+
+        if (pl) {
+            ctx.fillStyle = '#FFF';
+            const eyeX = pl.facingRight ? sx + tf.w - 10 : sx + 4;
+            ctx.fillRect(eyeX, sy + 8, 6, 6);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    _drawCached(entry, sp, tf, scrollX, pl, en, pj) {
+        const ctx = this.ctx;
+        const meta = entry.meta;
+        const scale = sp.scale || 2;
+
+        // Pick animation key based on entity state
+        const requested = this._animKeyFor(sp, pl, en, pj);
+        const animKey = pickAnim(entry, requested);
+        const frames = animKey ? entry.frames[animKey] : null;
+        if (!frames || frames.length === 0) return;
+
+        const fps = meta.fps || 8;
+        const f = Math.floor((this._frame * fps / 60)) % frames.length;
+        const canvas = frames[f];
+
+        const drawW = meta.w * scale;
+        const drawH = meta.h * scale;
+        const drawX = tf.x + tf.w / 2 - meta.anchor.x * scale - scrollX;
+        const drawY = Math.floor(tf.y + tf.h - (meta.anchor.y + 1) * scale);
+
+        // Death fade
+        let restoreAlpha = false;
+        if (en && en.ai === 'dead') {
+            const max = (en.type === 'crawlspine' ? 30 : 45);
+            ctx.globalAlpha = Math.max(0, (en.deathFrames || 0) / max);
+            restoreAlpha = true;
+        }
+        // Hurt flash for enemies (every-other frame brighter)
+        if (en && en.hurtFrames > 0 && (en.hurtFrames % 2 === 0)) {
+            ctx.globalCompositeOperation = 'lighter';
+        }
+
+        const flip = sp.flip === true || (pl && !pl.facingRight);
+        if (flip) {
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(canvas, -(drawX + drawW), drawY, drawW, drawH);
+            ctx.restore();
+        } else {
+            ctx.drawImage(canvas, drawX, drawY, drawW, drawH);
+        }
+
+        // Draw attack overlay for hero on top of locomotion frame
+        if (pl && pl.attackOverlayFrames > 0) {
+            const atkAnim = pickAnim(entry, 'attack', ['attack', 'idle']);
+            if (atkAnim && atkAnim !== animKey) {
+                const af = entry.frames[atkAnim];
+                const aIdx = Math.floor((this._frame * fps / 60)) % af.length;
+                const aCanvas = af[aIdx];
+                if (flip) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(aCanvas, -(drawX + drawW), drawY, drawW, drawH);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(aCanvas, drawX, drawY, drawW, drawH);
+                }
             }
         }
+
+        if (restoreAlpha) ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    _animKeyFor(sp, pl, en, pj) {
+        if (pl) {
+            // Map hero FSM state → sprite animation key (sprite has 'jump' but no 'jump_rising'/'jump_falling')
+            const s = pl.aiState || 'idle';
+            if (s === 'jump_rising' || s === 'jump_falling') return 'jump';
+            if (s === 'walk' || s === 'idle' || s === 'attack' || s === 'hurt' || s === 'dead') return s;
+            return s;
+        }
+        if (en) {
+            if (en.ai === 'dead')   return 'dead';
+            if (en.ai === 'patrol' || en.ai === 'turn') return 'walk';
+            if (en.type === 'glassmoth') {
+                if (en.ai === 'swoop')   return 'dive';     // sprite uses 'dive' (single frame)
+                if (en.ai === 'recover') return 'drift';
+                return 'drift';
+            }
+            if (en.type === 'sapling') return en.ai; // closed | windup | firing | cooldown
+            return en.ai;
+        }
+        if (pj) return sp.anim || 'fly';
+        return sp.anim || 'idle';
+    }
+
+    _fallbackColor(en, pj) {
+        if (pj?.type === 'stoneflake') return '#d8c8a8';
+        if (pj?.type === 'seeddart')   return '#f0e8c8';
+        if (en?.type === 'crawlspine') return '#7a5c2e';
+        if (en?.type === 'glassmoth')  return '#e0c0d8';
+        if (en?.type === 'sapling')    return '#3a6024';
+        const m = { snail: '#4488FF', bee: '#FFAA00', cobra: '#00CC44', frog: '#33BB33', stone: '#999' };
+        if (en) return m[en.type] ?? '#FF0000';
+        return null;
     }
 
     // ── HUD ────────────────────────────────────────────────────────────────
@@ -119,10 +242,23 @@ export class Renderer {
         ctx.fillText(`SCORE ${String(state.score).padStart(6,'0')}`, PAD, 20);
         ctx.fillText(`HI    ${String(state.highScore).padStart(6,'0')}`, PAD, 38);
 
+        // Hero hearts (Phase 1) + lives count
         ctx.textAlign = 'right';
-        ctx.fillText(`♥ × ${state.lives}`, this.width - PAD, 20);
+        const hp = state.heroHp ?? state.lives;
+        const hpMax = state.heroMaxHp ?? 3;
+        const heartsX = this.width - PAD;
+        ctx.fillStyle = '#FFF';
+        ctx.fillText(`HP`, heartsX - hpMax * 18 - 32, 20);
+        for (let i = 0; i < hpMax; i++) {
+            const x = heartsX - (hpMax - i) * 18;
+            ctx.fillStyle = (i < hp) ? '#E94560' : '#3A1A20';
+            ctx.fillRect(x, 8, 14, 14);
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, 8, 14, 14);
+        }
 
-        // Vitality bar
+        // Vitality bar (kept from legacy; harmless in Phase 1)
         const bw = 140, bh = 14;
         const bx = (this.width - bw) / 2, by = 6;
         const ratio = state.hunger / state.maxHunger;
@@ -138,16 +274,6 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFF';
         ctx.fillText('VITALITY', this.width / 2, by + bh + 11);
-
-        // Axe count & skateboard
-        ctx.font = '14px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#FFF';
-        ctx.fillText(`AXE×${state.axeCount}`, PAD, this.height - 10);
-        if (state.hasSkateboard) {
-            ctx.fillStyle = '#FFD700';
-            ctx.fillText('[SKATEBOARD]', PAD + 80, this.height - 10);
-        }
 
         // Pause / Game Over overlays
         if (state.gameState === 'PAUSED') {
@@ -168,16 +294,16 @@ export class Renderer {
             ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 20);
             ctx.fillStyle = '#FFF';
             ctx.font = '18px monospace';
-            ctx.fillText('PRESS ANY KEY', this.width / 2, this.height / 2 + 30);
+            ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 30);
         }
     }
 
-    // ── Asset loading helper ───────────────────────────────────────────────
+    // ── Asset loading helper (legacy; not used in Phase 1) ─────────────────
     loadImage(name, src) {
         return new Promise(resolve => {
             const img = new Image();
-            img.onload = () => { this._imgs.set(name, img); resolve(); };
-            img.onerror = resolve; // graceful fallback to placeholders
+            img.onload  = () => { this._imgs.set(name, img); resolve(); };
+            img.onerror = resolve;
             img.src = src;
         });
     }

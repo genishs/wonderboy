@@ -1,5 +1,14 @@
+// owning agent: dev-lead
+// TODO: LevelManager — legacy Area 1 loader + Phase 1 single-stage loader.
+//       Phase 1 mode (`_isPhase1Test = true`) bypasses camera scroll, item drops,
+//       and legacy hazard/enemy/goal collision checks (those run in HeroController +
+//       CombatSystem + EnemyAI for Phase 1).
+
 import { AREA_DATA } from './LevelData.js';
 import { TileMap }   from './TileMap.js';
+import { buildPhase1TestMap, PHASE1_STAGE_DATA } from './TestStage.js';
+import { initEnemy } from '../mechanics/EnemyAI.js';
+import { HERO } from '../config/PhaseOneTunables.js';
 
 const TILE = 48;
 const VIEWPORT_W = 768;
@@ -16,9 +25,11 @@ export class LevelManager {
         this.scrollX       = 0;
         this.playerEntity  = null;
         this._areaIndex    = 1;
+        this._isPhase1Test = false;
     }
 
     loadLevel(area, ecs, state) {
+        this._isPhase1Test = false;
         const areaData = AREA_DATA[area];
         if (!areaData) throw new Error(`Area ${area} not defined in LevelData.js`);
         this._areaIndex   = area;
@@ -29,8 +40,22 @@ export class LevelManager {
         if (ecs && state) this._spawnAll(ecs, state);
     }
 
+    /** Phase 1 single-screen test stage. Bypasses scroll, items, hazards, goals. */
+    loadPhase1Test(ecs, state) {
+        this._isPhase1Test = true;
+        this.currentLevel = buildPhase1TestMap();
+        this.scrollX = 0;
+
+        if (ecs && state) this._spawnPhase1(ecs, state);
+    }
+
     update(dt, ecs, state) {
         if (!this.currentLevel || !this.playerEntity) return;
+
+        if (this._isPhase1Test) {
+            this.scrollX = 0; // locked camera
+            return;
+        }
 
         const tf = ecs.getComponent(this.playerEntity, 'transform');
         if (!tf) return;
@@ -45,7 +70,76 @@ export class LevelManager {
         this._checkGoal(ecs, state);
     }
 
-    // ── Spawn ──────────────────────────────────────────────────────────────
+    // ── Spawn (Phase 1) ────────────────────────────────────────────────────
+    _spawnPhase1(ecs, state) {
+        const lvl = this.currentLevel;
+
+        // Player (Reed) — hitbox 30 x 66, sprite 16x24 @ scale 3
+        const player = ecs.createEntity();
+        const pw = 30, ph = 66;
+        const px = lvl.playerStart.col * TILE + (TILE - pw) / 2;
+        const py = lvl.playerStart.row * TILE + TILE - ph;
+        ecs.addComponent(player, 'transform',  { x: px, y: py, w: pw, h: ph });
+        ecs.addComponent(player, 'velocity',   { vx: 0, vy: 0 });
+        ecs.addComponent(player, 'physics',    { onGround: false, onIce: false, jumpHoldLeft: 0 });
+        ecs.addComponent(player, 'player',     {
+            facingRight: true,
+            isJumping: false,
+            hp: HERO.maxHp,
+            hpMax: HERO.maxHp,
+            iframes: 0,
+            attackCooldown: 0,
+            attackOverlayFrames: 0,
+            hurtFrames: 0,
+            coyoteTimer: 0,
+            jumpBuffer: 0,
+            hurtSourceX: 0,
+            aiState: 'idle',
+            _phase1: true,
+        });
+        ecs.addComponent(player, 'sprite', { name: 'hero', anim: 'idle', frame: 0, scale: 3, flip: false, color: '#4a7c3a' });
+        this.playerEntity = player;
+
+        // Initialize state HP
+        if (typeof state.setHeroHp === 'function') state.setHeroHp(HERO.maxHp, HERO.maxHp);
+
+        // Enemies
+        for (const [col, row, type, dir] of PHASE1_STAGE_DATA.enemies) {
+            const d = dir ?? -1;
+
+            let w, h, ax, ay;
+            if (type === 'crawlspine') { w = 44; h = 22; }
+            else if (type === 'glassmoth') { w = 36; h = 28; }
+            else if (type === 'sapling') { w = 28; h = 66; }
+            else { w = 36; h = 36; }
+
+            // Place feet/anchor on the row tile-bottom
+            ax = col * TILE + (TILE - w) / 2;
+            ay = (row + 1) * TILE - h;
+            // Glassmoth flies — keep at requested cell (airborne)
+            if (type === 'glassmoth') {
+                ay = row * TILE; // body around the cell top (will compute baseY later)
+            }
+
+            const e = ecs.createEntity();
+            ecs.addComponent(e, 'transform', { x: ax, y: ay, w, h });
+            ecs.addComponent(e, 'velocity',  { vx: 0, vy: 0 });
+            ecs.addComponent(e, 'physics',   { onGround: false, onIce: false, jumpHoldLeft: 0 });
+            ecs.addComponent(e, 'enemy',     initEnemy(type, d));
+
+            const spriteName = type;
+            ecs.addComponent(e, 'sprite', {
+                name: spriteName,
+                anim: 'walk',
+                frame: 0,
+                scale: (type === 'sapling' ? 3 : 2),
+                flip: d < 0,
+                color: this._enemyColor(type),
+            });
+        }
+    }
+
+    // ── Spawn (Legacy Area 1) ──────────────────────────────────────────────
     _spawnAll(ecs, state) {
         const lvl = this.currentLevel;
 
@@ -78,7 +172,7 @@ export class LevelManager {
         }
     }
 
-    // ── Collision checks ───────────────────────────────────────────────────
+    // ── Collision checks (legacy only) ─────────────────────────────────────
     _checkItems(ecs, state) {
         const ptf = ecs.getComponent(this.playerEntity, 'transform');
         for (const { id, transform: tf, item } of ecs.query('transform', 'item')) {
@@ -142,7 +236,10 @@ export class LevelManager {
     }
 
     _enemyColor(type) {
-        const m = { snail: '#4488FF', bee: '#FFAA00', cobra: '#00CC44', frog: '#33BB33', stone: '#999' };
+        const m = {
+            snail: '#4488FF', bee: '#FFAA00', cobra: '#00CC44', frog: '#33BB33', stone: '#999',
+            crawlspine: '#7a5c2e', glassmoth: '#e0c0d8', sapling: '#3a6024',
+        };
         return m[type] ?? '#FF0000';
     }
 }

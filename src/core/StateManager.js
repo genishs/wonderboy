@@ -28,7 +28,23 @@ export class StateManager {
         // ── Hit invincibility ─────────────────────────────────────────────
         this.invincibleTimer = 0;     // frames
 
+        // ── Phase 1: hero HP (additive — does not replace `lives`) ────────
+        this.heroHp    = 3;
+        this.heroMaxHp = 3;
+
         this._listeners = {};
+    }
+
+    setHeroHp(hp, hpMax) {
+        this.heroHp    = hp;
+        if (typeof hpMax === 'number') this.heroMaxHp = hpMax;
+        this._emit('heroHpChange', this.heroHp);
+    }
+
+    damageHero(amount = 1) {
+        this.heroHp = Math.max(0, this.heroHp - amount);
+        this._emit('heroHpChange', this.heroHp);
+        if (this.heroHp <= 0) this.setGameState(GAME_STATES.GAME_OVER);
     }
 
     // ── State machine ──────────────────────────────────────────────────────
