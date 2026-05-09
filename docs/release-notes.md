@@ -4,6 +4,51 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.25.1 — Phase 1 patch: input edge fix + animation timing + scrollable stage + enemy feel
+
+**Released:** 2026-05-09 (planned)
+**Tag:** `v0.25.1` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+Browser smoke after v0.25 surfaced four issues. v0.25.1 addresses all four in a single dev-lead patch (PR #8) plus a small release-notes update (this PR).
+
+### Fixes
+
+- **Input edge detection unblocked.** `GameLoop._update` was calling `input.update()` before any system read input, so `_prev` always equalled `_keys` and `isPressed`/`isReleased` permanently returned false. Effect: stoneflake throws (`X`), buffered jump trigger, and pause toggle all silently no-op'd. Reordered so input snapshots happen at the END of the frame; mechanics also runs while paused (so unpause can fire), then physics/level/audio gate on `state.gameState !== 'PAUSED'`.
+- **Animation timing locked to simulation rate, with state-aware reset.** Renderer's animation index used a render-rate frame counter, so high-Hz monitors played sprites 2.4–4× too fast and idle↔walk↔jump transitions popped into mid-cycle frames. New `Renderer.tick()` (driven by `GameLoop._update`) advances a `_simFrame` counter at the fixed 60 Hz step. Per-sprite `_animStartFrame` resets when the resolved animation key changes; same pattern for the attack overlay so a fresh throw starts at frame 0.
+- **Test stage now scrolls.** TestStage extended from 16×12 to **32×12 tiles** with six platforms (three high, three low) and six enemies spread across the stage. Phase-1 mode in `LevelManager.update` now runs the same camera lerp the legacy path uses (player ~1/3 from the left, clamped to stage edges), while still skipping the legacy `_check{Items,Enemies,Hazards,Goal}` paths since CombatSystem owns those.
+- **Enemy feel retuned for classic-platformer rhythm.** Tunables-only changes; no design or sprite changes:
+  - **Crawlspine** — `walkSpeed 1.0 → 0.8`, `turnFrames 6 → 12` (visible turn beat).
+  - **Glassmoth** — gentler bob (`driftAmplitude 16 → 24`, `driftFrequency 0.06 → 0.04`), slower swoop with longer commit and recover (`swoopVy 4.0 → 3.2`, `swoopFrames 24 → 30`, `recoverFrames 30 → 50`), hero must be closer (`sightRangeX 240 → 200`).
+  - **Bristlecone Sapling** — clearer telegraph (`closedFrames 120 → 150`, `windupFrames 12 → 24`, `firingFrames 4 → 6`, `cooldownFrames 90 → 120`).
+  - **Seeddart** — `speed 4.0 → 3.4` (more dodgeable).
+- **Pause/unpause fix bundled in.** Latent `_update` early-return on PAUSED meant the pause input could never fire to unpause. Now pause-toggle survives both edges.
+
+### What did NOT change
+
+- No new ECS components or fields.
+- No sprite, palette, or asset edits.
+- No story, design, or world-fiction edits.
+- HERO and STONEFLAKE tunable blocks unchanged from v0.25.
+- CI workflow unchanged (already fixed in #7).
+- Legacy Area-1 path unchanged.
+
+### Files touched
+
+- `src/core/GameLoop.js`, `src/graphics/Renderer.js`, `src/levels/TestStage.js`, `src/levels/LevelManager.js`, `src/config/PhaseOneTunables.js`, `game.js`
+
+### PRs in this patch
+
+- #8 `dev(phase1-patch): input edge fix + anim timing + 32-col scroll + enemy feel`
+- #9 `chore(release): v0.25.1 release notes` (this PR)
+- #10 `release(v0.25.1): patch quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All retunes apply to original characters introduced in v0.25 (Reed Bramblestep, Crawlspine, Glassmoth, Bristlecone Sapling). No reference to or reproduction of copyrighted Wonder Boy series art, audio, or design.
+
+---
+
 ## v0.25 — Phase 1: cast and combat skeleton
 
 **Released:** 2026-05-09 (planned)
