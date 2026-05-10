@@ -17,22 +17,27 @@ export class CombatSystem {
         // anyway and the next round is already half-loaded by the time the screen is
         // black). This prevents getting bumped to game-over during the fade.
         if (state.gameState === 'TRANSITIONING') return;
+        // v0.50.1 — also skip during RESPAWNING (Reed is mid-respawn / out of play).
+        if (state.gameState === 'RESPAWNING') return;
 
         const players = ecs.query('transform', 'velocity', 'physics', 'player');
         if (!players.length) return;
         const player = players[0];
 
+        // v0.50.1 — guard against RESPAWNING (set by killHero in Phase 2) so we
+        // don't double-kill across the same frame.
+        const dead = (gs) => gs === 'GAME_OVER' || gs === 'RESPAWNING';
         this._heroVsEnemyContact(ecs, state, player);
-        if (state.gameState === 'GAME_OVER') return;
+        if (dead(state.gameState)) return;
         this._heroProjectileVsEnemy(ecs, state, player);
-        if (state.gameState === 'GAME_OVER') return;
+        if (dead(state.gameState)) return;
         this._enemyProjectileVsHero(ecs, state, player);
-        if (state.gameState === 'GAME_OVER') return;
+        if (dead(state.gameState)) return;
 
         // Phase 2 fire-tile interactions
         if (level) {
             this._heroVsFireTile(ecs, state, player, level);
-            if (state.gameState === 'GAME_OVER') return;
+            if (dead(state.gameState)) return;
             this._mossplodderVsFireTile(ecs, level);
         }
     }
@@ -140,13 +145,14 @@ export class CombatSystem {
 
     // ──────────────────────────────────────────────────────────────────────
     _killHero(state, player) {
-        if (state.gameState === 'GAME_OVER') return;
+        if (state.gameState === 'GAME_OVER' || state.gameState === 'RESPAWNING') return;
         const v  = player.velocity;
         const pl = player.player;
         v.vx = 0;
         v.vy = 0;
         pl.aiState = 'dead';
-        state.killHero();
+        // v0.50.1 — pass player so killHero can branch into Phase 2 loseLife flow.
+        state.killHero(player);
     }
 
     /** Phase 2 — instant kill for mossplodder/hummerwing. */

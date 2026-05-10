@@ -122,11 +122,13 @@ export class HatchetSystem {
             // Slope ground: check the slope profile and despawn if foot crosses it.
             if (t?.slopeProfile && v.vy >= 0) {
                 const lx = ((Math.floor(tf.x + tf.w / 2) % ts) + ts) % ts;
+                // v0.50.1: matches CollisionSystem.floorYAt — both up22/up45 and
+                // dn22/dn45 are now smooth 1-px ramps spanning the full tile.
                 const profileY = (() => {
                     switch (t.slopeProfile) {
-                        case 'up22': return Math.max(32, 48 - Math.floor(lx / 3));
+                        case 'up22': return Math.max(0, 48 - lx - 1);
                         case 'up45': return Math.max(0, 48 - lx - 1);
-                        case 'dn22': return Math.max(32, 48 - Math.floor((47 - lx) / 3));
+                        case 'dn22': return Math.max(0, lx);
                         case 'dn45': return Math.max(0, lx);
                         default:     return 48;
                     }

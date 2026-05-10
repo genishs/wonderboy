@@ -14,7 +14,10 @@ export const HERO_P2 = Object.freeze({
     bufferFrames:       6,
     attackCooldown:    12,     // overrides Phase 1 HERO.attackCooldown
     attackOverlay:      8,
-    armedAtRoundStart: false,  // hard-locked per release-master Q6
+    armedAtRoundStart: false,  // hard-locked per release-master Q6 (now stage-start per v0.50.1)
+    // v0.50.1 — X-modifier sprint
+    sprintMultiplier:     1.4, // X-held walk speed multiplier (Phase 2 only)
+    sprintJumpMultiplier: 1.15,// jumpVy0 multiplier when X is held at the moment of jump
 });
 
 export const HATCHET = Object.freeze({

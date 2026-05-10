@@ -56,22 +56,18 @@ export class LevelManager {
     }
 
     /**
-     * Phase 2 (v0.50) — load Area `area` Round `round` via StageManager.
-     * Initial entry: pass round=1 to start the area; StageManager will then
-     * own subsequent transitions.
+     * Phase 2 — start an Area as a single continuous stage. v0.50.1 collapses
+     * the 4 rounds into one TileMap, so `round` is no longer used to switch
+     * levels; the StageManager just calls startArea(area).
+     *
+     * Signature kept for back-compat with game.js.
      */
-    loadAreaRound(area, round, ecs, state) {
+    loadAreaRound(area, _round, ecs, state) {
         this._isPhase2     = true;
         this._isPhase1Test = false;
         this._areaIndex    = area;
         if (!this.stageManager) this.stageManager = new StageManager(this);
-        if (round === 1) {
-            this.stageManager.startArea(area, ecs, state);
-        } else {
-            this.stageManager.areaIndex = area;
-            this.stageManager.roundIndex = round;
-            this.stageManager.loadCurrentRound(ecs, state);
-        }
+        this.stageManager.startArea(area, ecs, state);
     }
 
     update(dt, ecs, state) {
@@ -85,10 +81,10 @@ export class LevelManager {
         const maxScroll = Math.max(0, (this.currentLevel.cols - 16) * TILE);
         this.scrollX    = Math.max(0, Math.min(target, maxScroll));
 
-        // Phase 2: drive StageManager (transition timer); skip all legacy item/
-        //   enemy/hazard/goal checks — Phase 2 systems run them.
+        // Phase 2: StageManager.update is driven from the mechanics tick (game.js
+        // wraps it before HeroController). Skip legacy item/enemy/hazard/goal
+        // checks — Phase 2 systems run them. (We still let camera scroll above.)
         if (this._isPhase2) {
-            this.stageManager?.update(dt, ecs, state);
             return;
         }
 
