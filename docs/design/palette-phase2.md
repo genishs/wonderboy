@@ -187,3 +187,51 @@ Area — they should look like cousins of each other.
 - Phase 1: 34 distinct hexes.
 - Phase 2: 30 new distinct hexes (39 touched, 9 shared).
 - Cumulative: 64 distinct hexes. **56 colors of headroom** for Phases 3-4.
+
+---
+
+## v0.50.2 addendum — sprint trail wisps
+
+The v0.50.2 patch adds two palette entries to `assets/sprites/hero-reed.js`
+(now 18 entries, was 16) for the new `sprint` / `sprint_armed` motion-line
+trails. No other module is touched.
+
+| Hex          | Index | Role                                       | Notes                                   |
+|--------------|------:|--------------------------------------------|-----------------------------------------|
+| `#f8b860`    | 16    | amber-underglow wisp — sprint trail inner  | **Reused verbatim** from `enemy-hummerwing.js` (Hummerwing thorax amber-underglow). Trail visually rhymes with the warm-spark-falls-cool kill frame; no new distinct color. |
+| `#a888b0`    | 17    | pale-violet wisp — sprint trail outer/cool | **New hex.** Cool sibling of the project-wide violet-shadow ink `#3a2e4a` (lighter, softer, ~30% lift). One new color in v0.50.2. |
+
+### Why these choices
+
+The brief's "amber/violet trail" guidance pointed naturally at the existing
+warmth-and-cool chord in the Phase 2 palette. Rather than introduce two
+brand-new hues:
+
+- **Amber inner** picks `#f8b860` because it is *already in the project*
+  (Hummerwing) and Reed's sprint trail should feel like a sibling phenomenon
+  to a flier's underglow — warmth that briefly hovers in the air. Zero new
+  hexes from this slot.
+- **Violet outer** could not reuse `#3a2e4a` directly — that ink is a hard
+  silhouette outline, too heavy as a translucent trail. A new pale-violet
+  `#a888b0` lands in the same hue family at significantly higher lightness,
+  reading as "cool shadow that fades quickly" rather than "outline."
+
+### Updated budget
+
+- Phase 1: 34 hexes.
+- Phase 2 (v0.50): 30 new hexes (39 touched, 9 shared).
+- Phase 2 (v0.50.2): **+1 new hex** (`#a888b0`). `#f8b860` reused verbatim
+  from Hummerwing — does not count as new.
+- Cumulative: **65 distinct hexes.** **55 colors of headroom** for Phases 3-4.
+
+### `hero-reed.js` per-module palette length
+
+| Version  | Length | Note                                  |
+|----------|-------:|---------------------------------------|
+| Phase 1  | 13     | (closed)                              |
+| v0.50    | 16     | +3 for hatchet head/grip + grip-shadow|
+| v0.50.2  | 18     | +2 trail wisps (one reused, one new)  |
+
+The Phase 2 module roster table at the top of this doc still shows
+`hero-reed.js` at 16 — that count reflects v0.50 baseline; v0.50.2 raises it
+to 18 as noted here.
