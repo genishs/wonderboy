@@ -186,5 +186,5 @@ export const META = {
   w: 18,
   h: 12,
   anchor: { x: 8, y: 6 }, // body center — Hummerwing is airborne, anchor on thorax
-  fps: 12,                // fast wing-blur cycle per cast brief §4.6
+  fps: 9,                 // v0.50.1 — was 12; reduced to lessen strobe at 60fps render
 };

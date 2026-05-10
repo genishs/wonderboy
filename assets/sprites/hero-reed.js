@@ -758,4 +758,18 @@ export const META = {
   h: 24,
   anchor: { x: 8, y: 23 }, // feet center
   fps: 8,
+  // v0.50.1 — per-animation fps override. Renderer consults animFps[animKey] before
+  // falling back to fps. Slower idle/idle_armed gives a "breathing" feel; locomotion
+  // and combat keep their snap.
+  animFps: {
+    idle:       4,
+    idle_armed: 4,
+    walk:       8,
+    walk_armed: 8,
+    jump:       8,
+    jump_armed: 8,
+    attack:     8,
+    hurt:       8,
+    dead:       4,
+  },
 };

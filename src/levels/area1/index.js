@@ -1,7 +1,21 @@
 // owning agent: dev-lead
-// TODO: Area 1 round registry + TileMap builder. Translates each ROUND object
-// (per-column ground spec + sparse decorations/fires/triggers/entities) into the
-// flat tileData list expected by TileMap, then constructs a Phase 2 TileMap.
+// TODO: Area 1 stage builder. v0.50.1 changes the model from "4 separate rounds
+// loaded with fade transitions" to "ONE continuous scrolling stage" assembled by
+// concatenating the 4 round modules end-to-end. Mile-markers remain as in-world
+// landmarks (now visual-only — overlay text in TriggerSystem); the cairn at the
+// far end fires Stage Cleared.
+//
+// Layout (cumulative col offsets):
+//   round-1-1 → cols  0  ..  47   (48 cols)
+//   round-1-2 → cols 48  .. 111   (64 cols)
+//   round-1-3 → cols 112 .. 159   (48 cols)
+//   round-1-4 → cols 160 .. 223   (64 cols)
+//   ────────────────────────────
+//   total cols = 224, rows = 12
+//
+// Q6 reversal (v0.50.1): only ONE dawn-husk in the whole stage (the round-1-1
+// husk at col 7). Once Reed picks up the hatchet, he stays armed for the whole
+// stage. Rounds 2-4's husk entries are dropped during concatenation.
 
 import { TileMap, TILE_TYPES } from '../TileMap.js';
 import { ROUND as r1 } from './round-1-1.js';
@@ -27,50 +41,94 @@ const TRIGGER_TO_TYPE = {
 };
 
 /**
- * Build a Phase 2 TileMap for round N (1-indexed) of Area 1.
+ * Build a Phase 2 TileMap for Area 1 as ONE continuous stage. Concatenates all
+ * 4 rounds in order with proper col-offset shift on every per-round element
+ * (columns, decorations, triggers, fires, entities, spawn).
+ *
+ * Returns a TileMap whose `cols` is the sum of the rounds' cols. Useful
+ * derived data on the returned map (besides standard TileMap fields):
+ *   - `roundBoundaries`  : array of column indices that mark the START col of
+ *                          each round in the concatenated grid (used by the
+ *                          checkpoint system).
+ *
  * @returns {TileMap}
  */
-export function buildArea1Round(n) {
-    const round = ROUNDS[n - 1];
-    if (!round) throw new Error(`buildArea1Round: no round at index ${n}`);
+export function buildArea1Stage() {
+    const rows = r1.rows;   // all 4 rounds share rows = 12
+    const allColumns       = [];
+    const allDecorations   = [];
+    const allTriggers      = [];
+    const allFires         = [];
+    const allEntities      = [];
+    const roundBoundaries  = [];   // [colOffsetForRound1, ..2, ..3, ..4]
 
-    const cols = round.cols;
-    const rows = round.rows;
+    let colOffset = 0;
+    for (let i = 0; i < ROUNDS.length; i++) {
+        const round = ROUNDS[i];
+        roundBoundaries.push(colOffset);
+
+        // Columns: clone each cell so we don't mutate the frozen round module.
+        for (let c = 0; c < round.cols; c++) {
+            const cell = round.columns[c];
+            allColumns.push(cell ? { ...cell } : null);
+        }
+
+        // Decorations: shift col by offset.
+        for (const d of round.decorations ?? []) {
+            allDecorations.push({ ...d, col: d.col + colOffset });
+        }
+
+        // Triggers: shift col. (Mile markers / cairn — purpose changes in v0.50.1
+        // from "fade-then-load-next-round" to "fire overlay text only", except
+        // the final cairn which still fires Stage Cleared.)
+        for (const t of round.triggers ?? []) {
+            allTriggers.push({ ...t, col: t.col + colOffset });
+        }
+
+        // Fires: shift col.
+        for (const f of round.fires ?? []) {
+            allFires.push({ ...f, col: f.col + colOffset });
+        }
+
+        // Entities: shift col. v0.50.1 Q6 reversal — drop dawn-husks from rounds
+        // 2, 3, 4 (only the round-1 husk remains; once Reed picks up the hatchet
+        // he carries it through the whole stage).
+        for (const e of round.entities ?? []) {
+            if (i > 0 && e.kind === 'dawn-husk') continue;
+            allEntities.push({ ...e, col: e.col + colOffset });
+        }
+
+        colOffset += round.cols;
+    }
+    const totalCols = colOffset;
+
+    // 1. Build flat tileData list from the concatenated columns + loam fill.
     const tileData = [];
-
-    // 1. Surface tiles + loam-fill below.
-    for (let c = 0; c < cols; c++) {
-        const cell = round.columns[c];
-        if (!cell) continue;        // gap
+    for (let c = 0; c < totalCols; c++) {
+        const cell = allColumns[c];
+        if (!cell) continue;
         const surfaceType = KIND_TO_TYPE[cell.kind];
         if (surfaceType == null) continue;
         const sRow = cell.row;
         if (sRow >= 0 && sRow < rows) {
             tileData.push([c, sRow, surfaceType]);
         }
-        // Fill below the surface row with FLAT (loam) tiles down to rows-1.
+        // Fill loam below the surface row down to rows-1.
         for (let r = sRow + 1; r < rows; r++) {
             tileData.push([c, r, TILE_TYPES.FLAT]);
         }
     }
 
-    // 2. Fires (animated tile, NOT solid). Place in the column above the surface.
-    for (const f of round.fires ?? []) {
-        // Place fire one row ABOVE the surface row so Reed standing on the floor
-        // touches the fire's bottom hitbox. The round files store {col, row} where
-        // row is the surface floor; we draw fire at (row - 1).
+    // 2. Fires (animated tile, NOT solid). One row above the surface row.
+    for (const f of allFires) {
         const fireRow = f.row - 1;
         if (fireRow >= 0 && fireRow < rows) {
-            // Replace any tile here (typically a FLAT below-fill); fire is non-solid,
-            // so removing the loam fill is fine — there is no flat surface tile here
-            // to begin with (surface tiles are at the column's surface row).
             tileData.push([f.col, fireRow, TILE_TYPES.FIRE_LOW]);
         }
     }
 
-    // 3. Trigger tiles (mile-marker / cairn). Render at (col, row - 1) so they
-    //    stand ON the floor and Reed walks INTO them at floor level.
-    for (const t of round.triggers ?? []) {
+    // 3. Trigger tiles — mile-markers / cairn at (col, row - 1).
+    for (const t of allTriggers) {
         const tType = TRIGGER_TO_TYPE[t.kind];
         if (tType == null) continue;
         const trRow = t.row - 1;
@@ -80,20 +138,32 @@ export function buildArea1Round(n) {
     }
 
     const stageData = {
-        id:       `area1-round-${round.id}`,
-        cols, rows,
+        id:       'area1-stage',
+        cols:     totalCols,
+        rows,
         tileData,
-        // Phase 2 fields:
-        decorations: (round.decorations ?? []).map(d => ({ ...d })),
-        spawn:       { ...round.spawn },
-        entities:    (round.entities ?? []).map(e => ({ ...e })),
-        theme:       round.theme,
-        // Legacy fields (unused in Phase 2 path but kept consistent):
-        playerStart: { col: round.spawn.col, row: round.spawn.row },
+        decorations: allDecorations,
+        spawn:       { ...r1.spawn },           // stage spawn = Round 1 spawn
+        entities:    allEntities,
+        theme:       r1.theme,
+        // Legacy fields kept consistent (unused in Phase 2 path):
+        playerStart: { col: r1.spawn.col, row: r1.spawn.row },
         items:       [],
         enemies:     [],
-        goalX:       cols - 1,
+        goalX:       totalCols - 1,
     };
 
-    return new TileMap(stageData);
+    const map = new TileMap(stageData);
+    // Stash boundaries for StageManager / checkpoint logic.
+    map.roundBoundaries = roundBoundaries;
+    return map;
+}
+
+/**
+ * @deprecated v0.50.1 — kept only for backward compatibility with any
+ * out-of-tree caller. The 4-rounds-as-1-stage flow uses buildArea1Stage().
+ * @returns {TileMap}
+ */
+export function buildArea1Round(_n) {
+    return buildArea1Stage();
 }

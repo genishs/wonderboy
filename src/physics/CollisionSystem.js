@@ -15,31 +15,24 @@ import { C }          from './PhysicsConstants.js';
  * Slope floor profile — given a slope-tile profile name and a localX in [0..47],
  * return the floor's localY in [0..48]. Smaller localY = higher floor.
  *
- * Both `up22` and `up45` span the full tile vertically (48→0): each slope tile
- * connects two integer rows of flat ground. `up22` uses a stepped (gentler-feel)
- * progression so the play retains a "less aggressive" cadence than `up45`, while
- * still chaining cleanly against integer-row flat neighbors. `dn22`/`dn45` mirror.
+ * v0.50.1: `up22` / `dn22` are now SMOOTH 1-px ramps spanning the full tile
+ * (48→0), matching `up45` / `dn45` in geometry. The previous 4-step staircase
+ * (12 px chunks) caused Reed to vibrate visibly while walking up — a 12-px Y-jump
+ * every ~3 px X-traveled at walk speed. v0.50.1 tames that to a true linear
+ * ramp; the 22° vs 45° distinction now lives ONLY in the tile art, not in
+ * collision. (Both span one full tile of vertical change for clean connection
+ * against integer-row flats — see round-1-1.js header.)
  *
- * (Plan §6 specified a 16px intra-tile rise for `up22`, but with integer row
- * pitch of 48px that produces an unwalkable vertical discontinuity at the slope
- * <-> flat boundary. v0.50 makes both slope variants span the full tile; the
- * "gentle vs steep" distinction is preserved via tile art rather than collision.
- * Flagged in PR body as a deviation; revisit for true 22° in v0.75.)
+ * The two paths produce the same floor curve — they're kept as separate cases
+ * so future v0.75 work can reintroduce a true gentler 22° (e.g. spread across
+ * two tiles) without re-routing call sites.
  */
 export function floorYAt(profile, localX) {
     switch (profile) {
-        case 'up22': {
-            // Stepped ramp: 4 even steps of 12 px across 48 px. Reads as "gentler"
-            // because the foot lifts in 12px chunks instead of every pixel.
-            const step = Math.floor(localX / 12);          // 0..3
-            return Math.max(0, 48 - (step + 1) * 12);      // 36, 24, 12, 0
-        }
-        case 'up45': return Math.max(0, 48 - localX - 1);  // 1px linear ramp
-        case 'dn22': {
-            const step = Math.floor((47 - localX) / 12);   // 0..3 (mirror)
-            return Math.max(0, 48 - (step + 1) * 12);
-        }
-        case 'dn45': return Math.max(0, localX);
+        case 'up22': return Math.max(0, 48 - localX - 1);  // smooth 1-px linear ramp
+        case 'up45': return Math.max(0, 48 - localX - 1);  // smooth 1-px linear ramp
+        case 'dn22': return Math.max(0, localX);           // smooth 1-px linear ramp (mirror)
+        case 'dn45': return Math.max(0, localX);           // smooth 1-px linear ramp (mirror)
         default:     return 48;
     }
 }

@@ -27,7 +27,9 @@
 |-----------------|-----------------------------------------------|
 | ← → / A D       | Move                                          |
 | Z / Space       | Jump (hold longer = higher)                   |
-| X               | Throw weapon                                  |
+| X (tap)         | Throw weapon (when armed)                     |
+| X (hold)        | Sprint (faster walk while held)               |
+| Z + X (hold)    | Higher jump                                   |
 | P / Esc         | Pause                                         |
 
 **Mobile** (touch): left third → move left; bottom-right third → jump; top-right third → attack.

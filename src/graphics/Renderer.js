@@ -188,7 +188,13 @@ export class Renderer {
             sp._animStartFrame = this._simFrame;
         }
 
-        const fps = meta.fps || 8;
+        // v0.50.1: per-anim fps override. If META.animFps[animKey] is defined, use it;
+        // otherwise fall back to META.fps. This lets `idle/idle_armed` breathe slowly
+        // while keeping snappier walk/attack cycles, and tames over-fast wing flaps.
+        const animFpsMap = meta.animFps || null;
+        const fps = (animFpsMap && typeof animFpsMap[animKey] === 'number')
+            ? animFpsMap[animKey]
+            : (meta.fps || 8);
         const elapsed = this._simFrame - (sp._animStartFrame ?? this._simFrame);
         const f = Math.floor(elapsed * fps / 60) % frames.length;
         const canvas = frames[f];
@@ -231,7 +237,11 @@ export class Renderer {
                     sp._attackStartFrame = this._simFrame;
                 }
                 const atkElapsed = this._simFrame - (sp._attackStartFrame ?? this._simFrame);
-                const aIdx = Math.floor(atkElapsed * fps / 60) % af.length;
+                // v0.50.1: attack overlay uses its own per-anim fps (default META.fps for snap).
+                const atkFps = (animFpsMap && typeof animFpsMap[atkAnim] === 'number')
+                    ? animFpsMap[atkAnim]
+                    : (meta.fps || 8);
+                const aIdx = Math.floor(atkElapsed * atkFps / 60) % af.length;
                 const aCanvas = af[aIdx];
                 if (flip) {
                     ctx.save();
@@ -340,6 +350,11 @@ export class Renderer {
             );
         }
 
+        // v0.50.1 — Lives hearts. Render to the right of the score, top area.
+        // 3 heart slots; filled red = available, hollow gray = used. Vertical
+        // baseline aligned with the score line.
+        this._drawLivesHearts(state);
+
         // Pause / Game Over overlays
         if (state.gameState === 'PAUSED') {
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -369,6 +384,96 @@ export class Renderer {
         if (state.gameState === 'STAGE_CLEAR') {
             this.drawStageClear();
         }
+
+        // v0.50.1 — Mile-marker overlay (Round 1-X bilingual title). Driven by
+        // StageManager.overlay; renders above all HUD chrome but does NOT lock
+        // input — gameplay continues underneath.
+        if (this.stageManager && this.stageManager.overlay && this.stageManager.overlay.active) {
+            this._drawRoundMarkerOverlay();
+        }
+    }
+
+    _drawLivesHearts(state) {
+        const ctx = this.ctx;
+        const max = state.maxLives ?? 3;
+        const cur = Math.max(0, Math.min(max, state.lives ?? 0));
+        const size = 12, gap = 4;
+        const totalW = max * size + (max - 1) * gap;
+        // Place under the score lines (y=46), left-aligned with the score.
+        const startX = 8;
+        const startY = 46;
+        for (let i = 0; i < max; i++) {
+            const x = startX + i * (size + gap);
+            const filled = i < cur;
+            // Heart shape — two small circles + triangle. Cheap with Canvas2D.
+            ctx.save();
+            ctx.fillStyle   = filled ? '#FF3344' : '#3a3a3a';
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth   = 1;
+            const cx = x + size / 2;
+            const cy = startY + size / 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + size * 0.4);
+            ctx.bezierCurveTo(cx + size * 0.7, cy - size * 0.1,
+                              cx + size * 0.4, cy - size * 0.7,
+                              cx,              cy - size * 0.15);
+            ctx.bezierCurveTo(cx - size * 0.4, cy - size * 0.7,
+                              cx - size * 0.7, cy - size * 0.1,
+                              cx,              cy + size * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+        // Reference totalW so a future tweak (right-align) can use it without
+        // unused-var lint warnings.
+        void totalW;
+    }
+
+    _drawRoundMarkerOverlay() {
+        const sm = this.stageManager;
+        const o  = sm.overlay;
+        if (!o || !o.active) return;
+
+        // Map kind → bilingual labels.
+        const labels = {
+            round_1_2: ['Round 1-2', '라운드 1-2'],
+            round_1_3: ['Round 1-3', '라운드 1-3'],
+            round_1_4: ['Round 1-4', '라운드 1-4'],
+        };
+        const pair = labels[o.kind];
+        if (!pair) return;
+
+        // Alpha curve: fade in over 15 frames, hold 60, fade out over 15.
+        // o.frames counts DOWN from 90.
+        const t = o.frames;
+        let alpha = 1;
+        if (t > 75)      alpha = (90 - t) / 15;        // 0..1 over fade-in window
+        else if (t > 15) alpha = 1;
+        else             alpha = t / 15;               // 1..0 over fade-out window
+        alpha = Math.max(0, Math.min(1, alpha));
+
+        const ctx = this.ctx;
+        // Semi-transparent backing strip — keep it light so gameplay stays visible.
+        const bandY = 56;
+        const bandH = 76;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.55;
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        ctx.fillRect(0, bandY, this.width, bandH);
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 32px monospace';
+        ctx.fillText(pair[0], this.width / 2, bandY + 36);
+
+        ctx.fillStyle = '#FFF';
+        ctx.font = '18px monospace';
+        ctx.fillText(pair[1], this.width / 2, bandY + 62);
+        ctx.restore();
     }
 
     /**
