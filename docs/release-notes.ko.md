@@ -6,6 +6,64 @@
 
 ---
 
+## v0.50.1 — Phase 2 패치: 연속 Area 1 + 3 목숨 + 부드러운 슬로프 + X 모디파이어 + 애니 튜닝
+
+**릴리즈:** 2026-05-10 (예정)
+**태그:** `main` 의 `v0.50.1`
+**Pages:** https://genishs.github.io/wonderboy/
+
+v0.50 브라우저 테스트 후 사용자 피드백 4건 — 모두 v0.50.1 단일 dev PR 에 fold-in.
+
+### 수정 내역
+
+- **캐릭터 진동/"흔들림" 제거.** 두 가지 원인 동시 처리:
+  - 스프라이트 META 에 키별 fps 오버라이드 추가. `hero-reed.js` 는 `idle`/`idle_armed`/`dead` 4 fps(고요한 호흡), `walk`/`attack` 8 fps(긴장감) 유지. `enemy-hummerwing.js` 는 12→9 fps(날개 스트로보 완화).
+  - `slope_up_22` 가 매끄러운 1-px 선형 램프(slope_up_45 와 동형, 부드러움은 타일 아트로만 표현)로 통일. 기존 4-스텝 12 px 계단이 "진동" 감각의 원인.
+- **Area 1 이 이제 ONE 224-칼럼 연속 스테이지.** 4 라운드는 여전히 분리 저작(`src/levels/area1/round-1-{1..4}.js`)되되 `buildArea1Stage()` 가 `src/levels/area1/index.js` 에서 concat. Mile-marker 타일은 세계 안 그대로 남되 더 이상 fade 트리거 아님 — 90-프레임 이중언어 `Round 1-2` / `라운드 1-2`(및 1-3, 1-4) 오버레이 발화 + 체크포인트 앵커 역할만. 끝의 boundary cairn 은 기존 `Stage Cleared` 오버레이 그대로 발화.
+- **도끼 픽업이 스테이지 내내 지속**(Q6 뒤집힘). Area 1 은 라운드 1 의 dawn-husk 만 남고 2-4 의 husk 들은 concat 단계에서 제거. Reed 가 한 번 도끼를 획득하면 스테이지 내내 + mid-stage respawn 사이에서도 무장 유지. 다음 Area 로의 carryover 도 구조적으로 준비됨.
+- **목숨 시스템(3 lives) 가 단일 라이프 라인을 대체.** Vitality 는 1 목숨으로 취급. 사망(vitality 0, 적 접촉, 불, 다트)은 `state.loseLife()` 호출 → vitality 리필, lives 감소, Reed 가 최신 mile-marker(또는 도달 전이면 스테이지 시작)에서 `pl.armed` 보존하며 respawn. Zero lives → lives 3 리필, 스테이지 처음부터 재구축(엔티티 재스폰, 히어로 비무장 시작). 무한 재도전; Phase 2 에서 `GAME_OVER` 도달 불가.
+- **하트 HUD 우측 상단** 에 `state.lives`/`state.maxLives` 표시. Vitality 바는 상단 중앙(라이프 내부 시간 압박 시계).
+- **Mile-marker = 체크포인트**(mid-stage respawn 앵커). 마커 통과 시 vitality 도 만량으로 리필 — fade 없이 작은 보상 비트.
+- **X 가 듀얼 모드**(`PhaseTwoTunables.HERO_P2.sprintMultiplier = 1.4`, `sprintJumpMultiplier = 1.15`):
+  - `X` 탭 = 도끼 던지기(기존).
+  - `X` 홀드 = 수평 이동 시 대시(1.4× walk speed).
+  - `Z`(점프) + `X` 홀드 = 더 높은 점프(초기 vy × 1.15).
+  - Phase 1 retro debug 경로 변경 없음(대시 없음).
+
+### 엔진 추가/변경
+
+- **수정**: `src/core/{StateManager, InputHandler}.js`(목숨 / `loseLife()` / `RESPAWNING` 상태 / `sprintHeld` getter), `src/levels/{StageManager, LevelManager}.js`(연속 스테이지 로드 + 체크포인트 respawn + 오버레이 타이머), `src/levels/area1/index.js`(concatenation), `src/mechanics/{HeroController, CombatSystem, HatchetSystem, TriggerSystem}.js`(sprint + respawn 흐름 + 목숨 라우팅 + 오버레이 발화), `src/physics/CollisionSystem.js`(매끄러운 슬로프), `src/graphics/Renderer.js`(animFps 오버라이드 + 목숨 HUD + mile-marker 오버레이), `src/config/PhaseTwoTunables.js`(sprint 배수), `assets/sprites/{hero-reed, enemy-hummerwing}.js`(animFps 맵 / META.fps 조정), `game.js`(새 흐름 와이어).
+
+### 영향받은 파일
+
+- 15 개 파일; +574 / -222 줄(PR #19).
+
+### 변경되지 않은 것
+
+- 캐스트 정체성(Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-marker, boundary cairn, "The Mossline Path"). 스프라이트 모듈과 타일 모듈 형태 그대로; META.animFps / META.fps 만 미세 조정.
+- 라운드 데이터 레이아웃 — 슬로프/적/장식 위치가 v0.50 과 동일.
+- `docs/briefs/phase2-areas.md` 와 `phase2-cast-revision.md` 본문 — Changelog 섹션만 추가.
+- CI 워크플로우 + 이중언어 정책.
+
+### 알려진 제약(v0.75 백로그)
+
+- 90-프레임 오버레이(어두워진 스트립 + 이중언어 텍스트 페이드) 외에 라운드 카드 폴리시 없음.
+- 다음 Area 로의 장비 carryover 는 구조 준비만(아직 Stage 2 없음); StageManager 에 carry 비트 존재하나 미실행.
+- `PhysicsEngine.update` 가 Phase 2 모드에서도 매 틱 실행되지만 모든 엔티티 타입에서 no-op. CPU 비용 무시 가능.
+- v0.50.1 dev 중 in-browser smoke 미실행(워크스테이션에 Node/`npx serve` 없음); CI 의 `node --check` 가 파싱 커버, 라이브 URL 이 첫 진짜 실행.
+
+### 이 패치의 PR
+
+- #19 `dev(v0.50.1): anim fps + smooth slope + continuous map + 3-lives + X-modifier`
+- next: `chore(release): v0.50.1 release notes`(이 PR 패밀리 — README 컨트롤 + phase2 brief Changelog 함께 갱신)
+- next: `release(v0.50.1): patch quartile merge`(develop→main 머지)
+
+### 트리뷰트 자세
+
+모든 v0.50.1 변경은 v0.50 에서 도입된 오리지널 캐릭터(Reed Bramblestep, Mossplodder, Hummerwing) 에 적용. 추가된 메카닉 — 내부 랜드마크 멀티 스크린 스테이지, 목숨 + 체크포인트, 대시/점프 모디파이어, 애니메이션 fps 튜닝 — 은 보편적인 플랫포머 컨벤션이며 오리지널 아트와 오리지널 코드로 실행. 저작권 보호 자료의 재현 없음.
+
+---
+
 ## v0.50 — Phase 2: Area 1 (4 라운드 + 슬로프 + 알→도끼 픽업 + Mossplodder/Hummerwing + 숲 패럴랙스)
 
 **릴리즈:** 2026-05-09 (예정)

@@ -6,6 +6,64 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.50.1 — Phase 2 patch: continuous Area 1 + 3-lives + smooth slope + X-modifier + animation tuning
+
+**Released:** 2026-05-10 (planned)
+**Tag:** `v0.50.1` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+User feedback after browser-testing v0.50 surfaced four directional pivots. v0.50.1 lands all four in one dev PR.
+
+### Fixes
+
+- **Animation jitter / "shaky character" eliminated.** Two root causes addressed:
+  - Per-anim fps override added to the sprite META contract. `hero-reed.js` now ships `idle` / `idle_armed` / `dead` at 4 fps for breathy stillness while keeping `walk` / `attack` at 8 fps for snap. `enemy-hummerwing.js` dropped from 12 → 9 fps to tame wing-flap strobe.
+  - `slope_up_22` collapsed to a smooth 1-px linear ramp (matching `slope_up_45`'s shape, just shipped at the same gentleness via tile art rather than collision). The previous 4-step 12-px stair was the source of the "vibration" feel on uphill traversal.
+- **Area 1 is now ONE continuous 224-column stage.** The four rounds are still authored separately (`src/levels/area1/round-1-{1..4}.js`) and concatenated by `buildArea1Stage()` in `src/levels/area1/index.js`. Mile-marker tiles stay in-world but no longer trigger fade-to-black — they fire a 90-frame bilingual `Round 1-2` / `라운드 1-2` overlay (and 1-3 / 1-4) and serve as checkpoint anchors. The boundary cairn at the far end fires the existing `Stage Cleared` overlay.
+- **Hatchet pickup persists for the whole stage** (Q6 reversal). Only the round-1 dawn-husk remains in Area 1; rounds 2-4 dawn-husks dropped during concat. Once Reed picks up the hatchet, he stays armed across mid-stage respawns and (structurally) across stage transitions to future areas.
+- **Lives system (3 lives) replaces single-life-line.** Vitality is treated as ONE life. Any death (vitality 0, enemy contact, fire, dart) calls `state.loseLife()` → vitality refills, lives decrements, Reed respawns at the latest mile-marker (or stage start if not yet reached) with `pl.armed` preserved. Zero lives → lives refill to 3, stage rebuilds from scratch (entities re-spawn, hero starts unarmed). Infinite retries; `GAME_OVER` is no longer reachable in Phase 2.
+- **Heart HUD top-right** showing `state.lives` of `state.maxLives`. Vitality bar stays top-center as the in-life pressure clock.
+- **Mile-marker = checkpoint** (mid-stage respawn anchor). Crossing a marker also refills vitality — small reward beat without a forced fade.
+- **X is now dual-mode** (`PhaseTwoTunables.HERO_P2.sprintMultiplier = 1.4`, `sprintJumpMultiplier = 1.15`):
+  - `X` tap = throw hatchet (existing).
+  - `X` held = sprint while horizontal-moving (1.4× walk speed).
+  - `Z` (jump) while `X` held = higher jump (initial vy × 1.15).
+  - Phase 1 retro debug path unchanged (no sprint).
+
+### Engine additions / changes
+
+- **Modified**: `src/core/{StateManager, InputHandler}.js` (lives / `loseLife()` / `RESPAWNING` state / `sprintHeld` getter), `src/levels/{StageManager, LevelManager}.js` (continuous-stage load + checkpoint respawn + overlay timer), `src/levels/area1/index.js` (concatenation), `src/mechanics/{HeroController, CombatSystem, HatchetSystem, TriggerSystem}.js` (sprint + respawn flow + lives routing + overlay fire), `src/physics/CollisionSystem.js` (smoothed slope), `src/graphics/Renderer.js` (animFps overrides + lives HUD + mile-marker overlay), `src/config/PhaseTwoTunables.js` (sprint multipliers), `assets/sprites/{hero-reed, enemy-hummerwing}.js` (animFps map / META.fps tweak), `game.js` (wire the new flow).
+
+### Files touched
+
+- 15 files; +574 / -222 lines (PR #19).
+
+### What did NOT change
+
+- Cast identity (Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-markers, boundary cairn, "The Mossline Path"). Sprite modules and tile module unchanged in shape; only `META.animFps` / `META.fps` tweaks.
+- Round data layouts — slope/enemy/decoration positions identical to v0.50.
+- `docs/briefs/phase2-areas.md` and `phase2-cast-revision.md` body — only Changelog sections appended.
+- CI workflow + bilingual policy.
+
+### Known limitations carried to v0.75
+
+- No round-card animation polish beyond the 90-frame overlay (dim strip + bilingual text fade).
+- Equipment-carries-to-Stage-2 is structural-only (no Stage 2 yet); the carryover bit lives in StageManager but is unexercised.
+- `PhysicsEngine.update` still runs every tick in Phase 2 mode but no-ops on every entity type. Negligible CPU.
+- No in-browser smoke ran during v0.50.1 dev (workstation lacked Node / `npx serve`); CI's `node --check` covers parse, live URL is the first real run.
+
+### PRs in this patch
+
+- #19 `dev(v0.50.1): anim fps + smooth slope + continuous map + 3-lives + X-modifier`
+- next: `chore(release): v0.50.1 release notes` (this PR family — also bumps README controls, appends phase2 brief Changelog)
+- next: `release(v0.50.1): patch quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All v0.50.1 changes apply to original characters introduced in v0.50 (Reed Bramblestep, Mossplodder, Hummerwing). The added mechanics — multi-screen stage with internal landmarks, lives + checkpoints, sprint/jump-modifier, animation fps tuning — are universal platformer conventions executed with original art and original code. No reproduction of copyrighted material.
+
+---
+
 ## v0.50 — Phase 2: Area 1 with 4 rounds, slopes, egg→hatchet pickup, Mossplodder + Hummerwing, forest parallax
 
 **Released:** 2026-05-09 (planned)

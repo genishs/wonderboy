@@ -652,4 +652,47 @@ gameplay in v0.50; sprite modules remain in `assets/sprites/` as reserve.)
 
 ## Changelog
 
-(None at publication.)
+Edits after the brief was first published (per `docs/briefs/README.md`).
+
+### 2026-05-10 — v0.50.1 (post-browser-smoke pivot)
+
+Driven by user feedback after browser-testing v0.50. Several Open Questions and
+in-spec defaults are now decided differently from the original publication:
+
+- **Q6 Hatchet pickup persistence — REVERSED.** Hatchet is no longer reset at
+  each round boundary. Reed picks up the hatchet ONCE per stage (in round 1-1)
+  and remains armed for the rest of the stage AND across mid-stage respawns.
+  Three of the four dawn-husk pickups are dropped from Area 1 (only the
+  round-1 husk remains). Equipment also carries to the next stage (when one
+  ships) — Stage 2 will read `pl.armed` from the previous stage clear.
+- **Stage architecture — RESTRUCTURED.** The original spec had four scrolling
+  rounds with fade-to-black transitions between them. v0.50.1 collapses
+  Area 1 into ONE 224-column continuous scrolling stage. Mile-markers stay
+  as in-world tiles but no longer trigger fade/reload — they fire a 90-frame
+  bilingual overlay (`Round 1-2` / `라운드 1-2`, etc.) and act as checkpoint
+  anchors only.
+- **Lives system — INTRODUCED.** Vitality is now treated as one life, with
+  three lives per stage. Death (vitality 0, enemy contact, fire, dart)
+  routes through `state.loseLife()` which decrements lives, refills
+  vitality, and respawns Reed at the latest mile-marker (or stage start if
+  not yet passed) with `pl.armed` preserved. Zero lives → lives refill to
+  3, stage rebuilds from scratch (entities re-spawn, hero unarmed,
+  vitality full). Infinite retry; no GAME_OVER reachable in Phase 2.
+- **Animation timing — TUNED.** Sprite META now supports an optional
+  `animFps: { idle: 4, walk: 8, ... }` per-key override (extension to
+  `docs/design/contracts.md` shipped with the dev PR). `hero-reed.js`
+  ships idle/idle_armed/dead at 4 fps and snappier keys at 8 fps;
+  `enemy-hummerwing.js` reduced META.fps from 12 → 9 to tame strobe.
+- **Slope_up_22 — SMOOTHED.** v0.50's 4-step 12-px stair traversal looked
+  shaky. Collapsed to a smooth 1-px linear ramp matching slope_up_45; the
+  "gentle vs steep" distinction now lives only in tile art, not in
+  collision. Round data unchanged (slopes still placed at the same columns).
+- **X is now dual-mode.** `X` tap throws a hatchet (existing behavior).
+  `X` HELD = sprint while moving (1.4× walk speed). `Z` while `X` held =
+  higher jump (1.15× initial vy). Tunables in `PhaseTwoTunables.HERO_P2`.
+  Phase 1 retro debug path is unchanged (no sprint).
+- **Vitality refill — added.** On every mile-marker pass, vitality refills
+  to max — small reward beat without forcing a fade.
+- **Cast identity unchanged.** Reed Bramblestep, Mossplodder, Hummerwing,
+  dawn-husk, stone hatchet, Mossline Path — all stay. Only timing /
+  architecture / control mappings changed.
