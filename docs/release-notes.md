@@ -6,6 +6,66 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.50.2 — Phase 2 patch: jitter fix + slope step-up + new anims + mile-marker shift + death FSM + rock stumble
+
+**Released:** 2026-05-10 (planned)
+**Tag:** `v0.50.2` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+User feedback after browser-testing v0.50.1 surfaced six issues. v0.50.2 lands all six in a design + dev pair.
+
+### Fixes
+
+- **Standing-still jitter eliminated.** Root cause: `CollisionSystem` flat-bottom-sweep used strict `footY > tileTop`, missing the equality case. Each frame Reed's `ph.onGround` was reset to false, gravity dropped him 0.55 px, then snap re-pulled — visible 1-px oscillation. Fix: change to `>=`. One-character delta.
+- **New hero animations.** `sprint` (4 fr @ 12 fps), `sprint_armed` (4 fr @ 12 fps), `stumble` (3 fr @ 8 fps, shared armed/unarmed), refined `death` (4 fr @ 8 fps — knockback rise → airborne tilt → ground impact → settle). Legacy `dead` aliased to the last death frame so existing fallbacks resolve. Idle stays as a 3-frame breath at 4 fps (no longer needs to be static now that the jitter is gone).
+- **Slope step-up.** `CollisionSystem.resolveTiles` now auto-steps the hero up to a flat-tile top when blocked by ≤18 px of rise (covers slope→flat seam pixel rounding). Hero-only via `isHero` arg; Mossplodder still bumps walls cleanly. Walking up slopes with arrow keys alone now works without jumping.
+- **Mile-marker positions shifted to round STARTS** (per user request "팻말은 라운드 시작에"):
+  - Round 1-1 → `mile_1` at col 3 (right after spawn) — overlay "Round 1 / 라운드 1"
+  - Round 1-2 → `mile_2` at col 50 (round-relative col 2 + offset 48)
+  - Round 1-3 → `mile_3` at col 114
+  - Round 1-4 → `mile_4` at col 162 (NEW tile shipped in design PR #22)
+  - End-of-stage cairn unchanged (still triggers Stage Cleared)
+  - StageManager overlay mapping updated: `mile_N` fires "Round N" overlay; `lastCheckpointCol = mile_N.col + 1` so respawn is just past the marker entering the announced round.
+- **Death = knockback + animation + delayed respawn.** `state.killHero(player)` in Phase 2 routes through new `state.beginDying(player)` instead of immediate life decrement. Knockback velocity (vx ±5, vy −6) applied; `pl.dyingFrames = 45` timer; HeroController plays the new `death` anim while the timer decrements. On 1→0 edge, HeroController calls `state.loseLife()` which respawns at the latest passed mile-marker (with `pl.armed` preserved).
+- **GAME OVER + unlimited continue** (per user request). Lives reach 0 → state transitions to `GAME_OVER` (no auto-restart). Renderer paints `GAME OVER` centered red 48 px + `Press any key to continue / 아무 키나 눌러 계속`. Listening for jump (Z/Space), attack (X), sprint (X), or movement (←/→ / A/D) → `state.continueRun()` refills lives, sets `_stageRestartPending`, re-enters RESPAWNING. StageManager rebuilds the stage. Unlimited retries.
+- **Rock = stumble + small vitality drain + walk-through** (per user request). Rocks no longer block hero motion. `CollisionSystem` records overlap on `level._heroRockContacts`; HeroController consumes the contacts and triggers stumble FSM:
+  - `pl.stumbleFrames = 30`, vitality −10, `pl.aiState = 'stumble'`, `v.vx *= 0.3` (momentum loss)
+  - During stumble: input ignored, gravity normal
+  - 30-frame cooldown + per-rock token (`pl._lastRockTripKey = "col,row"`) prevents re-trip on the same rock until Reed walks fully off
+- **`pl.dyingFrames` and `pl.stumbleFrames`** added to the player ECS component (additive — see PR body).
+
+### Files touched
+
+- 16 files; +457 / −53 lines (PR #23) + 8 files; +1060 / −21 (design PR #22)
+- Briefly: `src/physics/CollisionSystem.js`, `src/mechanics/{HeroController, CombatSystem, TriggerSystem}.js`, `src/levels/{StageManager, LevelManager, TileMap, area1/index.js, area1/round-1-{1..4}.js}.js`, `src/core/StateManager.js`, `src/graphics/Renderer.js`, `src/config/PhaseTwoTunables.js`, `game.js`, `assets/sprites/hero-reed.js` (new keys), `assets/tiles/area1.js` (mile_4)
+
+### What did NOT change
+
+- Cast identity (Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-markers, boundary cairn, "The Mossline Path"). v0.50.1's lives system stays intact.
+- Round terrain/spawn data (only mile-marker col positions shifted; everything else identical).
+- CI workflow + bilingual policy.
+- README control table (Z=jump / X=tap-throw, X-hold-sprint / Z+X-higher-jump unchanged).
+
+### Known limitations carried to v0.75
+
+- Stage transition between Areas (Area 2) still unbuilt; equipment-carries-to-Stage-2 remains structural-only.
+- `PhysicsEngine.update` no-ops in Phase 2 mode (negligible CPU cost).
+- No in-browser smoke ran during v0.50.2 dev (workstation lacked Node / `npx serve`); CI's `node --check` covers parse correctness, live URL is the first real run.
+- Step-up clearance check only verifies the blocking column; entities wider than one tile could miss a wall in the unchecked column. Reed is one tile wide — non-issue today, but future entity sizes need re-validation.
+
+### PRs in this patch
+
+- #22 `design(v0.50.2): hero sprint + stumble + refined death + mile_4 tile (EN+KO)`
+- #23 `dev(v0.50.2): jitter fix + slope step-up + new anims + mile-marker shift + death FSM + rock stumble`
+- next: `chore(release): v0.50.2 release docs` (this PR family — brief Changelog + release-notes)
+- next: `release(v0.50.2): patch quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All v0.50.2 changes apply to original characters introduced in v0.50 (Reed Bramblestep, Mossplodder, Hummerwing). The added behaviours — death-knockback animations, signpost-at-round-start, GAME OVER + continue, stumble obstacles, slope step-up — are universal platformer conventions executed with original art and original code. No reproduction of copyrighted material.
+
+---
+
 ## v0.50.1 — Phase 2 patch: continuous Area 1 + 3-lives + smooth slope + X-modifier + animation tuning
 
 **Released:** 2026-05-10 (planned)
