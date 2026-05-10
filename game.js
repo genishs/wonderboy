@@ -92,7 +92,7 @@ renderer.parallax     = parallax;
 const _origMechanicsUpdate = mechanics.update.bind(mechanics);
 mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
 
-    // ── Phase 2 (v0.50) ────────────────────────────────────────────────
+    // ── Phase 2 (v0.50 / v0.50.1) ─────────────────────────────────────
     if (levelManager._isPhase2) {
         // Pause toggle still useful
         if (inputArg.pause) {
@@ -101,18 +101,32 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
         }
         if (stateArg.gameState === 'PAUSED') return;
 
-        // Drive Phase 2 systems. HeroController honors the TRANSITIONING /
-        // STAGE_CLEAR guard internally.
+        // v0.50.1 — give StageManager a chance to handle a pending RESPAWNING
+        // (reposition Reed, refill vitality, flip back to PLAYING). It also drives
+        // the mile-marker overlay timer. Run BEFORE the heavier systems so
+        // gameplay resumes the same frame.
+        levelManager.stageManager?.update(dt, ecsArg, stateArg);
+
+        // While RESPAWNING / STAGE_CLEAR: skip combat + AI but still tick the hero
+        // (HeroController internally freezes during these states) so animation keys
+        // settle. Skip enemy AI + combat + triggers; they'd just re-fire on a half-
+        // moved hero.
+        const respawnLock = (stateArg.gameState === 'RESPAWNING' || stateArg.gameState === 'STAGE_CLEAR');
+
+        // Drive Phase 2 systems. HeroController honors TRANSITIONING/STAGE_CLEAR/
+        // RESPAWNING internally.
         heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, null, hatchetSystem);
-        hatchetSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.playerEntity);
-        huskSystem.update(ecsArg, stateArg, levelManager.playerEntity);
-        phase2EnemyAI.update(ecsArg, levelManager.currentLevel);
-        // Phase 1 EnemyAI is a no-op for Phase 2 enemy types; safe to call.
-        enemyAI.update(ecsArg, levelManager.currentLevel, levelManager.playerEntity, seeddartSystem);
-        combat.update(ecsArg, stateArg, levelManager.currentLevel);
-        triggerSystem.update(ecsArg, levelManager, stateArg);
-        // Vitality tick (state heartbeat). Note: state.update only ticks during PLAYING,
-        // so it's automatically frozen during TRANSITIONING / STAGE_CLEAR.
+        if (!respawnLock) {
+            hatchetSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.playerEntity);
+            huskSystem.update(ecsArg, stateArg, levelManager.playerEntity);
+            phase2EnemyAI.update(ecsArg, levelManager.currentLevel);
+            // Phase 1 EnemyAI is a no-op for Phase 2 enemy types; safe to call.
+            enemyAI.update(ecsArg, levelManager.currentLevel, levelManager.playerEntity, seeddartSystem);
+            combat.update(ecsArg, stateArg, levelManager.currentLevel);
+            triggerSystem.update(ecsArg, levelManager, stateArg);
+        }
+        // Vitality tick (state heartbeat). state.update only ticks during PLAYING,
+        // so it's automatically frozen during TRANSITIONING / STAGE_CLEAR / RESPAWNING.
         stateArg.update(dt);
         return;
     }

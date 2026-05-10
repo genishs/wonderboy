@@ -30,6 +30,10 @@ export class InputHandler {
     get jumpPressed()  { return this.isPressed('KeyZ')    || this.isPressed('Space'); }
     get jumpReleased() { return this.isReleased('KeyZ')   || this.isReleased('Space'); }
     get attack()       { return this.isPressed('KeyX'); }
+    // v0.50.1: X tap = throw (single-shot via attack edge); X hold = sprint modifier.
+    // HeroController consumes sprintHeld every frame for walk-speed multiplier and to
+    // compute the jump-start vy multiplier when X is held at the moment of jump.
+    get sprintHeld()   { return this.isDown('KeyX'); }
     get pause()        { return this.isPressed('Escape')  || this.isPressed('KeyP'); }
 
     // ── Mobile virtual D-pad ───────────────────────────────────────────────

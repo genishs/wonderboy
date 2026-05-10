@@ -40,7 +40,9 @@ export class HeroController {
         // Phase 2: freeze input during transitions / stage-clear, but still apply gravity.
         const transitionLock = (state.gameState === 'TRANSITIONING' || state.gameState === 'STAGE_CLEAR');
 
-        // Death state — terminal in Phase 1+2
+        // Death state — terminal in Phase 1; respawn-pending in Phase 2.
+        // v0.50.1 — Phase 2 RESPAWNING freezes the hero in place; StageManager
+        // owns the actual repositioning + state flip back to PLAYING.
         if (state.gameState === 'GAME_OVER') {
             pl.aiState = 'dead';
             v.vx = 0;
@@ -48,6 +50,12 @@ export class HeroController {
             tf.x += v.vx; tf.y += v.vy;
             ph.onGround = false;
             this.collision.resolveTiles(tf, v, ph, level);
+            return;
+        }
+        if (state.gameState === 'RESPAWNING') {
+            pl.aiState = 'dead';
+            v.vx = 0;
+            v.vy = 0;
             return;
         }
 
@@ -58,7 +66,12 @@ export class HeroController {
             v.vx *= fric;
             if (Math.abs(v.vx) < 0.05) v.vx = 0;
         } else {
-            const ws = pl._phase2 ? HERO_P2.walkSpeed : HERO.walkSpeed;
+            // v0.50.1: X-held = sprint modifier (Phase 2 only). Phase 1 retro debug
+            // ignores sprintHeld and keeps legacy behavior.
+            const sprintActive = !!(pl._phase2 && input.sprintHeld);
+            const sprintMult   = sprintActive ? HERO_P2.sprintMultiplier : 1;
+            const baseWs       = pl._phase2 ? HERO_P2.walkSpeed : HERO.walkSpeed;
+            const ws           = baseWs * sprintMult;
             if (input.right) {
                 v.vx = ws;
                 pl.facingRight = true;
@@ -80,7 +93,11 @@ export class HeroController {
         else if (pl.jumpBuffer > 0) pl.jumpBuffer--;
 
         if (!transitionLock && pl.jumpBuffer > 0 && pl.coyoteTimer > 0) {
-            v.vy = HERO.jumpVy0;
+            // v0.50.1: Phase 2 — X held at jump-start gives a 15% higher peak.
+            // Phase 1 retro debug keeps legacy HERO.jumpVy0 unconditionally.
+            const baseJumpVy0 = pl._phase2 ? HERO_P2.jumpVy0 : HERO.jumpVy0;
+            const sprintActive = !!(pl._phase2 && input.sprintHeld);
+            v.vy = sprintActive ? baseJumpVy0 * HERO_P2.sprintJumpMultiplier : baseJumpVy0;
             pl.isJumping = true;
             ph.onGround  = false;
             pl.jumpBuffer = 0;
@@ -134,7 +151,8 @@ export class HeroController {
 
         // Death by pit
         if (tf.y > level.rows * TILE + 200) {
-            state.killHero();
+            // v0.50.1 — pass player so Phase 2 routes through loseLife/RESPAWNING.
+            state.killHero({ player: pl });
         }
     }
 
