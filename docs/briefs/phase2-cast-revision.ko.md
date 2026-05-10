@@ -621,4 +621,38 @@ TRIGGERS     = { milePulseRange, cairnIdleFps }
 
 ## Changelog
 
-(공개 시점에는 없음.)
+브리프 최초 발행 후 편집 (`docs/briefs/README.md` 정책).
+
+### 2026-05-10 — v0.50.1 (브라우저 스모크 후 피벗)
+
+v0.50 브라우저 테스트 후 사용자 피드백으로 인해 Open Questions 및 in-spec 기본값
+일부가 최초 발행과 다르게 결정됨:
+
+- **Q6 도끼 픽업 지속성 — 뒤집힘.** 더 이상 라운드 경계마다 무장 리셋 안 함. Reed 는
+  스테이지당 정확히 한 번(라운드 1-1) 도끼를 획득하고 스테이지 내내 + mid-stage
+  respawn 사이에서도 무장 유지. Area 1 의 dawn-husk 4 개 중 3 개는 concat 단계에서
+  제거되어 라운드 1 의 husk 만 남는다. 다음 스테이지로의 장비 carryover — Stage 2
+  가 나오면 stage clear 시점의 `pl.armed` 를 이어받음.
+- **스테이지 아키텍처 — 재구조.** 원래 spec 은 4 개의 스크롤 라운드 + 페이드 전환.
+  v0.50.1 은 Area 1 을 ONE 224-칼럼 연속 스크롤 스테이지로 통합. Mile-marker 는
+  세계 안 타일로 남되 더 이상 페이드/재로드 트리거 아님 — 90-프레임 이중언어
+  오버레이(`Round 1-2` / `라운드 1-2` 등) 발화 + 체크포인트 앵커 역할만.
+- **목숨 시스템 — 도입.** Vitality 가 1 목숨으로, 스테이지당 3 목숨. 사망(vitality 0,
+  적 접촉, 불, 다트) 은 `state.loseLife()` 라우팅 — lives 감소, vitality 리필,
+  최신 mile-marker(또는 마커 통과 전이면 스테이지 시작) 에서 `pl.armed` 보존하며
+  respawn. 0 lives → lives 3 리필, 스테이지 처음부터 재구축 (엔티티 재스폰, 히어로
+  비무장 시작, vitality 만량). 무한 재도전; Phase 2 에서 GAME_OVER 도달 불가.
+- **애니메이션 타이밍 — 튜닝.** Sprite META 가 선택적 `animFps: { idle: 4, walk: 8,
+  ... }` 키별 오버라이드 지원 (이 dev PR 과 함께 `docs/design/contracts.md` 확장).
+  `hero-reed.js` 는 `idle`/`idle_armed`/`dead` 4 fps, 다른 키 8 fps. `enemy-
+  hummerwing.js` META.fps 12→9 (스트로보 완화).
+- **Slope_up_22 — 매끄럽게.** v0.50 의 4-스텝 12 px 계단 등반이 진동처럼 보였다.
+  slope_up_45 와 동일한 1-px 선형 램프로 통일; "부드러움 vs 가파름" 의 구분은
+  이제 타일 아트로만 표현. 라운드 데이터는 변경 없음 (슬로프는 같은 칼럼에 배치).
+- **X 가 듀얼 모드.** `X` 탭 = 도끼 던지기 (기존). `X` 홀드 = 이동 시 대시 (1.4×
+  walk speed). `Z` + `X` 홀드 = 더 높은 점프 (1.15× 초기 vy). 튜너블은
+  `PhaseTwoTunables.HERO_P2`. Phase 1 retro debug 경로는 변경 없음 (대시 없음).
+- **Vitality 리필 — 추가.** 매 mile-marker 통과 시 vitality 가 만량으로 리필 — 페이드
+  강제 없이 작은 보상 비트.
+- **캐스트 정체성 변경 없음.** Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk,
+  stone hatchet, Mossline Path — 모두 그대로. 타이밍/아키텍처/컨트롤 매핑만 변경.
