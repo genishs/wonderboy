@@ -38,13 +38,41 @@ Constraints:
 // assets/tiles/area<N>.js
 export const PALETTE = [...];
 export const TILES = {
-  ground:    [/* h × w of indices */],
+  ground:    [/* h × w of indices */],          // static (existing form)
   platform:  [...],
   spike:     [...],
   // …
 };
-export const META = { tile: 16 };  // square tiles only
+export const META = {
+  tile: 16,        // matrix side length in art-pixels (square)
+  scale: 3,        // matrix art-pixel → canvas-pixel scale (so 16 × 3 = 48 = src TILE)
+  displayPx: 48,   // resulting on-canvas tile size; should match `TILE` in src/
+};
 ```
+
+`tile` is the dimension of the cell matrix in art-pixels. `displayPx` is the size the
+tile is drawn on the canvas after scaling — it should match `TILE` in source files
+(`TILE = 48` since v0.25, fixed). The renderer multiplies each art-pixel by `scale`
+when filling the OffscreenCanvas. Older tile modules that omit `scale` / `displayPx`
+default to `scale = 1, displayPx = META.tile`.
+
+### Animated tiles (v0.50+)
+
+A `TILES[key]` entry may be one of two shapes:
+
+```js
+TILES[key] = matrix                            // static (existing form)
+TILES[key] = { frames: [matrix, ...], fps }    // animated (new — v0.50)
+```
+
+`matrix` is unchanged from the static form: a 2D array of palette indices
+(`META.tile` rows × `META.tile` columns). The animated form wraps a list of such
+matrices with a per-tile `fps`. Renderer is expected to advance through `frames`
+at the per-tile fps; the dev-lead's tile cache mirrors `SpriteCache` logic
+(allocate one OffscreenCanvas per frame, swap on draw).
+
+Old static-matrix tile modules remain valid — the renderer detects animated
+entries by `Array.isArray(TILES[key]) === false && TILES[key].frames`.
 
 ## Background (parallax) module
 
