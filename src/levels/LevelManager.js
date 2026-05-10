@@ -117,6 +117,11 @@ export class LevelManager {
             coyoteTimer: 0,
             jumpBuffer: 0,
             aiState: 'idle',
+            // v0.50.2 — ECS extensions present on every player so HeroController
+            // can rely on `(pl.X | 0)` reads. Phase 1 path never increments them.
+            stumbleFrames: 0,
+            stumbleCooldown: 0,
+            dyingFrames: 0,
             _phase1: true,
         });
         ecs.addComponent(player, 'sprite', { name: 'hero', anim: 'idle', frame: 0, scale: 3, flip: false, color: '#4a7c3a' });

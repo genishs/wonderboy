@@ -37,6 +37,7 @@ const TRIGGER_TO_TYPE = {
     mile_1: TILE_TYPES.MILE_1,
     mile_2: TILE_TYPES.MILE_2,
     mile_3: TILE_TYPES.MILE_3,
+    mile_4: TILE_TYPES.MILE_4,   // v0.50.2 — Round 4 start marker
     cairn:  TILE_TYPES.CAIRN,
 };
 

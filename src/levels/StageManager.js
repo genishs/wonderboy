@@ -117,24 +117,38 @@ export class StageManager {
     /**
      * v0.50.1 — Mile-marker overlay. Called by TriggerSystem on contact. The
      * marker also acts as a checkpoint anchor (lastCheckpointCol = marker col)
-     * AND advances the Round HUD chip (1→2 / 2→3 / 3→4).
+     * AND advances the Round HUD chip.
      *
-     * @param {string} markerKind  'mile_1' | 'mile_2' | 'mile_3'
+     * v0.50.2 — markers were shifted from "between rounds" (end of round N) to
+     * "at the START of round N." The mapping is now:
+     *   mile_1 → "Round 1" (just past the stage spawn)
+     *   mile_2 → "Round 2" (early into round-1-2)
+     *   mile_3 → "Round 3" (early into round-1-3)
+     *   mile_4 → "Round 4" (early into round-1-4)
+     *   cairn  → STAGE CLEAR (unchanged; handled by clearStage)
+     *
+     * Each marker sets lastCheckpointCol = col + 1 so respawn lands JUST PAST
+     * the sign in the round it announces. This satisfies the user's "respawn at
+     * the most recent passed mile-marker" requirement.
+     *
+     * @param {string} markerKind  'mile_1' | 'mile_2' | 'mile_3' | 'mile_4'
      * @param {number} col         column of the marker tile
      */
     fireRoundMarkerOverlay(markerKind, col, state) {
         if (this.overlay.active && this.overlay.kind === markerKind) return;
-        // Map mile-marker → next round chip.
-        const nextRound = (markerKind === 'mile_1') ? 2
-                        : (markerKind === 'mile_2') ? 3
-                        : (markerKind === 'mile_3') ? 4
-                        : this.roundIndex;
-        this.roundIndex = nextRound;
+        // v0.50.2 — marker N announces round N (1..4). The HUD chip "AREA 1-X"
+        // now matches the round Reed has just entered (or is starting in).
+        const round = (markerKind === 'mile_1') ? 1
+                    : (markerKind === 'mile_2') ? 2
+                    : (markerKind === 'mile_3') ? 3
+                    : (markerKind === 'mile_4') ? 4
+                    : this.roundIndex;
+        this.roundIndex = round;
         this.lastCheckpointCol = col + 1;       // respawn just past the marker
 
         this.overlay = {
             active: true,
-            kind:   `round_1_${nextRound}`,
+            kind:   `round_1_${round}`,
             frames: OVERLAY_TOTAL,
         };
 
@@ -211,6 +225,12 @@ export class StageManager {
             pl.facingRight = true;
             pl.coyoteTimer = 0;
             pl.jumpBuffer = 0;
+            // v0.50.2 — clear stumble/dying timers; the post-respawn hero gets
+            // a clean FSM. If we don't clear, a stumble-then-die sequence could
+            // bleed a partial stumble lock into the next life.
+            pl.stumbleFrames = 0;
+            pl.stumbleCooldown = 0;
+            pl.dyingFrames = 0;
             // pl.armed PRESERVED — equipment carries across respawns within a stage.
         }
         // Vitality already refilled by loseLife(); ensure it's full.
@@ -236,6 +256,14 @@ export class StageManager {
             jumpBuffer: 0,
             aiState: 'idle',
             armed: !!armed,
+            // v0.50.2 — Phase 2 ECS extensions:
+            //   stumbleFrames     : ticks down each frame; > 0 → stumble FSM (input lock)
+            //   stumbleCooldown   : grace after stumble end before another rock can trip
+            //   dyingFrames       : ticks down each frame; > 0 → dying FSM (knockback + fall),
+            //                       loseLife() fires when it reaches 0.
+            stumbleFrames: 0,
+            stumbleCooldown: 0,
+            dyingFrames: 0,
             _phase1: true,           // re-uses HeroController Phase 1 path
             _phase2: true,           // marker for Phase 2 systems
         });

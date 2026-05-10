@@ -265,6 +265,12 @@ export class Renderer {
         if (pl) {
             const s = pl.aiState || 'idle';
             const armed = pl.armed === true;
+            // v0.50.2 — death/stumble/sprint take priority over locomotion picks.
+            // Death anim plays during the dying FSM (timer > 0 OR aiState ===
+            // 'dying'); we map both to the new 4-frame `death` key.
+            if (s === 'dying' || (pl.dyingFrames | 0) > 0) return 'death';
+            if (s === 'stumble') return 'stumble';
+            if (s === 'sprint') return armed ? 'sprint_armed' : 'sprint';
             if (s === 'jump_rising' || s === 'jump_falling') return armed ? 'jump_armed' : 'jump';
             if (s === 'walk') return armed ? 'walk_armed' : 'walk';
             if (s === 'idle') return armed ? 'idle_armed' : 'idle';
@@ -372,9 +378,19 @@ export class Renderer {
             ctx.font = '48px monospace';
             ctx.textAlign = 'center';
             ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 20);
+            // v0.50.2 — Phase 2 has unlimited continues; v0.25.x Phase 1 stays
+            // terminal (no continueRun method on the v0.25.x path, only set in
+            // v0.50.2 StateManager). The bilingual prompt nudges the player to
+            // press any of the gameplay action keys; HeroController watches.
             ctx.fillStyle = '#FFF';
             ctx.font = '18px monospace';
-            ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 30);
+            if (typeof state.continueRun === 'function') {
+                ctx.fillText('Press any key to continue', this.width / 2, this.height / 2 + 26);
+                ctx.font = '14px monospace';
+                ctx.fillText('아무 키나 눌러 계속', this.width / 2, this.height / 2 + 50);
+            } else {
+                ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 30);
+            }
         }
 
         if (state.gameState === 'TRANSITIONING') {
@@ -436,10 +452,14 @@ export class Renderer {
         if (!o || !o.active) return;
 
         // Map kind → bilingual labels.
+        // v0.50.2 — added round_1_1 because mile-markers shifted from "between
+        // rounds" to "at round STARTS." Round 1 sign now fires right after the
+        // stage spawn.
         const labels = {
-            round_1_2: ['Round 1-2', '라운드 1-2'],
-            round_1_3: ['Round 1-3', '라운드 1-3'],
-            round_1_4: ['Round 1-4', '라운드 1-4'],
+            round_1_1: ['Round 1', '라운드 1'],
+            round_1_2: ['Round 2', '라운드 2'],
+            round_1_3: ['Round 3', '라운드 3'],
+            round_1_4: ['Round 4', '라운드 4'],
         };
         const pair = labels[o.kind];
         if (!pair) return;

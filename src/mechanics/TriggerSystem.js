@@ -1,9 +1,14 @@
 // owning agent: dev-lead
-// TODO: TriggerSystem v0.50.1 — sample tile under hero foot. If MILE_{1,2,3},
+// TODO: TriggerSystem v0.50.1 — sample tile under hero foot. If MILE_{1,2,3,4},
 // fire the new "Round 1-X" overlay (visual only, no level reload, no fade) and
 // register the marker col as the next checkpoint. If CAIRN, fire stage-clear.
 // Each trigger tile is one-shot per stage (the tile's _consumed flag prevents
 // re-fires).
+//
+// v0.50.2: added mile_4 (Round 4 sign at start of round-1-4). The marker
+// only fires when Reed's body actually overlaps the trigger tile — there's no
+// look-ahead, so respawning at the most recent marker means "the marker tile
+// I most recently STOOD ON," matching the user's intent.
 
 const TILE = 48;
 
@@ -33,7 +38,7 @@ export class TriggerSystem {
                 if (!t || !t.isTrigger || t._consumed) continue;
 
                 const kind = t.triggerKind;
-                if (kind === 'mile_1' || kind === 'mile_2' || kind === 'mile_3') {
+                if (kind === 'mile_1' || kind === 'mile_2' || kind === 'mile_3' || kind === 'mile_4') {
                     t._consumed = true;
                     sm.fireRoundMarkerOverlay(kind, c, state);
                     return;

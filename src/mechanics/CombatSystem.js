@@ -148,10 +148,15 @@ export class CombatSystem {
         if (state.gameState === 'GAME_OVER' || state.gameState === 'RESPAWNING') return;
         const v  = player.velocity;
         const pl = player.player;
+        // v0.50.2 — if already dying, the death FSM is mid-flight; don't reset
+        // velocity / aiState. Without this guard the dying knockback arc would
+        // be interrupted every frame an enemy AABB still overlaps Reed.
+        if ((pl.dyingFrames | 0) > 0) return;
         v.vx = 0;
         v.vy = 0;
         pl.aiState = 'dead';
         // v0.50.1 — pass player so killHero can branch into Phase 2 loseLife flow.
+        // v0.50.2 — Phase 2 routes through beginDying via state.killHero.
         state.killHero(player);
     }
 

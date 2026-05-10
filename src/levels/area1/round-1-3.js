@@ -41,7 +41,8 @@ export const ROUND = Object.freeze({
         { col: 33, row: 7, kind: 'rock_small' },
     ],
     triggers: [
-        { col: 47, row: 9, kind: 'mile_3' },
+        // v0.50.2 — Round 3 sign at the START of round-1-3 (was col 47).
+        { col: 2, row: 9, kind: 'mile_3' },
     ],
     fires: [
         { col: 19, row: 7 },
