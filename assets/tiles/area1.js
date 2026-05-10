@@ -12,8 +12,13 @@
 //   slope_dn_45   — steep downhill (mirror of slope_up_45)
 //   rock_small    — one-tile-tall standalone rock (boulder)
 //   fire_low      — animated low flame (3 frames, ~8 fps)
-//   mile_1, _2, _3 — wooden mile-marker post w/ digit (rounds 1-1, 1-2, 1-3)
-//   cairn         — boundary cairn (stack of three river-stones, sigil-stone topmost)
+//   mile_1, _2, _3, _4 — wooden mile-marker post w/ digit (rounds 1-1 .. 1-4)
+//                         v0.50.2 added _4 because the dev team shifted mile-markers
+//                         from "between rounds" to "at round STARTS." Round 1 marker
+//                         lives at the stage start, Round 4 marker lives one screen
+//                         before the boundary cairn — _4 is the new addition.
+//   cairn         — boundary cairn (stack of three river-stones, sigil-stone topmost).
+//                   Visual unchanged in v0.50.2; still the Stage Cleared trigger.
 //
 // Frame ASCII legend (per palette index):
 //   .  = 0  transparent
@@ -401,6 +406,31 @@ const mile_3 = [
   [0,0,0,1,3,3,3,3,3,3,3,1,0,0,0,0],
 ];
 
+// Digit-4 painter (v0.50.2): top-left vertical + top-right vertical joining at a
+// middle horizontal, then a single bottom-right vertical descending — classic
+// 7-segment "4". Mirrors mile_1/2/3 in post + plank shape; only the digit-ink
+// cells inside rows 3-7 columns 5-9 differ. Used at the start of Round 4 (the
+// last round before the boundary cairn) per the v0.50.2 mile-marker shift —
+// markers now live at round STARTS rather than between rounds.
+const mile_4 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+  [0,1,11,11,11,11,11,11,11,11,11,11,11,11,1,0],
+  [0,1,11,11,11,1,11,11,11,1,11,11,11,11,1,0],
+  [0,1,11,11,11,1,11,11,11,1,11,11,11,11,1,0],
+  [0,1,11,11,11,1,1,1,1,1,11,11,11,11,1,0],
+  [0,1,11,11,11,11,11,11,11,1,11,11,11,11,1,0],
+  [0,1,11,11,11,11,11,11,11,1,11,11,11,11,1,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+  [0,0,0,0,0,0,1,7,1,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,1,6,1,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,1,6,1,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,1,6,1,0,0,0,0,0,0,0],
+  [0,0,0,0,0,1,1,3,1,1,0,0,0,0,0,0],
+  [0,0,0,0,1,3,3,3,3,3,1,0,0,0,0,0],
+  [0,0,0,1,3,3,3,3,3,3,3,1,0,0,0,0],
+];
+
 // cairn — boundary cairn: stack of three river-stones with a sigil-stone topmost.
 // Larger silhouette than the mile-marker (occupies a wider chunk of the tile).
 // Stones render in three different river-stone tones for stack readability; the
@@ -451,6 +481,7 @@ export const TILES = {
   mile_1,
   mile_2,
   mile_3,
+  mile_4,
   cairn,
 };
 
