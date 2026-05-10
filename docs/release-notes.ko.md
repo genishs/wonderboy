@@ -6,6 +6,54 @@
 
 ---
 
+## v0.50 — Phase 2: Area 1 (4 라운드 + 슬로프 + 알→도끼 픽업 + Mossplodder/Hummerwing + 숲 패럴랙스)
+
+**릴리즈:** 2026-05-09 (예정)
+**태그:** `main` 의 `v0.50`
+**Pages:** https://genishs.github.io/wonderboy/
+
+두 번째 quartile 은 단일 테스트 스테이지에서 실제 Area→Round 구조와 클래식 플랫포머 페이싱으로 전환합니다. 캐스트가 재구성됨: Phase 1 의 Crawlspine / Glassmoth / Bristlecone Sapling 은 한걸음 물러나고 (스프라이트 모듈은 보존), Area 1 은 **Mossplodder**(느린 전진형 지면 크롤러) 와 **Hummerwing**(전진형 저고도 비행체) 을 도입합니다. Reed 는 이제 매 라운드 비무장으로 시작해 **dawn-husk** 알에 부딪쳐 **stone hatchet** 을 획득합니다.
+
+### 플레이 가능한 것
+
+- **Area 1 — "The Mossline Path"** — 멀티 스크린 스크롤 4 라운드 (1-1 ≈ 3 스크린 · 1-2 ≈ 4 · 1-3 ≈ 3 · 1-4 ≈ 4). 라운드 1-3 끝에 mile-marker, 1-4 끝에 boundary cairn 이 "Stage Cleared" 오버레이를 발화 (`The path continues — soon.` / `길은 이어진다 — 곧.`).
+- **슬로프 기반 지형** — 부드러운 (22° 느낌) 과 가파른 (45°) 램프가 적층 플랫폼을 대체. Reed 의 발은 슬로프 프로필에 핀, 바위는 수평 차단, 점프 갭은 점프 가능.
+- **알 → 도끼 픽업** — Reed 는 매 라운드 비무장 스폰. 한 스크린쯤 들어가면 `dawn-husk` 알이 지면에 있음, 부딪치면 깨지고 (3 프레임) hatchet 픽업이 스폰. 픽업 위를 지나면 무장 상태 (X 가 던지기). hatchet 궤적: 포물선, **튕김 없음**, 화면 ≤2 개, 첫 솔리드 접촉 시 despawn.
+- **애니메이션 타일 렌더링** — `fire_low` 가 본 프로젝트의 첫 애니메이션 타일, 신규 `TileCache` 인프라 위에서 ~8 fps 로 깜빡임. design PR #15 의 contract 확장이 향후 애니메이션 타일을 동일한 `{frames, fps}` 형태로 지원.
+- **3 레이어 SVG 패럴랙스 숲** — 하늘 (factor 0), 원경 능선 (0.3), 근경 잎 (0.7). 타일 아래 그려지며 카메라와 함께 스크롤.
+- **Vitality + 1-hit-kill (v0.25.2 그대로)**. Z = 점프 (+ Space), X = 공격. mile-marker 접촉 시 fade-out / fade-in 라운드 전환 (총 60 프레임). Mossplodder + 불 = Mossplodder 사망. Mossplodder + Reed = Reed 사망. Hummerwing + Reed = Reed 사망.
+
+### 엔진 추가/변경
+
+- **신규 모듈**: `src/config/PhaseTwoTunables.js`, `src/graphics/TileCache.js`, `src/levels/StageManager.js`, `src/levels/area1/{round-1-1,round-1-2,round-1-3,round-1-4,index}.js`, `src/mechanics/{HatchetSystem,HuskSystem,Phase2EnemyAI,TriggerSystem}.js`.
+- **수정**: `game.js` (Phase 2 와이어링), `src/levels/LevelManager.js` (StageManager 에 위임하는 신규 `loadAreaRound` 경로), `src/levels/TileMap.js` (slope/decoration/animated/trigger 타입 + 셀별 `slopeProfile`), `src/physics/CollisionSystem.js` (슬로프-인지 floor 핀 + decoration AABB), `src/graphics/Renderer.js` (TileCache 그리기, decoration 오버레이, 전환 페이드, stage-clear 오버레이, armed 상태 anim 선택), `src/graphics/ParallaxBackground.js` (3-SVG 숲), `src/mechanics/{HeroController,CombatSystem}.js` (armed/unarmed 상태, fire-tile 데미지, Mossplodder + fire 상호작용).
+- **Phase 1 은퇴-보존**: `assets/sprites/{enemy-crawlspine,enemy-glassmoth,enemy-bristlecone-sapling,projectile-stoneflake}.js` 디스크 보존, `game.js` 액티브 Phase 2 경로에서는 로드되지 않음. `src/mechanics/{StoneflakeSystem,SeeddartSystem}.js` Phase 1 retro debug 로더용 보존.
+- **CI 필수 파일 리스트** `.github/workflows/pr-feature-to-develop.yml` 에 신규 Phase 2 소스 파일 잠금.
+
+### 알려진 제약/소소한 이슈 (v0.75 백로그)
+
+- `slope_up_22` 횡단은 **계단형** 등반 (12 px 수평 이동마다 12 px 계단 단차) — 가독성은 OK 이나 실크처럼 부드럽지는 않음. `src/physics/CollisionSystem.js` 에 v0.50 의도된 트레이드오프로 문서화; 진짜 22° (픽셀당 램프) 는 v0.75 에서 재방문.
+- Round 1-3 의 3 타일 갭 (col 6-8) 이 Reed 의 최대 점프 거리 한계에 위치; 플레이테스트가 빡빡하다고 보고하면 `HERO.jumpVy0` 튜너블이 노브.
+- 라운드 전환은 페이드만 — "Round 1-2" 텍스트 카드 없음. v0.50 최소 동작에 의도. UI 폴리시는 v0.75.
+- Hummerwing 사체가 실제 그 위치 바로 아래의 지면 타일이 아닌 레벨-행 경계까지 떨어짐 (cosmetic — 갭 위에서 죽었을 때만 가장 보임).
+- `PhysicsEngine.update` 가 Phase 2 모드에서도 매 틱 실행되지만 모든 엔티티 타입에서 no-op (Phase 1 hero, axe projectile, patrol enemy). CPU 비용 무시 가능; 두는 게 안전.
+- Stage Clear 는 종착 — 새로고침 재시도. continue/restart 는 v0.75 메카닉 작업으로 연기.
+- **개발 중 in-browser smoke 미실행**: 워크스테이션에 Node / `npx serve` 부재. 정적 검사 (paren/brace 균형, import 해소, 매트릭스 차원 검증) 모두 그린; CI 의 `node --check` 가 파싱 에러 커버. 라이브 URL 이 첫 진짜 실행.
+
+### 이 quartile 의 PR
+
+- #14 `story(phase2): Area 1 + cast revision — 4 rounds, snail+bee, egg+axe, forest+rock+fire (EN+KO)`
+- #15 `design(phase2): assets — Reed armed + 2 enemies + egg + hatchet + Area 1 tiles + parallax`
+- #16 `dev(phase2): Area 1 — 4 rounds, slopes, egg/axe pickup, Mossplodder + Hummerwing, parallax forest`
+- next: `chore(release): v0.50 release notes` (이 PR 패밀리)
+- next: `release(v0.50): Phase 2 quartile merge` (develop→main 머지)
+
+### 트리뷰트 자세
+
+v0.50 의 모든 아트·오디오·이름·세계관·코드는 본 프로젝트 자체 제작 오리지널. Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-marker, boundary cairn, "The Mossline Path" 모두 본 작업을 위해 창안. 일반적인 플랫포머 메카닉 (4-라운드 스테이지, 슬로프 지형, 아이템 픽업, 던지는 도끼, 달팽이형 + 벌형 적, 숲 테마 + 바위/불 장애물) 은 보편적이며, 오리지널 실행이 트리뷰트 자세를 보존.
+
+---
+
 ## v0.25.2 — Phase 1 패치: HP 제거 + Z/X 키 매핑
 
 **릴리즈:** 2026-05-09 (예정)
