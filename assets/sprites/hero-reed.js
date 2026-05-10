@@ -3,6 +3,9 @@
 //       extended in Phase 2 (v0.50) with armed states (idle_armed x3, walk_armed x4,
 //       jump_armed x2) and a new overhand-cleave attack (attack x3, replaces Phase 1's
 //       side-arm pebble flick). Phase 2 cast brief §2.
+//       Extended in v0.50.2 with sprint x4, sprint_armed x4, stumble x3, death x4
+//       (refined knockback+settle replacing the v0.50 single-frame `dead`). Two new
+//       palette entries (16, 17) for the sprint trail wisps.
 //
 // Frame ASCII legend (per palette index):
 //   .  = 0  transparent
@@ -21,6 +24,8 @@
 //   k  = d  chip-stone-grey (#7e858e)           — Phase 2: hatchet head main face
 //   K  = e  chip-stone-grey shadow (#5a6068)    — Phase 2: hatchet head dark face
 //   w  = f  cloth-wrap-tan (#c89a68)            — Phase 2: hatchet handle binding
+//   a  = 16 amber-underglow wisp (#f8b860)      — v0.50.2 sprint trail (rhymes w/ Hummerwing amber)
+//   u  = 17 pale-violet wisp (#a888b0)          — v0.50.2 sprint trail (cool sibling of velvet ink)
 //
 // Reed reads as a small forward-leaning boy with hair tufted forward, a moss tunic with
 // a cream cuff, bare feet, and a sling-pouch on his right hip. Designed from scratch;
@@ -28,7 +33,10 @@
 // idle_armed, swinging counter-phase to the trailing leg in walk_armed, pinned tight
 // to the torso in jump_armed. The new attack is an overhand cleave (windup / release /
 // recover) replacing Phase 1's side-arm flick — heavier, more decisive, no movement
-// lock per cast brief §2.2.
+// lock per cast brief §2.2. v0.50.2 adds a true sprint silhouette (12 fps, wider stride,
+// trailing wisp lines), a 3-frame stumble (used by the dev team's rock-trip and
+// respawn-knockback flow), and a 4-frame death sequence (knockback rise → airborne →
+// ground impact → settle) replacing Phase 1's single-frame slump.
 
 export const PALETTE = [
   '#00000000', // 0 transparent
@@ -47,6 +55,8 @@ export const PALETTE = [
   '#7e858e',   // 13 chip-stone-grey (Phase 2: hatchet head main face)
   '#5a6068',   // 14 chip-stone-grey shadow (Phase 2: hatchet head dark face)
   '#c89a68',   // 15 cloth-wrap-tan (Phase 2: hatchet handle binding)
+  '#f8b860',   // 16 amber-underglow wisp (v0.50.2 sprint trail; same hex used by enemy-hummerwing)
+  '#a888b0',   // 17 pale-violet wisp (v0.50.2 sprint trail; cool sibling of #3a2e4a)
 ];
 
 // Helper: each frame is 24 rows of 16 columns. We write them row-major as integer arrays.
@@ -736,13 +746,482 @@ const dead0 = [
   [0,4,4,4,4,0,0,0,0,0,0,4,4,4,4,0],
 ];
 
+// ---------------------------------------------------------------------------
+// v0.50.2 — sprint, stumble, refined death (cast brief is unchanged; these
+// extensions land in the dev-team's rock-trip + respawn-knockback flow, plus
+// the X-held sprint feel introduced in v0.50.1.)
+// ---------------------------------------------------------------------------
+
+// sprint frame 0 — wide-stride contact: lead knee LIFTED HIGH (one cell higher
+// than walk0's lead knee), trailing leg pushed back further. Hair tufted more
+// aggressively forward (forelock pushed right by one cell). Trailing wisp line
+// behind the heel: amber wisp 'a' (16) and pale-violet wisp 'u' (17) on row
+// 19-21 columns 0-2 — two-cell trail, amber inner / violet outer for the
+// "warm-spark / cool-shadow" speed read.
+const sprint0 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,3,3,7,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,3,3,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,3,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,3,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,3,3,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,3,3,3,3,3,3,8,0,0,0,0,0,0,0],
+  [17,17,3,3,0,0,3,3,3,0,0,0,0,0,0,0],
+  [17,16,3,0,0,0,0,3,3,0,0,0,0,0,0,0],
+  [16,16,3,0,0,0,0,3,3,0,0,0,0,0,0,0],
+  [0,16,0,0,0,0,0,0,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+];
+
+// sprint frame 1 — passing pose at speed: feet under hips but BOTH airborne for a
+// half-frame (the running suspension). Body slightly forward-leaning. Single thin
+// wisp behind (amber only) — peak of stride loses the violet trail.
+const sprint1 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,7,7,7,3,0,0,0,0,0,0,0],
+  [0,16,0,0,3,3,3,3,3,0,0,0,0,0,0,0],
+  [16,16,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,4,4,0,4,4,0,0,0,0,0,0,0],
+];
+
+// sprint frame 2 — opposite contact at speed: trailing leg now leads, knee lifted
+// high. Hair pushed even further forward (one extra cell ahead of forelock).
+// Two-cell trail behind: amber + violet, but on the OTHER side of the body since
+// the trailing-foot is reversed (this still reads correct because the renderer
+// flips horizontally for left-facing).
+const sprint2 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,3,3,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,3,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,3,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,3,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,8,7,7,3,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,8,3,3,3,7,7,3,3,0,0,0],
+  [16,17,0,0,3,3,3,0,3,3,3,3,3,0,0,0],
+  [16,17,0,0,3,0,0,0,0,0,0,3,3,0,0,0],
+  [16,0,0,0,3,3,0,0,0,0,3,3,0,0,0,0],
+  [0,0,0,0,0,3,0,0,0,0,3,0,0,0,0,0],
+  [0,0,0,4,4,4,0,0,0,4,4,4,0,0,0,0],
+];
+
+// sprint frame 3 — second passing pose (mirror of sprint1, half-cycle later).
+// Single amber wisp behind. Body lean held. This frame closes the 4-frame loop
+// at 12 fps so the cycle reads as a fast 4-beat carry-run.
+const sprint3 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,7,7,7,3,0,0,0,0,0,0,0],
+  [16,0,0,0,3,3,3,3,3,0,0,0,0,0,0,0],
+  [16,16,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,4,4,0,4,4,0,0,0,0,0,0,0],
+];
+
+// sprint_armed frame 0 — same body as sprint0; hatchet still held tight at the
+// hip but the head ROTATES with the stride (counter-phase swing). Hatchet head
+// at columns 12-14 of rows 12-14, swung forward in this contact pose. Trail wisps
+// preserved on the heel side.
+const sprintArmed0 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,3,3,7,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,3,3,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,3,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,13,14,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,3,13,14,15,0],
+  [0,0,0,0,8,7,7,7,7,7,8,15,1,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,3,3,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,3,3,3,3,3,3,8,0,0,0,0,0,0,0],
+  [17,17,3,3,0,0,3,3,3,0,0,0,0,0,0,0],
+  [17,16,3,0,0,0,0,3,3,0,0,0,0,0,0,0],
+  [16,16,3,0,0,0,0,3,3,0,0,0,0,0,0,0],
+  [0,16,0,0,0,0,0,0,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+];
+
+// sprint_armed frame 1 — passing pose; hatchet at neutral hip (hatchet head rests
+// flush against the side, head rotation at midpoint). Single amber wisp.
+const sprintArmed1 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,15,13,14,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,13,14,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,1,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,7,7,7,3,0,0,0,0,0,0,0],
+  [0,16,0,0,3,3,3,3,3,0,0,0,0,0,0,0],
+  [16,16,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,4,4,0,4,4,0,0,0,0,0,0,0],
+];
+
+// sprint_armed frame 2 — opposite contact at speed; hatchet swings BACK (counter-
+// phase to the lead leg). Hatchet head trails on the back side: cells at rows
+// 13-14 columns 1-3. Two wisp cells on the heel side to balance the silhouette.
+const sprintArmed2 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,3,3,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,3,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,3,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,13,14,8,8,8,8,8,8,8,3,0,0,0,0],
+  [0,13,14,15,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,1,0,15,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,8,7,7,3,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,8,3,3,3,7,7,3,3,0,0,0],
+  [16,17,0,0,3,3,3,0,3,3,3,3,3,0,0,0],
+  [16,17,0,0,3,0,0,0,0,0,0,3,3,0,0,0],
+  [16,0,0,0,3,3,0,0,0,0,3,3,0,0,0,0],
+  [0,0,0,0,0,3,0,0,0,0,3,0,0,0,0,0],
+  [0,0,0,4,4,4,0,0,0,4,4,4,0,0,0,0],
+];
+
+// sprint_armed frame 3 — return passing (mirror of sprintArmed1 half-cycle later).
+// Hatchet swings forward again, single amber wisp behind.
+const sprintArmed3 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,5,5,5,5,5,0,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,0,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0],
+  [0,0,0,0,0,7,7,7,7,7,0,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,7,9,9,9,9,7,7,0,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,3,7,7,7,7,7,7,7,3,0,13,14,0],
+  [0,0,0,0,8,8,8,8,8,8,8,0,13,14,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,15,13,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,15,1,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,0,10,0,0,0,0],
+  [0,0,0,0,3,7,7,7,3,0,0,0,0,0,0,0],
+  [16,0,0,0,3,3,3,3,3,0,0,0,0,0,0,0],
+  [16,16,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,4,4,0,4,4,0,0,0,0,0,0,0],
+];
+
+// stumble frame 0 — forward lean, leading foot mid-air, free arm flailing slightly
+// forward. Reed is in the moment of catching balance: head down, body tilted
+// forward by ~30°. No hatchet drawn (stumble is shared between unarmed and armed —
+// the renderer plays this regardless of armed state since stumble is brief).
+// Body silhouette is compact, head bent, arms thrown forward.
+const stumble0 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,5,5,5,5,5,0,0,0,0],
+  [0,0,0,0,0,0,5,5,6,6,5,5,5,0,0,0],
+  [0,0,0,0,0,0,5,3,3,3,3,3,5,0,0,0],
+  [0,0,0,0,0,3,3,3,4,3,4,3,3,3,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,3,3,3,0,0],
+  [0,0,0,3,3,7,7,7,7,7,7,7,3,3,0,0],
+  [0,0,3,3,7,7,7,7,7,7,7,7,7,0,0,0],
+  [0,3,3,7,7,9,9,9,9,7,7,7,7,0,0,0],
+  [0,3,7,7,7,7,7,7,7,7,7,7,7,0,0,0],
+  [0,3,8,8,8,8,8,8,8,8,8,8,3,0,0,0],
+  [0,0,8,7,7,7,7,7,7,7,7,7,8,0,0,0],
+  [0,0,8,7,7,7,7,7,7,7,7,7,8,10,0,0],
+  [0,0,8,7,7,7,7,7,7,7,7,8,10,11,0,0],
+  [0,0,3,3,7,7,7,7,7,7,8,0,10,0,0,0],
+  [0,0,0,3,3,7,7,7,7,8,0,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+  [0,0,0,3,3,0,0,0,0,3,3,3,3,0,0,0],
+  [0,0,3,3,0,0,0,0,0,0,0,0,3,3,0,0],
+  [0,0,3,0,0,0,0,0,0,0,0,0,0,3,0,0],
+  [0,0,3,0,0,0,0,0,0,0,0,0,0,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,4,4,0,0,0,0,0,0,0,0,4,4,4,0],
+];
+
+// stumble frame 1 — full forward fall, palms catching, head lowered (Reed almost
+// face-planted). Body now horizontal across the frame, hands forward catching
+// the ground, knees bent under. Reads as the lowest-energy moment of the trip.
+const stumble1 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,5,5,5,5,5,0],
+  [0,0,0,0,0,0,0,0,0,5,5,6,6,5,5,0],
+  [0,0,0,0,0,0,0,0,0,5,3,3,3,3,5,0],
+  [0,0,0,0,0,0,0,0,0,3,4,3,4,3,3,0],
+  [0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,0],
+  [0,0,3,3,7,7,7,7,7,7,7,7,7,3,0,0],
+  [0,3,3,7,7,9,9,9,9,7,7,7,7,3,0,0],
+  [0,3,7,7,7,7,7,7,7,7,7,7,3,0,0,0],
+  [0,3,8,8,8,8,8,8,8,8,8,3,0,0,0,0],
+  [0,3,3,7,7,7,7,7,7,7,3,3,0,0,0,0],
+  [0,3,3,7,7,7,7,7,7,7,3,3,0,0,0,0],
+  [0,0,3,3,3,7,7,7,7,3,3,3,0,0,0,0],
+  [0,0,0,3,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0],
+  [0,3,3,3,0,0,0,0,0,0,0,3,3,3,0,0],
+  [0,3,3,0,0,0,0,0,0,0,0,0,3,3,0,0],
+  [0,3,0,0,0,0,0,0,0,0,0,0,0,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,4,4,4,0,0,0,0,0,0,0,0,0,4,4,0],
+];
+
+// stumble frame 2 — pushing back up, head still bent, ready to walk again. Body
+// regaining vertical, weight on one knee + one foot. This is the "recover" frame
+// that bridges back to walk/sprint after the trip cost.
+const stumble2 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,5,5,5,5,5,0,0,0,0,0],
+  [0,0,0,0,0,5,5,6,6,5,5,5,0,0,0,0],
+  [0,0,0,0,0,5,3,3,3,3,3,5,0,0,0,0],
+  [0,0,0,0,3,3,4,3,3,4,3,3,3,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,3,3,0,0,0],
+  [0,0,0,0,0,3,3,3,3,3,3,3,0,0,0,0],
+  [0,0,0,3,3,7,7,7,7,7,7,7,3,0,0,0],
+  [0,0,3,3,7,7,7,7,7,7,7,7,3,0,0,0],
+  [0,0,3,7,7,9,9,9,9,7,7,7,3,0,0,0],
+  [0,0,3,7,7,7,7,7,7,7,7,7,7,0,0,0],
+  [0,0,0,7,7,7,7,7,7,7,7,7,3,0,0,0],
+  [0,0,0,8,8,8,8,8,8,8,8,8,3,0,0,0],
+  [0,0,0,8,7,7,7,7,7,7,7,8,0,0,0,0],
+  [0,0,0,8,7,7,7,7,7,7,7,8,10,0,0,0],
+  [0,0,0,8,7,7,7,7,7,7,8,10,11,0,0,0],
+  [0,0,0,3,3,7,7,7,7,7,8,0,10,0,0,0],
+  [0,0,3,3,3,3,3,3,3,3,8,0,0,0,0,0],
+  [0,3,3,3,0,0,0,0,3,3,3,0,0,0,0,0],
+  [0,3,0,0,0,0,0,0,0,3,3,0,0,0,0,0],
+  [0,3,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+  [0,3,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+  [0,4,4,4,0,0,0,0,0,4,4,4,0,0,0,0],
+];
+
+// death frame 0 — knocked-back rise: head back, arms up, body flung backward.
+// Reed has just been hit (or has just lost his last vitality) — feet leaving the
+// ground, torso rotating backward, arms thrown up over the head. Hair lifts.
+const death0 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,3,3,0,3,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,3,0,0,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,3,0,0,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,3,0,0,3,0,0],
+  [0,0,0,0,0,0,5,5,5,5,3,3,3,3,0,0],
+  [0,0,0,0,0,5,5,6,6,5,5,5,0,0,0,0],
+  [0,0,0,0,5,5,6,6,5,5,5,5,0,0,0,0],
+  [0,0,0,0,5,3,3,3,3,3,5,0,0,0,0,0],
+  [0,0,0,0,3,4,3,3,4,3,3,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,7,9,9,9,9,9,7,0,0,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,0,0,0,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,0,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,7,8,10,0,0,0,0],
+  [0,0,0,0,8,7,7,7,7,8,10,11,0,0,0,0],
+  [0,0,0,0,3,7,7,7,3,0,0,0,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,0,0,0,0,0,0,0],
+  [0,0,0,0,0,3,0,3,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+// death frame 1 — airborne tilt: Reed near apex of knockback arc, body horizontal,
+// eyes closed. The whole figure has pivoted 90° (head now pointing left, feet
+// pointing right). Body laid out along rows 9-13, hair trailing back (left), feet
+// trailing back (right).
+const death1 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,5,5,5,5,5,5,5,3,3,3,3,3,3,3,3],
+  [0,5,6,6,6,6,5,3,3,4,3,3,4,3,3,4],
+  [0,5,5,5,5,5,3,3,3,3,3,3,3,3,3,3],
+  [0,0,0,0,0,7,7,7,7,9,9,9,7,7,7,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,7,7,0,0],
+  [0,0,0,0,8,8,8,8,8,8,8,8,8,0,0,0],
+  [0,0,0,0,7,7,7,7,7,7,7,7,0,0,0,0],
+  [0,0,0,0,3,7,7,7,7,7,7,3,0,0,0,0],
+  [0,0,0,0,3,3,3,3,3,3,3,3,3,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,3,3,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+// death frame 2 — ground impact: Reed crashed to the ground, body flat, head
+// sideways. The body has landed; hair splayed, one arm twisted, feet off to the
+// side. Lower-row palette mostly tunic (the figure is on its side). Head at the
+// left, feet trailing right — same orientation as frame 1 but on the ground line.
+const death2 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,5,5,5,5,5,3,3,3,3,3,3,0,0,0,0],
+  [5,6,5,6,5,5,3,4,3,4,3,3,3,0,0,0],
+  [5,5,5,5,5,3,3,3,3,3,3,3,3,0,0,0],
+  [0,0,0,9,9,7,7,7,7,7,7,7,7,3,0,0],
+  [0,0,0,7,7,7,7,7,7,7,7,7,7,3,3,0],
+  [0,0,0,8,8,8,8,8,8,8,8,8,8,8,3,3],
+  [0,0,0,7,7,7,7,7,7,7,7,7,7,3,0,0],
+  [0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4],
+];
+
+// death frame 3 — settle: Reed motionless. Same composition as frame 2 but with
+// any small twitches removed (hair/limb ends pulled in by 1 cell on each side),
+// reading "stillness" — the silhouette has compacted. This is the frame that
+// holds before the lives system advances. Fade-friendly: matches the previous
+// frame's center-of-mass, so an alpha cross-fade reads cleanly.
+const death3 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,5,5,5,5,3,3,3,3,3,3,0,0,0,0],
+  [0,5,5,6,5,5,3,4,3,4,3,3,3,0,0,0],
+  [0,5,5,5,5,3,3,3,3,3,3,3,3,0,0,0],
+  [0,0,0,9,9,7,7,7,7,7,7,7,7,3,0,0],
+  [0,0,0,7,7,7,7,7,7,7,7,7,7,3,3,0],
+  [0,0,0,8,8,8,8,8,8,8,8,8,8,8,3,3],
+  [0,0,0,7,7,7,7,7,7,7,7,7,7,3,0,0],
+  [0,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0],
+];
+
 export const FRAMES = {
   // Phase 1 (unarmed) — kept intact.
   idle:   [idle0, idle1],
   walk:   [walk0, walk1, walk2],
   jump:   [jump0],
   hurt:   [hurt0],
-  dead:   [dead0],
+  // v0.50.2: 'dead' kept as alias to the final settle frame so the renderer's
+  // existing fallback chain still resolves for any consumer that asks for `dead`.
+  // The full 4-frame death sequence lives under the 'death' key below.
+  dead:   [death3],
 
   // Phase 2 — overhand cleave (replaces Phase 1 side-arm flick). Cast brief §2.2.
   attack: [attack0, attack1, attack2],
@@ -751,6 +1230,22 @@ export const FRAMES = {
   idle_armed: [idleArmed0, idleArmed1, idleArmed2],
   walk_armed: [walkArmed0, walkArmed1, walkArmed2, walkArmed3],
   jump_armed: [jumpArmed0, jumpArmed1],
+
+  // v0.50.2 — sprint (X-held running). 4 frames at 12 fps. Wider stride than
+  // walk; trailing wisp lines in amber + violet for the speed read.
+  sprint:       [sprint0, sprint1, sprint2, sprint3],
+  sprint_armed: [sprintArmed0, sprintArmed1, sprintArmed2, sprintArmed3],
+
+  // v0.50.2 — stumble (rock-trip + post-knockback recover). 3 frames. Shared
+  // between unarmed and armed: the renderer plays this regardless of
+  // player.armed because the moment is too brief to swap sprite atlases.
+  stumble: [stumble0, stumble1, stumble2],
+
+  // v0.50.2 — death sequence: knockback rise → airborne tilt → ground impact →
+  // settle. 4 frames at 8 fps. Dev-team's lives system plays this once before
+  // the respawn beat (mile-marker or stage start). The settle frame (death3)
+  // is also aliased as the legacy `dead` key.
+  death: [death0, death1, death2, death3],
 };
 
 export const META = {
@@ -760,16 +1255,21 @@ export const META = {
   fps: 8,
   // v0.50.1 — per-animation fps override. Renderer consults animFps[animKey] before
   // falling back to fps. Slower idle/idle_armed gives a "breathing" feel; locomotion
-  // and combat keep their snap.
+  // and combat keep their snap. v0.50.2 adds sprint (12 fps — visibly faster than
+  // walk's 8), stumble (8 fps), and death (8 fps for the 4-frame knockback cycle).
   animFps: {
-    idle:       4,
-    idle_armed: 4,
-    walk:       8,
-    walk_armed: 8,
-    jump:       8,
-    jump_armed: 8,
-    attack:     8,
-    hurt:       8,
-    dead:       4,
+    idle:         4,
+    idle_armed:   4,
+    walk:         8,
+    walk_armed:   8,
+    jump:         8,
+    jump_armed:   8,
+    attack:       8,
+    hurt:         8,
+    dead:         4,
+    sprint:       12,
+    sprint_armed: 12,
+    stumble:      8,
+    death:        8,
   },
 };

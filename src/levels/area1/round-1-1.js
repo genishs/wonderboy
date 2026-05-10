@@ -7,6 +7,12 @@
 // slope tile occupies the SAME row as the destination flat (i.e., the higher
 // flat for `up`, the lower flat for `dn`). This keeps the floor surface
 // continuous across the slope ↔ flat boundary. See CollisionSystem.floorYAt.
+//
+// v0.50.2: mile-markers now live at the START of each round (not the end), so
+// the player sees the "Round 1" sign right after spawning and the "Round 2"
+// sign as they enter round-1-2. The cairn at the very end of round-1-4 still
+// fires Stage Cleared. Round-1-1's `mile_1` therefore moves from col 47 (end)
+// to col 3 (just past spawn at col 1).
 
 const flat   = (row) => ({ kind: 'flat',          row });
 const upGen  = (row) => ({ kind: 'slope_up_22',   row });
@@ -38,7 +44,9 @@ export const ROUND = Object.freeze({
         { col: 38, row: 9, kind: 'rock_small' },
     ],
     triggers: [
-        { col: 47, row: 9, kind: 'mile_1' },
+        // v0.50.2 — Round 1 sign at the START of the stage (col 3, just past
+        // the spawn at col 1). The cairn at end of round-1-4 still ends the stage.
+        { col: 3, row: 9, kind: 'mile_1' },
     ],
     fires: [],
     spawn: { col: 1, row: 9 },

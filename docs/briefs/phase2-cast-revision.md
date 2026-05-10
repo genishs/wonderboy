@@ -654,6 +654,20 @@ gameplay in v0.50; sprite modules remain in `assets/sprites/` as reserve.)
 
 Edits after the brief was first published (per `docs/briefs/README.md`).
 
+### 2026-05-10 — v0.50.2 (second post-browser-smoke pivot)
+
+Driven by user feedback after browser-testing v0.50.1. Six fixes shipped:
+
+- **Standing-still jitter** root-caused to a one-character bug in `CollisionSystem` (`>` → `>=` for the flat-snap equality case). Reed no longer 1-px-oscillates while idle.
+- **New hero animations** (`sprint`, `sprint_armed`, `stumble`, refined `death`) wired to FSM states. `idle` stays a 3-frame breath at 4 fps; with the jitter gone it reads correctly.
+- **Slope step-up** lets Reed walk up `slope_up_22` / `_45` with arrow keys alone (no jump required). Threshold = 18 px; hero-only.
+- **Mile-marker positions shifted to round STARTS.** Previously markers sat at the END of the previous round. Now: `mile_1` at stage start (col 3), `mile_2` early in round 1-2 (col 50), `mile_3` early in round 1-3 (col 114), `mile_4` early in round 1-4 (col 162, new tile design-shipped in PR #22). Cairn unchanged at stage end.
+- **Death = knockback + 4-frame `death` anim + 45-frame dying timer + delayed respawn at most-recent passed mile-marker.** Reed no longer instant-respawns. `pl.dyingFrames` is the new ECS field driving the timer.
+- **0 lives → GAME OVER + unlimited continue.** Press any movement/jump/attack key to continue → stage rebuilds with lives refilled. Previously v0.50.1 silently restarted the stage on lives-0; v0.50.2 makes it an explicit player-input beat.
+- **Rocks no longer block** — contact triggers stumble FSM (30-frame anim, vitality −10, momentum loss); Reed walks through. Per-rock token + 30-frame cooldown prevent re-trip until Reed walks fully off.
+
+Cast identity unchanged. ECS field additions: `pl.dyingFrames`, `pl.stumbleFrames`, `pl.stumbleCooldown`, `pl._lastRockTripKey`.
+
 ### 2026-05-10 — v0.50.1 (post-browser-smoke pivot)
 
 Driven by user feedback after browser-testing v0.50. Several Open Questions and

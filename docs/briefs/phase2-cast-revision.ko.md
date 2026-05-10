@@ -623,6 +623,20 @@ TRIGGERS     = { milePulseRange, cairnIdleFps }
 
 브리프 최초 발행 후 편집 (`docs/briefs/README.md` 정책).
 
+### 2026-05-10 — v0.50.2 (두 번째 브라우저 스모크 후 피벗)
+
+v0.50.1 브라우저 테스트 후 사용자 피드백 6 건 반영:
+
+- **정지 시 떨림** 의 근본 원인이 `CollisionSystem` 1 글자 버그(`>` → `>=` 평면 스냅 같음 케이스). Reed 가 idle 상태에서 더 이상 1-px 진동 없음.
+- **새 hero 애니메이션**(`sprint`, `sprint_armed`, `stumble`, 리파인된 `death`) FSM 상태에 와이어. `idle` 은 4 fps 3 프레임 호흡 그대로; jitter 사라지니 자연스럽게 읽힘.
+- **슬로프 step-up** 으로 Reed 가 화살표만으로 `slope_up_22`/`_45` 등반 가능(점프 불필요). 임계값 18 px; 히어로 전용.
+- **마일마커 위치 라운드 시작으로 시프트.** 이전엔 markers 가 이전 라운드 끝에 위치. 이제: `mile_1` 스테이지 시작(col 3), `mile_2` 라운드 1-2 초입(col 50), `mile_3` 라운드 1-3 초입(col 114), `mile_4` 라운드 1-4 초입(col 162, design PR #22 의 신규 타일). cairn 은 스테이지 끝 그대로.
+- **죽음 = 넉백 + 4 프레임 `death` 애니 + 45 프레임 dying 타이머 + 가장 최근 통과 마일마커에서 지연 respawn.** Reed 가 더 이상 즉시 respawn 안 함. `pl.dyingFrames` 가 타이머 구동 신규 ECS 필드.
+- **0 lives → GAME OVER + 무제한 continue.** 이동/점프/공격 키 입력으로 continue → 스테이지 재구축, lives 리필. 이전 v0.50.1 은 0-lives 시 조용히 재시작; v0.50.2 는 명시적 플레이어 입력 비트로.
+- **돌이 더 이상 차단 X** — 접촉 시 stumble FSM 발동(30 프레임 애니, vitality −10, 관성 손실); Reed 가 통과. 돌 별 token + 30 프레임 cooldown 으로 재트립 방지.
+
+캐스트 정체성 변경 없음. ECS 필드 추가: `pl.dyingFrames`, `pl.stumbleFrames`, `pl.stumbleCooldown`, `pl._lastRockTripKey`.
+
 ### 2026-05-10 — v0.50.1 (브라우저 스모크 후 피벗)
 
 v0.50 브라우저 테스트 후 사용자 피드백으로 인해 Open Questions 및 in-spec 기본값

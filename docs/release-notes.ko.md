@@ -6,6 +6,66 @@
 
 ---
 
+## v0.50.2 — Phase 2 패치: jitter 픽스 + 슬로프 step-up + 새 애니 + 마일마커 시프트 + 죽음 FSM + 돌 stumble
+
+**릴리즈:** 2026-05-10 (예정)
+**태그:** `main` 의 `v0.50.2`
+**Pages:** https://genishs.github.io/wonderboy/
+
+v0.50.1 브라우저 테스트 후 사용자 피드백 6 건 — design + dev 페어로 모두 처리.
+
+### 수정 내역
+
+- **정지 시 떨림 제거.** 근본 원인: `CollisionSystem` 평면 바닥 스윕이 `footY > tileTop` 엄격 비교를 써서 같음 케이스를 놓침. 매 프레임 `ph.onGround` 가 false 로 리셋 → 중력으로 0.55 px 떨어짐 → 스냅이 다시 끌어올림 → 1-px 진동. 수정: `>=` 로 변경. 1 글자 delta.
+- **새 hero 애니메이션.** `sprint`(4 프레임 @ 12 fps), `sprint_armed`(4 프레임 @ 12 fps), `stumble`(3 프레임 @ 8 fps, armed/unarmed 공유), 리파인된 `death`(4 프레임 @ 8 fps — knockback 솟구침 → 공중 기울기 → 지면 충돌 → 안착). legacy `dead` 는 마지막 death 프레임으로 alias. idle 은 그대로 4 fps 3 프레임 호흡(jitter 가 사라졌으니 정적일 필요 없음).
+- **슬로프 step-up.** `CollisionSystem.resolveTiles` 가 ≤18 px 까지의 평면-타일 차단을 자동으로 한 단계 올림(슬로프→평면 솔기 픽셀 라운딩 처리). 히어로 전용(`isHero` 인자); Mossplodder 는 여전히 벽에 깔끔하게 부딪힘. 화살표만으로 슬로프 등반 가능.
+- **마일마커 시프트(라운드 시작 위치)** (사용자 "팻말은 라운드 시작에" 요청):
+  - 라운드 1-1 → `mile_1` col 3 (스폰 직후) — 오버레이 "Round 1 / 라운드 1"
+  - 라운드 1-2 → `mile_2` col 50 (라운드 상대 col 2 + offset 48)
+  - 라운드 1-3 → `mile_3` col 114
+  - 라운드 1-4 → `mile_4` col 162 (design PR #22 의 신규 타일)
+  - 스테이지 끝 cairn 변경 없음(여전히 Stage Cleared 트리거)
+  - StageManager 오버레이 매핑 갱신: `mile_N` → "Round N" 오버레이; `lastCheckpointCol = mile_N.col + 1` 로 respawn 은 마커 직후(해당 라운드 진입 위치)
+- **죽음 = 넉백 + 애니메이션 + 지연 respawn.** Phase 2 의 `state.killHero(player)` 가 바로 lives 감소 대신 새 `state.beginDying(player)` 로 라우팅. 넉백 속도 vx ±5, vy −6 적용; `pl.dyingFrames = 45` 타이머; HeroController 가 timer decrement 동안 새 `death` 애니 재생. 1→0 엣지에서 `state.loseLife()` 호출 → 가장 최근 통과 마일마커에서 respawn(`pl.armed` 보존).
+- **GAME OVER + 무제한 continue** (사용자 요청). lives 0 → 자동 재시작 대신 `GAME_OVER` 상태 전환. Renderer 가 중앙에 빨간 48 px `GAME OVER` + `Press any key to continue / 아무 키나 눌러 계속` 표시. jump(Z/Space) / attack(X) / sprint(X) / 이동(←/→ / A/D) 입력 → `state.continueRun()` lives 리필 + `_stageRestartPending` + RESPAWNING. StageManager 가 스테이지 재구축. 무한 재도전.
+- **돌 = stumble + 소량 vitality drain + 통과** (사용자 요청). 돌이 더 이상 hero 움직임 차단 X. `CollisionSystem` 이 `level._heroRockContacts` 에 overlap 기록; HeroController 가 contacts 를 소비해 stumble FSM 작동:
+  - `pl.stumbleFrames = 30`, vitality −10, `pl.aiState = 'stumble'`, `v.vx *= 0.3`(관성 손실)
+  - stumble 중: 입력 무시, 중력 정상
+  - 30 프레임 cooldown + 돌 별 token(`pl._lastRockTripKey = "col,row"`) 으로 같은 돌에서 reed 가 완전히 벗어나기 전까지 재트립 방지
+- **`pl.dyingFrames` 와 `pl.stumbleFrames`** 가 player ECS 컴포넌트에 추가됨(additive — PR body 참조).
+
+### 영향받은 파일
+
+- 16 파일; +457 / −53 줄 (PR #23) + 8 파일; +1060 / −21 (design PR #22)
+- 간략히: `src/physics/CollisionSystem.js`, `src/mechanics/{HeroController, CombatSystem, TriggerSystem}.js`, `src/levels/{StageManager, LevelManager, TileMap, area1/index.js, area1/round-1-{1..4}.js}.js`, `src/core/StateManager.js`, `src/graphics/Renderer.js`, `src/config/PhaseTwoTunables.js`, `game.js`, `assets/sprites/hero-reed.js` (신규 키), `assets/tiles/area1.js` (mile_4)
+
+### 변경되지 않은 것
+
+- 캐스트 정체성(Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-markers, boundary cairn, "The Mossline Path"). v0.50.1 의 lives 시스템 그대로.
+- 라운드 지형/스폰 데이터(마일마커 col 위치만 시프트; 나머지 동일).
+- CI 워크플로우 + 이중언어 정책.
+- README 컨트롤 테이블(Z=점프 / X=탭-던지기, X-홀드-대시 / Z+X-고점프 불변).
+
+### 알려진 제약 (v0.75 백로그)
+
+- Area 간 스테이지 전환(Area 2) 미구현; 다음 Area 로의 장비 carryover 는 구조 준비만.
+- `PhysicsEngine.update` 가 Phase 2 모드에서 no-op (CPU 비용 무시).
+- v0.50.2 dev 중 in-browser smoke 미실행(워크스테이션에 Node/`npx serve` 없음); CI 의 `node --check` 가 파싱 커버, 라이브 URL 이 첫 진짜 실행.
+- step-up clearance 검사는 차단 칼럼만 검증; 1 타일 폭 이상 엔티티는 미검사 칼럼의 벽을 놓칠 수 있음. Reed 는 1 타일 — 현재 무관, 향후 엔티티 크기 변경 시 재검증 필요.
+
+### 이 패치의 PR
+
+- #22 `design(v0.50.2): hero sprint + stumble + refined death + mile_4 tile (EN+KO)`
+- #23 `dev(v0.50.2): jitter fix + slope step-up + new anims + mile-marker shift + death FSM + rock stumble`
+- next: `chore(release): v0.50.2 release docs` (이 PR 패밀리 — brief Changelog + release-notes)
+- next: `release(v0.50.2): patch quartile merge` (develop→main 머지)
+
+### 트리뷰트 자세
+
+모든 v0.50.2 변경은 v0.50 에서 도입된 오리지널 캐릭터(Reed Bramblestep, Mossplodder, Hummerwing) 에 적용. 추가된 동작 — 죽음-넉백 애니메이션, 라운드 시작 사인, GAME OVER + continue, stumble 장애물, 슬로프 step-up — 은 보편적인 플랫포머 컨벤션이며 오리지널 아트와 오리지널 코드로 실행. 저작권 보호 자료의 재현 없음.
+
+---
+
 ## v0.50.1 — Phase 2 패치: 연속 Area 1 + 3 목숨 + 부드러운 슬로프 + X 모디파이어 + 애니 튜닝
 
 **릴리즈:** 2026-05-10 (예정)

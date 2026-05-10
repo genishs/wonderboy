@@ -26,6 +26,11 @@ export const TILE_TYPES = Object.freeze({
     CAIRN:        108,
     FIRE_LOW:     109,
     ROCK_SMALL:   110,
+    // v0.50.2 — Round 4 sign at the start of round-1-4. Round 1 uses MILE_1 at
+    // the stage start, MILE_2 at round-1-2, MILE_3 at round-1-3, MILE_4 at
+    // round-1-4. The cairn (boundary) stays at the very end as the Stage Cleared
+    // trigger.
+    MILE_4:       111,
 });
 
 const SOLID_TYPES = new Set([
@@ -51,6 +56,7 @@ const TILE_KEY_OF = {
     [TILE_TYPES.MILE_1]:      'mile_1',
     [TILE_TYPES.MILE_2]:      'mile_2',
     [TILE_TYPES.MILE_3]:      'mile_3',
+    [TILE_TYPES.MILE_4]:      'mile_4',   // v0.50.2
     [TILE_TYPES.CAIRN]:       'cairn',
     [TILE_TYPES.FIRE_LOW]:    'fire_low',
     [TILE_TYPES.ROCK_SMALL]:  'rock_small',
@@ -60,6 +66,7 @@ const TRIGGER_KIND_OF = {
     [TILE_TYPES.MILE_1]: 'mile_1',
     [TILE_TYPES.MILE_2]: 'mile_2',
     [TILE_TYPES.MILE_3]: 'mile_3',
+    [TILE_TYPES.MILE_4]: 'mile_4',   // v0.50.2
     [TILE_TYPES.CAIRN]:  'cairn',
 };
 

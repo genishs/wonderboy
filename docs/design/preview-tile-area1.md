@@ -8,7 +8,7 @@
 | Tile matrix   | 16 × 16 art-pixels per tile        |
 | Display size  | 48 × 48 canvas px (3× scale; matches `TILE = 48` in src) |
 | Palette       | 16 entries                         |
-| Tile keys     | 11 keys (10 static + 1 animated)   |
+| Tile keys     | 12 keys (11 static + 1 animated) — v0.50.2 added `mile_4` |
 
 > Size / scale note: per the contracts.md extension shipped in this PR family,
 > tile modules now declare `META = { tile, scale, displayPx }`. The Area 1
@@ -46,21 +46,34 @@
   TOP of a flat-ground tile beneath it: rows below 12 are transparent so the
   underlying floor shows through. (Authoring rule for level-data: place
   `rock_small` in the same column as a `flat` ground tile.)
-- **`mile_1`**, **`mile_2`**, **`mile_3`** — Per release-master decision Q4,
-  the round-numerals are baked as **digits** (NOT notch marks). Each tile
-  shows a weathered wooden post (wet-bark-brown shaft + cuff-cream plank
-  crossbar). The plank face carries the digit in violet ink:
+- **`mile_1`**, **`mile_2`**, **`mile_3`**, **`mile_4`** — Per release-master
+  decision Q4, the round-numerals are baked as **digits** (NOT notch marks).
+  Each tile shows a weathered wooden post (wet-bark-brown shaft + cuff-cream
+  plank crossbar). The plank face carries the digit in violet ink:
   - **`mile_1`**: a single vertical bar with a small serif at top (rows 4-7,
     columns 5-8). Reads "1".
   - **`mile_2`**: top horizontal + top-right vertical + middle horizontal +
     bottom-left vertical + bottom horizontal. Reads "2".
   - **`mile_3`**: top horizontal + right-side vertical + middle horizontal +
     right-side vertical + bottom horizontal. Reads "3".
+  - **`mile_4`** *(v0.50.2)*: top-left vertical + top-right vertical + middle
+    horizontal joining them + bottom-right vertical descending below the
+    middle. Classic 7-segment "4" — three ink-cells per side at the top, then
+    a one-cell horizontal joiner, then a single ink column on the right
+    descending. Reads "4".
 
   The plank face uses cuff-cream (`#e8d4a0`) so the digit reads dark-on-light;
   a dawn-amber notch above the post-shaft head catches morning sun (per cast
   brief §9.1). Mile-markers are entities in level-data; the tile keys here are
   the visual component the entity renders.
+
+  > **v0.50.2 mile-marker shift.** v0.50.1 placed `mile_1` / `_2` / `_3`
+  > between rounds (post-Round-1 = Round 2 marker, etc.). v0.50.2 shifts
+  > markers to round STARTS — Round 1 marker at the stage entry, Round 2
+  > marker at the screen where Round 2 begins, Round 3 marker at Round 3,
+  > Round 4 marker at Round 4. Hence the new `mile_4` tile: there are now
+  > four start-markers and one boundary cairn. The cairn at the end of
+  > Round 4 (at the stage-clear boundary) is unchanged in art.
 
 - **`cairn`** — Boundary cairn. Stack of three river-stones, sigil-stone
   topmost. Larger silhouette than the mile-marker — the cairn occupies a wider
