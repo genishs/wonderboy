@@ -1,14 +1,16 @@
 // owning agent: dev-lead
-// TODO: LevelManager — legacy Area 1 loader + Phase 1 single-stage loader.
-//       Phase 1 mode (`_isPhase1Test = true`) bypasses camera scroll, item drops,
-//       and legacy hazard/enemy/goal collision checks (those run in HeroController +
-//       CombatSystem + EnemyAI for Phase 1).
+// TODO: LevelManager — legacy Area 1 loader + Phase 1 single-stage loader +
+//       Phase 2 (v0.50) area/round loader. Phase 1/2 modes bypass legacy item/enemy/
+//       hazard/goal checks (those run inline in HeroController + CombatSystem +
+//       EnemyAI / Phase2EnemyAI / TriggerSystem). Phase 2 delegates the round FSM
+//       to StageManager.
 
 import { AREA_DATA } from './LevelData.js';
 import { TileMap }   from './TileMap.js';
 import { buildPhase1TestMap, PHASE1_STAGE_DATA } from './TestStage.js';
 import { initEnemy } from '../mechanics/EnemyAI.js';
 import { HERO } from '../config/PhaseOneTunables.js';
+import { StageManager } from './StageManager.js';
 
 const TILE = 48;
 const VIEWPORT_W = 768;
@@ -26,10 +28,13 @@ export class LevelManager {
         this.playerEntity  = null;
         this._areaIndex    = 1;
         this._isPhase1Test = false;
+        this._isPhase2     = false;
+        this.stageManager  = null;     // lazy — instantiated in loadAreaRound
     }
 
     loadLevel(area, ecs, state) {
         this._isPhase1Test = false;
+        this._isPhase2     = false;
         const areaData = AREA_DATA[area];
         if (!areaData) throw new Error(`Area ${area} not defined in LevelData.js`);
         this._areaIndex   = area;
@@ -43,10 +48,30 @@ export class LevelManager {
     /** Phase 1 single-screen test stage. Bypasses scroll, items, hazards, goals. */
     loadPhase1Test(ecs, state) {
         this._isPhase1Test = true;
+        this._isPhase2     = false;
         this.currentLevel = buildPhase1TestMap();
         this.scrollX = 0;
 
         if (ecs && state) this._spawnPhase1(ecs, state);
+    }
+
+    /**
+     * Phase 2 (v0.50) — load Area `area` Round `round` via StageManager.
+     * Initial entry: pass round=1 to start the area; StageManager will then
+     * own subsequent transitions.
+     */
+    loadAreaRound(area, round, ecs, state) {
+        this._isPhase2     = true;
+        this._isPhase1Test = false;
+        this._areaIndex    = area;
+        if (!this.stageManager) this.stageManager = new StageManager(this);
+        if (round === 1) {
+            this.stageManager.startArea(area, ecs, state);
+        } else {
+            this.stageManager.areaIndex = area;
+            this.stageManager.roundIndex = round;
+            this.stageManager.loadCurrentRound(ecs, state);
+        }
     }
 
     update(dt, ecs, state) {
@@ -56,13 +81,18 @@ export class LevelManager {
         if (!tf) return;
 
         // Smooth camera: player locked ~1/3 from left.
-        // Both Phase 1 (test stage) and legacy Area 1 use the same scroll math.
         const target    = tf.x - Math.floor(VIEWPORT_W / 3);
         const maxScroll = Math.max(0, (this.currentLevel.cols - 16) * TILE);
         this.scrollX    = Math.max(0, Math.min(target, maxScroll));
 
-        // Phase 1 owns its own collision/spawn paths (HeroController + CombatSystem +
-        // EnemyAI). Don't run the legacy hazard/enemy/goal checks here.
+        // Phase 2: drive StageManager (transition timer); skip all legacy item/
+        //   enemy/hazard/goal checks — Phase 2 systems run them.
+        if (this._isPhase2) {
+            this.stageManager?.update(dt, ecs, state);
+            return;
+        }
+
+        // Phase 1 owns its own collision/spawn paths.
         if (this._isPhase1Test) return;
 
         this._checkItems(ecs, state);

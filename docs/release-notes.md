@@ -6,6 +6,54 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.50 — Phase 2: Area 1 with 4 rounds, slopes, egg→hatchet pickup, Mossplodder + Hummerwing, forest parallax
+
+**Released:** 2026-05-09 (planned)
+**Tag:** `v0.50` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+The second quartile pivots from a single test stage to a real Area→Round structure with classic platformer pacing. The cast is rebuilt: Phase 1's Crawlspine / Glassmoth / Bristlecone Sapling step aside (sprite modules retained as reserve) and Area 1 introduces **Mossplodder** (slow forward-only ground crawler) and **Hummerwing** (forward-only low-altitude flier). Reed now starts each round unarmed and acquires a **stone hatchet** by running into a **dawn-husk** egg.
+
+### What's playable
+
+- **Area 1 — "The Mossline Path"** with four multi-screen scrolling rounds (1-1 ≈ 3 screens · 1-2 ≈ 4 screens · 1-3 ≈ 3 screens · 1-4 ≈ 4 screens). Mile-marker tile at the end of rounds 1-3; boundary cairn at the end of round 4 fires a "Stage Cleared" overlay reading `The path continues — soon.` / `길은 이어진다 — 곧.`
+- **Slope-based terrain** — gentle (22°-feel) and steep (45°) ramps replace stacked platforms. Reed's feet pin to the slope profile; rocks block horizontally; jump gaps are jumpable.
+- **Egg → hatchet pickup** — Reed spawns unarmed each round. About one screen in, a `dawn-husk` egg sits on the ground; running into it cracks it (3-frame break) and spawns a hatchet pickup. Walking over the pickup arms Reed (X now throws). Hatchet trajectory: parabolic, **no bounce**, 2-on-screen cap, despawn on first solid contact.
+- **Animated tile rendering** — `fire_low` is the project's first animated tile, flicker at ~8 fps via the new `TileCache` infrastructure. Contract extension shipped in design PR #15 supports any future animated tile via the same `{frames, fps}` shape.
+- **3-layer SVG parallax forest** — sky (factor 0), distant ridge (0.3), near foliage (0.7). Drawn beneath tiles, scrolls with camera.
+- **Vitality + 1-hit-kill from v0.25.2 unchanged.** Z = jump (+ Space), X = attack. Mile-marker contact triggers fade-out / fade-in round transition (60-frame total). Mossplodder + fire = Mossplodder dies. Mossplodder + Reed = Reed dies. Hummerwing + Reed = Reed dies.
+
+### Engine additions / changes
+
+- **New modules**: `src/config/PhaseTwoTunables.js`, `src/graphics/TileCache.js`, `src/levels/StageManager.js`, `src/levels/area1/{round-1-1,round-1-2,round-1-3,round-1-4,index}.js`, `src/mechanics/{HatchetSystem,HuskSystem,Phase2EnemyAI,TriggerSystem}.js`.
+- **Modified**: `game.js` (Phase 2 wiring), `src/levels/LevelManager.js` (new `loadAreaRound` path delegating to StageManager), `src/levels/TileMap.js` (slope/decoration/animated/trigger types + `slopeProfile` per-cell), `src/physics/CollisionSystem.js` (slope-aware floor pinning + decoration AABB), `src/graphics/Renderer.js` (TileCache draw, decoration overlay, transition fade, stage-clear overlay, armed-state anim picker), `src/graphics/ParallaxBackground.js` (3-SVG forest), `src/mechanics/{HeroController,CombatSystem}.js` (armed/unarmed state, fire-tile damage, Mossplodder + fire interaction).
+- **Phase 1 retired-but-reserved**: `assets/sprites/{enemy-crawlspine,enemy-glassmoth,enemy-bristlecone-sapling,projectile-stoneflake}.js` retained on disk; not loaded by `game.js`'s active Phase 2 path. `src/mechanics/{StoneflakeSystem,SeeddartSystem}.js` retained for the Phase 1 retro debug loader.
+- **CI required-files list** extended in `.github/workflows/pr-feature-to-develop.yml` to lock the new Phase 2 source files.
+
+### Known limitations / minor issues (carry to v0.75 backlog)
+
+- `slope_up_22` traversal is a **stepped** climb (12 px stair every 12 px of horizontal travel) — readable but not silky-smooth. Documented as intentional v0.50 trade-off in `src/physics/CollisionSystem.js`; revisit for true 22° (per-pixel ramp) in v0.75.
+- Round 1-3's 3-tile gap (cols 6-8) sits at the edge of Reed's max jump distance; tunable `HERO.jumpVy0` is the knob if playtest reports it feels punishing.
+- Round transition shows fade only — no "Round 1-2" text card. Intentional for v0.50 minimum-viable; UI polish in v0.75.
+- Hummerwing dead body falls to the level-row boundary, not the actual ground tile under it (cosmetic — most visible only when a Hummerwing dies over a gap).
+- `PhysicsEngine.update` runs every tick in Phase 2 mode but no-ops on every entity type (Phase 1 hero, axe projectile, patrol enemy). Negligible CPU; safe to leave.
+- Stage Clear is terminal — refresh to retry. Continue/restart deferred to v0.75 mechanics work.
+- **No in-browser smoke ran during dev**: workstation lacked Node / `npx serve`. Static checks (paren/brace balance, import resolution, matrix-dimension validation) all green; CI's `node --check` covers parse errors. Live URL post-deploy is the first real run.
+
+### PRs in this quartile
+
+- #14 `story(phase2): Area 1 + cast revision — 4 rounds, snail+bee, egg+axe, forest+rock+fire (EN+KO)`
+- #15 `design(phase2): assets — Reed armed + 2 enemies + egg + hatchet + Area 1 tiles + parallax`
+- #16 `dev(phase2): Area 1 — 4 rounds, slopes, egg/axe pickup, Mossplodder + Hummerwing, parallax forest`
+- next: `chore(release): v0.50 release notes` (this PR family)
+- next: `release(v0.50): Phase 2 quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All v0.50 art, audio, names, world fiction, and code are original to this project. The Mossplodder, Hummerwing, dawn-husk, stone hatchet, mile-marker, boundary cairn, and "The Mossline Path" are coined for this work. Generic platformer mechanics (4-round stages, slope terrain, item pickup, throwable axe, snail-archetype + bee-archetype enemies, forest theme + rock/fire obstacles) are universal — original execution preserves the tribute posture.
+
+---
+
 ## v0.25.2 — Phase 1 patch: HP removal + Z/X key bindings
 
 **Released:** 2026-05-09 (planned)

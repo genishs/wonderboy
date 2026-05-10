@@ -21,14 +21,18 @@ export class EnemyAI {
 
         for (const row of ecs.query('transform', 'velocity', 'enemy')) {
             const en = row.enemy;
+            // Phase 2 types are owned by Phase2EnemyAI — skip here.
+            if (en.type === 'mossplodder' || en.type === 'hummerwing') continue;
             if (en.type === 'crawlspine')      this._tickCrawlspine(row, level);
             else if (en.type === 'glassmoth')  this._tickGlassmoth(row, level, playerTf);
             else if (en.type === 'sapling')    this._tickSapling(row, level, playerTf, ecs, seeddartSystem);
         }
 
-        // Death cleanup: when deathFrames countdown finishes, remove entity
+        // Death cleanup: when deathFrames countdown finishes, remove entity.
+        // Skip Phase 2 types — Phase2EnemyAI owns its own cleanup pass.
         for (const row of ecs.query('enemy')) {
             const en = row.enemy;
+            if (en.type === 'mossplodder' || en.type === 'hummerwing') continue;
             if (en.ai === 'dead') {
                 en.deathFrames = Math.max(0, (en.deathFrames || 0) - 1);
                 if (en.deathFrames === 0) ecs.destroyEntity(row.id);
