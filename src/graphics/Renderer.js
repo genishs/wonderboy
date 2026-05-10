@@ -1,7 +1,7 @@
 // owning agent: dev-lead
-// TODO: Renderer — placeholder rectangles for unmapped entities; SpriteCache draws
-//       for entities the Design team has shipped. Phase 1 adds anchor-formula draws,
-//       facing-flip via ctx.scale(-1, 1), and iframe-blink for hurt hero.
+// TODO: Renderer — Phase 1 placeholder + cached-sprite path + Phase 2 (v0.50)
+//   tile-cache draw, decoration overlay, parallax SVG layers, transition fade,
+//   stage-clear bilingual overlay, hero armed-state animation key.
 
 import { pickAnim } from './SpriteCache.js';
 
@@ -14,6 +14,18 @@ const TILE_COLORS = {
     6: '#5A4030',  // wall block
     7: '#C8E8FF',  // ice
     8: '#FFD700',  // goal post
+    // Phase 2 fallbacks (only used when TileCache hasn't been wired)
+    100: '#7B4F2E',  // FLAT
+    101: '#7B4F2E',  // SLOPE_UP_22
+    102: '#7B4F2E',  // SLOPE_UP_45
+    103: '#7B4F2E',  // SLOPE_DN_22
+    104: '#7B4F2E',  // SLOPE_DN_45
+    105: '#C8A060',  // MILE_1
+    106: '#C8A060',  // MILE_2
+    107: '#C8A060',  // MILE_3
+    108: '#9098A0',  // CAIRN
+    109: '#FF6020',  // FIRE_LOW
+    110: '#7A8088',  // ROCK_SMALL
 };
 
 export class Renderer {
@@ -23,16 +35,14 @@ export class Renderer {
         this.height       = h;
         this._imgs        = new Map(); // legacy image registry (unused for Phase 1)
         this.spriteCache  = null;       // wired by game.js after init
-        this._frame       = 0;          // (legacy) render-rate frame counter — unused for anim timing
+        this.tileCache    = null;       // wired by game.js after Phase 2 init
+        this.parallax     = null;       // ParallaxBackground instance (wired by game.js)
+        this.stageManager = null;       // wired by game.js for transition / stage-clear overlays
+        this._frame       = 0;          // (legacy) render-rate frame counter
         this._simFrame    = 0;          // fixed-step simulation frame counter (driven by GameLoop.tick())
     }
 
     // ── Frame lifecycle ────────────────────────────────────────────────────
-    /**
-     * Called once per fixed-step simulation frame from GameLoop._update.
-     * Drives animation indices so they stay locked to the 60 Hz simulation rate
-     * regardless of the host monitor's refresh rate.
-     */
     tick() {
         this._simFrame++;
     }
@@ -63,18 +73,20 @@ export class Renderer {
         ctx.fillText('PRESS ANY KEY OR CLICK TO START', this.width / 2, this.height / 2 + 60);
     }
 
-    // ── Parallax background (placeholder for Phase 2) ─────────────────────
+    // ── Parallax background ────────────────────────────────────────────────
     drawBackground(scrollX = 0) {
-        // intentionally empty — sky already painted by clear()
+        if (this.parallax && typeof this.parallax.draw === 'function') {
+            this.parallax.draw(this.ctx, scrollX);
+        }
     }
 
-    // ── Tile map ───────────────────────────────────────────────────────────
+    // ── Tile map (cache-aware) ─────────────────────────────────────────────
     drawTiles(level, scrollX = 0) {
         if (!level) return;
         const ctx  = this.ctx;
         const ts   = 48;
-        const col0 = Math.floor(scrollX / ts);
-        const col1 = Math.ceil((scrollX + this.width) / ts);
+        const col0 = Math.max(0, Math.floor(scrollX / ts));
+        const col1 = Math.min(level.cols - 1, Math.ceil((scrollX + this.width) / ts));
 
         for (let row = 0; row < level.rows; row++) {
             for (let col = col0; col <= col1; col++) {
@@ -82,11 +94,37 @@ export class Renderer {
                 if (!tile || tile.type === 0) continue;
                 const sx = col * ts - scrollX;
                 const sy = row * ts;
-                ctx.fillStyle = TILE_COLORS[tile.type] ?? '#888';
-                ctx.fillRect(sx, sy, ts, ts);
-                ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(sx, sy, ts, ts);
+
+                let drew = false;
+                if (this.tileCache && tile.tileKey && this.tileCache.has(tile.tileKey)) {
+                    const canvas = this.tileCache.canvasAt(tile.tileKey, this._simFrame);
+                    if (canvas) {
+                        ctx.drawImage(canvas, sx, sy, ts, ts);
+                        drew = true;
+                    }
+                }
+                if (!drew) {
+                    ctx.fillStyle = TILE_COLORS[tile.type] ?? '#888';
+                    ctx.fillRect(sx, sy, ts, ts);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(sx, sy, ts, ts);
+                }
+            }
+        }
+
+        // Decoration overlay (rocks). Drawn after ground. Rock sits ON TOP of the
+        // floor at d.row, so render the tile one row higher (visually overlapping
+        // the body of the row above).
+        if (level.decorations && level.decorations.length > 0 && this.tileCache) {
+            for (const d of level.decorations) {
+                if (d.col < col0 - 1 || d.col > col1 + 1) continue;
+                const sx = d.col * ts - scrollX;
+                const sy = (d.row - 1) * ts;
+                if (this.tileCache.has(d.kind)) {
+                    const c = this.tileCache.canvasAt(d.kind, this._simFrame);
+                    if (c) ctx.drawImage(c, sx, sy, ts, ts);
+                }
             }
         }
     }
@@ -94,33 +132,29 @@ export class Renderer {
     // ── Entities ───────────────────────────────────────────────────────────
     drawEntities(ecs, scrollX = 0) {
         for (const e of ecs.query('transform', 'sprite')) {
-            // Pull supplemental components for renderer logic
-            e.player = ecs.getComponent(e.id, 'player');
-            e.enemy  = ecs.getComponent(e.id, 'enemy');
+            e.player     = ecs.getComponent(e.id, 'player');
+            e.enemy      = ecs.getComponent(e.id, 'enemy');
             e.projectile = ecs.getComponent(e.id, 'projectile');
+            e.pickup     = ecs.getComponent(e.id, 'pickup');
             this._drawEntity(e, scrollX);
         }
     }
 
-    _drawEntity({ transform: tf, sprite: sp, player: pl, enemy: en, projectile: pj }, scrollX) {
+    _drawEntity({ transform: tf, sprite: sp, player: pl, enemy: en, projectile: pj, pickup: pu }, scrollX) {
         const ctx = this.ctx;
         const sx  = tf.x - scrollX;
         const sy  = tf.y;
 
-        // v0.25.2: iframe blink removed — hero is 1-hit-kill, no invincibility.
-
-        // Resolve sprite-cache entry by sp.name (Phase 1 path) or fall back to placeholder.
         const cache = this.spriteCache;
         const entry = (sp.name && cache?.has(sp.name)) ? cache.get(sp.name) : null;
 
         if (entry) {
-            this._drawCached(entry, sp, tf, scrollX, pl, en, pj);
+            this._drawCached(entry, sp, tf, scrollX, pl, en, pj, pu);
             return;
         }
 
-        // Placeholder: colored rectangle
-        const color = sp.color ?? this._fallbackColor(en, pj) ?? '#FF8C00';
-        // Death fade for enemies waiting on deathFrames
+        // Placeholder rectangle
+        const color = sp.color ?? this._fallbackColor(en, pj, pu) ?? '#FF8C00';
         let alpha = 1;
         if (en && en.ai === 'dead') {
             const f = en.deathFrames || 0;
@@ -139,19 +173,16 @@ export class Renderer {
         ctx.globalAlpha = 1;
     }
 
-    _drawCached(entry, sp, tf, scrollX, pl, en, pj) {
+    _drawCached(entry, sp, tf, scrollX, pl, en, pj, pu) {
         const ctx = this.ctx;
         const meta = entry.meta;
         const scale = sp.scale || 2;
 
-        // Pick animation key based on entity state
-        const requested = this._animKeyFor(sp, pl, en, pj);
+        const requested = this._animKeyFor(sp, pl, en, pj, pu);
         const animKey = pickAnim(entry, requested);
         const frames = animKey ? entry.frames[animKey] : null;
         if (!frames || frames.length === 0) return;
 
-        // Reset anim cycle when the chosen anim key changes — keeps idle→walk→jump
-        // transitions from popping into a random mid-cycle frame.
         if (sp._lastAnim !== animKey) {
             sp._lastAnim = animKey;
             sp._animStartFrame = this._simFrame;
@@ -167,14 +198,15 @@ export class Renderer {
         const drawX = tf.x + tf.w / 2 - meta.anchor.x * scale - scrollX;
         const drawY = Math.floor(tf.y + tf.h - (meta.anchor.y + 1) * scale);
 
-        // Death fade
         let restoreAlpha = false;
         if (en && en.ai === 'dead') {
-            const max = (en.type === 'crawlspine' ? 30 : 45);
+            const max = (en.type === 'crawlspine' ? 30
+                       : en.type === 'mossplodder' ? 30
+                       : en.type === 'hummerwing'  ? 30
+                       : 45);
             ctx.globalAlpha = Math.max(0, (en.deathFrames || 0) / max);
             restoreAlpha = true;
         }
-        // Hurt flash for enemies (every-other frame brighter)
         if (en && en.hurtFrames > 0 && (en.hurtFrames % 2 === 0)) {
             ctx.globalCompositeOperation = 'lighter';
         }
@@ -189,13 +221,11 @@ export class Renderer {
             ctx.drawImage(canvas, drawX, drawY, drawW, drawH);
         }
 
-        // Draw attack overlay for hero on top of locomotion frame
+        // Hero attack overlay (frames played on top of locomotion)
         if (pl && pl.attackOverlayFrames > 0) {
             const atkAnim = pickAnim(entry, 'attack', ['attack', 'idle']);
             if (atkAnim && atkAnim !== animKey) {
                 const af = entry.frames[atkAnim];
-                // Reset attack-overlay cycle on each fresh attack (overlay went 0 -> positive
-                // since the last render) or when the resolved attack-anim key changes.
                 if (!sp._attackOverlayWasActive || sp._lastAttackAnim !== atkAnim) {
                     sp._lastAttackAnim = atkAnim;
                     sp._attackStartFrame = this._simFrame;
@@ -221,35 +251,51 @@ export class Renderer {
         ctx.globalCompositeOperation = 'source-over';
     }
 
-    _animKeyFor(sp, pl, en, pj) {
+    _animKeyFor(sp, pl, en, pj, pu) {
         if (pl) {
-            // Map hero FSM state → sprite animation key (sprite has 'jump' but no 'jump_rising'/'jump_falling')
             const s = pl.aiState || 'idle';
-            if (s === 'jump_rising' || s === 'jump_falling') return 'jump';
-            if (s === 'walk' || s === 'idle' || s === 'attack' || s === 'hurt' || s === 'dead') return s;
+            const armed = pl.armed === true;
+            if (s === 'jump_rising' || s === 'jump_falling') return armed ? 'jump_armed' : 'jump';
+            if (s === 'walk') return armed ? 'walk_armed' : 'walk';
+            if (s === 'idle') return armed ? 'idle_armed' : 'idle';
+            if (s === 'attack' || s === 'hurt' || s === 'dead') return s;
             return s;
         }
         if (en) {
             if (en.ai === 'dead')   return 'dead';
+            if (en.type === 'mossplodder') return 'walk';
+            if (en.type === 'hummerwing')  return 'drift';
             if (en.ai === 'patrol' || en.ai === 'turn') return 'walk';
             if (en.type === 'glassmoth') {
-                if (en.ai === 'swoop')   return 'dive';     // sprite uses 'dive' (single frame)
+                if (en.ai === 'swoop')   return 'dive';
                 if (en.ai === 'recover') return 'drift';
                 return 'drift';
             }
-            if (en.type === 'sapling') return en.ai; // closed | windup | firing | cooldown
+            if (en.type === 'sapling') return en.ai;
             return en.ai;
+        }
+        if (pu) {
+            // dawn-husk: 'rest' or 'break'
+            if (pu.type === 'dawn-husk') return pu.state || 'rest';
+            // hatchet pickup uses the projectile sprite's `fly` (slowly spinning on ground)
+            if (pu.type === 'hatchet')   return 'fly';
+            return sp.anim || 'idle';
         }
         if (pj) return sp.anim || 'fly';
         return sp.anim || 'idle';
     }
 
-    _fallbackColor(en, pj) {
-        if (pj?.type === 'stoneflake') return '#d8c8a8';
-        if (pj?.type === 'seeddart')   return '#f0e8c8';
-        if (en?.type === 'crawlspine') return '#7a5c2e';
-        if (en?.type === 'glassmoth')  return '#e0c0d8';
-        if (en?.type === 'sapling')    return '#3a6024';
+    _fallbackColor(en, pj, pu) {
+        if (pj?.type === 'stoneflake')  return '#d8c8a8';
+        if (pj?.type === 'seeddart')    return '#f0e8c8';
+        if (pj?.type === 'hatchet')     return '#b0a090';
+        if (pu?.type === 'dawn-husk')   return '#e8d4a0';
+        if (pu?.type === 'hatchet')     return '#b0a090';
+        if (en?.type === 'crawlspine')  return '#7a5c2e';
+        if (en?.type === 'glassmoth')   return '#e0c0d8';
+        if (en?.type === 'sapling')     return '#3a6024';
+        if (en?.type === 'mossplodder') return '#6a8030';
+        if (en?.type === 'hummerwing')  return '#e8a040';
         const m = { snail: '#4488FF', bee: '#FFAA00', cobra: '#00CC44', frog: '#33BB33', stone: '#999' };
         if (en) return m[en.type] ?? '#FF0000';
         return null;
@@ -266,9 +312,7 @@ export class Renderer {
         ctx.fillText(`SCORE ${String(state.score).padStart(6,'0')}`, PAD, 20);
         ctx.fillText(`HI    ${String(state.highScore).padStart(6,'0')}`, PAD, 38);
 
-        // v0.25.2: HP heart row removed. Vitality bar is the single life-line in Phase 1.
-
-        // Vitality bar — Phase 1 single life-line (depletes over time; reaching 0 = game over).
+        // Vitality bar
         const bw = 140, bh = 14;
         const bx = (this.width - bw) / 2, by = 6;
         const ratio = state.hunger / state.maxHunger;
@@ -284,6 +328,17 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFF';
         ctx.fillText('VITALITY', this.width / 2, by + bh + 11);
+
+        // Round indicator (Phase 2): top-right when stage manager wired
+        if (this.stageManager && this.stageManager.areaIndex > 0) {
+            ctx.font = '14px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#FFD878';
+            ctx.fillText(
+                `AREA ${this.stageManager.areaIndex}-${this.stageManager.roundIndex}`,
+                this.width - PAD, 20,
+            );
+        }
 
         // Pause / Game Over overlays
         if (state.gameState === 'PAUSED') {
@@ -306,9 +361,57 @@ export class Renderer {
             ctx.font = '18px monospace';
             ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 30);
         }
+
+        if (state.gameState === 'TRANSITIONING') {
+            this.drawTransition(state);
+        }
+
+        if (state.gameState === 'STAGE_CLEAR') {
+            this.drawStageClear();
+        }
     }
 
-    // ── Asset loading helper (legacy; not used in Phase 1) ─────────────────
+    /**
+     * Round-transition fade overlay. StageManager owns the timer; renderer reads.
+     * Timeline (frames remaining out of 60):
+     *   60 -> 41   fade out (alpha 0 -> 1)
+     *   40 -> 21   hold black (alpha = 1)
+     *   20 -> 1    fade in   (alpha 1 -> 0)
+     */
+    drawTransition(state) {
+        const sm = this.stageManager;
+        if (!sm) return;
+        const t = sm.transitionTimer | 0;
+        if (t <= 0) return;
+        let alpha = 0;
+        if (t > 40)      alpha = (60 - t) / 20;       // fading out (0..1)
+        else if (t > 20) alpha = 1;
+        else             alpha = t / 20;              // fading in  (1..0)
+        alpha = Math.max(0, Math.min(1, alpha));
+
+        const ctx = this.ctx;
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.fillRect(0, 0, this.width, this.height);
+    }
+
+    /** Cairn / stage-clear bilingual overlay. */
+    drawStageClear() {
+        const ctx = this.ctx;
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f8d878';
+        ctx.font = '32px monospace';
+        ctx.fillText('STAGE CLEARED', this.width / 2, this.height / 2 - 40);
+
+        ctx.fillStyle = '#FFF';
+        ctx.font = '16px monospace';
+        ctx.fillText('The path continues — soon.', this.width / 2, this.height / 2 + 8);
+        ctx.fillText('길은 이어진다 — 곧.',          this.width / 2, this.height / 2 + 32);
+    }
+
+    // ── Asset loading helper (legacy) ──────────────────────────────────────
     loadImage(name, src) {
         return new Promise(resolve => {
             const img = new Image();
