@@ -64,6 +64,24 @@ export const FIRE = Object.freeze({
     hitboxH:   28,             // hitbox occupies bottom of tile
 });
 
+// v0.50.2 — rock decoration is no longer a wall for the hero. Walking into one
+// trips Reed (stumble FSM) for a brief moment and chips a little vitality.
+export const ROCK = Object.freeze({
+    stumbleFrames: 30,         // frames of stumble FSM after a trip (~0.5 s)
+    cooldownFrames: 30,        // additional grace after stumble end before another trip can fire
+    vitalityDrain: 10,         // hunger units lost on each trip
+    velocityKill:  0.3,        // multiplier applied to vx on contact (Reed loses momentum)
+});
+
+// v0.50.2 — death sequence (knockback → fall → settle) before respawn beat.
+// Plays the new 4-frame `death` anim from hero-reed.js. After dyingFrames hits
+// 0, state.loseLife() fires (RESPAWNING or GAME_OVER if last life).
+export const DEATH = Object.freeze({
+    dyingFrames:    45,        // total beat (~0.75 s @ 60 fps)
+    knockbackVx:     5.0,      // px/frame, away from facing direction
+    knockbackVy:    -6.0,      // px/frame, small upward arc
+});
+
 export const ROUND_TRANSITION = Object.freeze({
     totalFrames:    60,
     fadeOutFrames:  20,

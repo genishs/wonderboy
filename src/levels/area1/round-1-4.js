@@ -66,6 +66,10 @@ export const ROUND = Object.freeze({
         { col: 53, row: 8, kind: 'rock_small' },
     ],
     triggers: [
+        // v0.50.2 — Round 4 sign at the START of round-1-4 (NEW; uses mile_4 tile
+        // shipped by design-lead in PR #22). The cairn at col 63 stays as the
+        // Stage Cleared trigger.
+        { col: 2, row: 9, kind: 'mile_4' },
         { col: 63, row: 9, kind: 'cairn' },
     ],
     fires: [

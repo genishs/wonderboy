@@ -53,7 +53,10 @@ export const ROUND = Object.freeze({
         { col: 28, row: 9, kind: 'rock_small' },
     ],
     triggers: [
-        { col: 63, row: 9, kind: 'mile_2' },
+        // v0.50.2 — Round 2 sign at the START of round-1-2 (was col 63 at the
+        // round end). Markers at round STARTS feel right; v0.50.1 had them
+        // mid-stride between rounds.
+        { col: 2, row: 9, kind: 'mile_2' },
     ],
     fires: [
         { col: 31, row: 9 },

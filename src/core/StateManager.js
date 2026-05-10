@@ -61,16 +61,24 @@ export class StateManager {
      * checkpoint or refills lives + stage-restarts. Callers that hold a player
      * reference can pass it; CombatSystem already does. For callers that don't
      * (e.g. pit-death in HeroController), lookup is via the ECS query for `player`.
+     *
+     * v0.50.2 — Phase 2 mode now routes through beginDying() instead of loseLife
+     * directly, so the new 4-frame death animation + knockback play before the
+     * life decrement. Phase 1 path unchanged. The HeroController dying FSM calls
+     * loseLife() once dyingFrames decays to 0.
      */
     killHero(player = null) {
         if (this.gameState === GAME_STATES.GAME_OVER) return;
         if (this.gameState === GAME_STATES.RESPAWNING) return; // already pending
+        // v0.50.2 — already dying? no-op so subsequent enemy-contact frames
+        // don't restart the FSM (which would zero the knockback velocity).
+        if (player && player.player && (player.player.dyingFrames | 0) > 0) return;
         // Phase 2 detection: explicit player flag OR a state-level `_isPhase2` bit
         // set by LevelManager. The bit covers vitality-zero (state.update has no
         // player handle) and any other ECS-less callers.
         const phase2 = !!(this._isPhase2 || (player && player.player && player.player._phase2));
         if (phase2) {
-            this.loseLife();
+            this.beginDying(player);
             return;
         }
         this.setGameState(GAME_STATES.GAME_OVER);
@@ -78,23 +86,83 @@ export class StateManager {
     }
 
     /**
+     * v0.50.2 — start the dying sequence. Sets up knockback velocity + dyingFrames
+     * timer on the player component. HeroController owns the per-frame tick of
+     * dyingFrames; when it hits 0, HeroController calls loseLife().
+     *
+     * Callers may pass an ECS row containing { player, transform, velocity } OR
+     * just { player } / null. When velocity is missing we still set the timer;
+     * HeroController computes knockback with whatever vx/vy it sees.
+     */
+    beginDying(player = null) {
+        if (this.gameState === GAME_STATES.GAME_OVER) return;
+        if (this.gameState === GAME_STATES.RESPAWNING) return;
+        const pl = player?.player ?? null;
+        if (!pl) {
+            // No player handle — fall back to immediate life-loss path. This
+            // covers the vitality-zero pit case where the caller is state.update.
+            this.loseLife();
+            return;
+        }
+        if ((pl.dyingFrames | 0) > 0) return; // already dying
+        // Lazy import would create a cycle; the constants are tiny so we hard-
+        // code them here. Keep the values in sync with PhaseTwoTunables.DEATH.
+        // (Knockback is applied to the velocity if present so the renderer/FSM
+        // sees motion immediately on the next frame.)
+        const DYING_FRAMES   = 45;
+        const KNOCKBACK_VX   = 5.0;
+        const KNOCKBACK_VY   = -6.0;
+        pl.dyingFrames = DYING_FRAMES;
+        pl.aiState     = 'dying';
+        pl.attackCooldown      = 0;
+        pl.attackOverlayFrames = 0;
+        pl.stumbleFrames       = 0;
+        pl.stumbleCooldown     = 0;
+        const v = player?.velocity ?? null;
+        if (v) {
+            v.vx = (pl.facingRight ? -1 : 1) * KNOCKBACK_VX;
+            v.vy = KNOCKBACK_VY;
+        }
+        this._emit('playerDying');
+    }
+
+    /**
      * v0.50.1 — decrement a life. If lives remain, set RESPAWNING (StageManager picks
-     * Reed up at the latest checkpoint and clears the flag). If lives drop to 0,
-     * refill lives to maxLives, reset the stage's checkpoint progress (handled by
-     * StageManager when it observes the flag), and RESPAWN at stage start.
+     * Reed up at the latest checkpoint and clears the flag).
+     *
+     * v0.50.2 — when lives drop to 0, transition to GAME_OVER (with the
+     * "press any key to continue" overlay). state.continueRun() resumes from
+     * stage start. Previously v0.50.1 silently restarted the stage on lives-0;
+     * v0.50.2 makes it an explicit player-input beat.
      *
      * Vitality is fully refilled on every life loss.
      */
     loseLife() {
         this.lives = Math.max(0, this.lives - 1);
         this.hunger = this.maxHunger;
+        this._dyingPending = false;
         this._emit('playerDied');
         if (this.lives <= 0) {
-            // Stage restart: refill lives. StageManager reads `_stageRestartPending`
-            // on the next RESPAWNING tick to also reset checkpoint progress.
-            this.lives = this.maxLives;
-            this._stageRestartPending = true;
+            // v0.50.2 — GAME OVER. The continueRun() entry point refills lives
+            // and re-flags _stageRestartPending so the stage rebuilds from
+            // scratch on the next StageManager tick.
+            this._stageRestartPending = false;
+            this.setGameState(GAME_STATES.GAME_OVER);
+            return;
         }
+        this.setGameState(GAME_STATES.RESPAWNING);
+    }
+
+    /**
+     * v0.50.2 — exit GAME_OVER and rebuild the stage from scratch with full
+     * lives + vitality. Wired from HeroController on any of jump / attack /
+     * sprint input while gameState === GAME_OVER and _phase2.
+     */
+    continueRun() {
+        if (this.gameState !== GAME_STATES.GAME_OVER) return;
+        this.lives  = this.maxLives;
+        this.hunger = this.maxHunger;
+        this._stageRestartPending = true;
         this.setGameState(GAME_STATES.RESPAWNING);
     }
 
@@ -156,7 +224,17 @@ export class StateManager {
 
         if (this.hunger <= 0) {
             // v0.25.2: vitality reaching 0 = immediate game over (Phase 1 single life-line).
-            this.killHero();
+            // v0.50.2 — Phase 2 needs a player handle to play the dying animation.
+            //   We don't have one here, so we set _dyingPending and let
+            //   HeroController.update consume it next frame with its own player ref.
+            //   Phase 1 path (no _isPhase2) still calls killHero() directly for the
+            //   immediate game-over. (HeroController guards against re-firing if a
+            //   dying FSM is already in progress, but we also debounce here.)
+            if (this._isPhase2) {
+                if (!this._dyingPending) this._dyingPending = true;
+            } else {
+                this.killHero();
+            }
         }
     }
 
@@ -170,6 +248,7 @@ export class StateManager {
         this.currentArea     = 1;
         this.invincibleTimer = 0;
         this._stageRestartPending = false;
+        this._dyingPending        = false;
         this.setGameState(GAME_STATES.PLAYING);
     }
 

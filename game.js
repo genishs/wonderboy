@@ -107,11 +107,12 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
         // gameplay resumes the same frame.
         levelManager.stageManager?.update(dt, ecsArg, stateArg);
 
-        // While RESPAWNING / STAGE_CLEAR: skip combat + AI but still tick the hero
-        // (HeroController internally freezes during these states) so animation keys
-        // settle. Skip enemy AI + combat + triggers; they'd just re-fire on a half-
-        // moved hero.
-        const respawnLock = (stateArg.gameState === 'RESPAWNING' || stateArg.gameState === 'STAGE_CLEAR');
+        // While RESPAWNING / STAGE_CLEAR / GAME_OVER: skip combat + AI but still
+        // tick the hero (HeroController internally handles each state) so the
+        // continue prompt input is responsive and animation keys settle.
+        const respawnLock = (stateArg.gameState === 'RESPAWNING'
+                          || stateArg.gameState === 'STAGE_CLEAR'
+                          || stateArg.gameState === 'GAME_OVER');
 
         // Drive Phase 2 systems. HeroController honors TRANSITIONING/STAGE_CLEAR/
         // RESPAWNING internally.
