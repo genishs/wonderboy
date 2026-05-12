@@ -1,13 +1,24 @@
 export const GAME_STATES = Object.freeze({
-    TITLE:        'TITLE',
-    PLAYING:      'PLAYING',
-    PAUSED:       'PAUSED',
-    GAME_OVER:    'GAME_OVER',
-    STAGE_CLEAR:  'STAGE_CLEAR',
-    TRANSITIONING:'TRANSITIONING',
+    TITLE:             'TITLE',
+    PLAYING:           'PLAYING',
+    PAUSED:            'PAUSED',
+    GAME_OVER:         'GAME_OVER',
+    STAGE_CLEAR:       'STAGE_CLEAR',
+    TRANSITIONING:     'TRANSITIONING',
     // v0.50.1 — Phase 2 lives system. RESPAWNING is set by killHero() in Phase 2 mode
     // when lives > 0; the next mechanics tick repositions Reed at the latest checkpoint.
-    RESPAWNING:   'RESPAWNING',
+    RESPAWNING:        'RESPAWNING',
+    // v0.75 — Phase 3 multi-stage + boss states.
+    //   STAGE_TRANSITION : drives the inter-stage fade-out → swap → hold → fade-in ritual.
+    //                      Input frozen for the entire window; physics frozen during
+    //                      fade-out/hold/fade-in (handled in HeroController input-lock).
+    //   BOSS_FIGHT       : camera locked, boss FSM active. PLAYING-like input/physics
+    //                      semantics; only CombatSystem + BossSystem fire boss-specific paths.
+    //   AREA_CLEARED     : terminal closure overlay after Bracken Warden death. Holds
+    //                      AREA_CLEARED.fadeOutFrames + holdFrames; any input dismisses to TITLE.
+    STAGE_TRANSITION:  'STAGE_TRANSITION',
+    BOSS_FIGHT:        'BOSS_FIGHT',
+    AREA_CLEARED:      'AREA_CLEARED',
 });
 
 export class StateManager {
@@ -157,12 +168,20 @@ export class StateManager {
      * v0.50.2 — exit GAME_OVER and rebuild the stage from scratch with full
      * lives + vitality. Wired from HeroController on any of jump / attack /
      * sprint input while gameState === GAME_OVER and _phase2.
+     *
+     * v0.75 — when AreaManager is active (`_isPhase3` set by AreaManager.startArea),
+     * we set BOTH `_stageRestartPending` (for legacy StageManager paths that still
+     * observe it) AND `_areaRestartPending` (which AreaManager.update consumes to
+     * route Continue back to Stage 1 regardless of which stage the player died in).
+     * Per the area expansion brief §2: "if Reed loses all three lives and is
+     * offered Continue, he restarts at Stage 1 spawn unarmed."
      */
     continueRun() {
         if (this.gameState !== GAME_STATES.GAME_OVER) return;
         this.lives  = this.maxLives;
         this.hunger = this.maxHunger;
         this._stageRestartPending = true;
+        if (this._isPhase3) this._areaRestartPending = true;
         this.setGameState(GAME_STATES.RESPAWNING);
     }
 
@@ -248,6 +267,7 @@ export class StateManager {
         this.currentArea     = 1;
         this.invincibleTimer = 0;
         this._stageRestartPending = false;
+        this._areaRestartPending  = false;   // v0.75
         this._dyingPending        = false;
         this.setGameState(GAME_STATES.PLAYING);
     }

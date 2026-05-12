@@ -1,38 +1,26 @@
 // owning agent: dev-lead
-// TODO: StageManager v0.50.1 — owns Area 1's SINGLE continuous stage.
-// LevelManager delegates to this in Phase 2 mode. Major v0.50.1 changes vs v0.50:
-//   - All 4 rounds concatenated into one TileMap (buildArea1Stage); no round-load
-//     fade transition.
-//   - Mile-markers fire a 90-frame "Round 1-X" overlay (visual only, no state lock,
-//     no entity reload) via fireRoundMarkerOverlay().
-//   - Cairn (final marker) sets STAGE_CLEAR.
-//   - Owns lastCheckpointCol for respawn (set on each mile-marker pass).
-//   - Drives the lives system: on RESPAWNING, reposition Reed at the latest
-//     checkpoint and clear the flag back to PLAYING. On `_stageRestartPending`
-//     (lives ran out), also reset checkpoint to 0 AND wipe&respawn entities so
-//     the stage is genuinely fresh.
-//   - Equipment carryover spirit: pl.armed is preserved across respawns within
-//     the same life-loss; only stage-restart wipes entities (and re-introduces
-//     the round-1 dawn-husk pickup).
+// TODO: StageManager v0.75 — DEMOTED to single-stage lifecycle. v0.50.1's
+// area-wide concerns (lives reset, vitality refill, full-area Continue) live
+// in AreaManager now. StageManager keeps:
+//   - per-stage round overlay (mile-marker "Round N" bilingual title)
+//   - per-stage lastCheckpointCol (resets on stage entry per area brief §2)
+//   - per-stage roundIndex (derived from mile-markers passed)
+//   - RESPAWNING handler (mid-stage respawn at the latest checkpoint with
+//     pl.armed preserved). On `_stageRestartPending`, AreaManager observes
+//     `_areaRestartPending` FIRST and triggers a full Area reset; if only the
+//     stage-restart flag is set (legacy v0.50.x path), StageManager rebuilds
+//     this stage from scratch.
 //
-// Q6 reversal: only ONE dawn-husk in the stage (round-1-1 area). Once Reed
-// picks up the hatchet, he stays armed for the whole stage and through every
-// checkpoint respawn within this stage.
-//
-// Equipment carryover to Stage 2 (Area 2): no Stage 2 yet in v0.50.1, but the
-// API is structured so when StageManager.startStage(2) lands, pl.armed will
-// persist by default (the new stage's player factory should read state.armed
-// or carry the bit forward). Documented for the next dev who wires it.
+// The v0.50.x `startArea` + `loadStage` entry points are removed — AreaManager
+// builds the TileMap and calls `attachToStage(stageIndex, level, ecs, state,
+// armed)` to hand it off.
 
-import { buildArea1Stage } from './area1/index.js';
 import { initEnemyP2 } from '../mechanics/Phase2EnemyAI.js';
 import { HUMMERWING, MOSSPLODDER, EGG } from '../config/PhaseTwoTunables.js';
 
 const TILE = 48;
 
 // v0.50.1 — Mile-marker overlay timing. 90 frames @ 60 fps = 1.5 s.
-// Renderer-side fade widths (15 fade in / 60 hold / 15 fade out) are computed in
-// Renderer._drawRoundMarkerOverlay against this same total.
 const OVERLAY_TOTAL = 90;
 
 export class StageManager {
@@ -42,73 +30,52 @@ export class StageManager {
     constructor(levelManager) {
         this.lm = levelManager;
         this.areaIndex      = 0;
-        // v0.50.1 — `roundIndex` is now a derived "which round-section is Reed in"
-        // value purely for the AREA X-Y HUD chip. It updates as he crosses
-        // mile-markers; it does NOT load anything.
+        this.stageIndex     = 0;
         this.roundIndex     = 1;          // 1..4 once started
         this.stageCleared   = false;
 
-        // Lives / checkpoint
-        this.lastCheckpointCol = 0;       // col index in the concatenated grid
+        // Lives / checkpoint (per-stage, reset on stage entry per Phase 3 brief).
+        this.lastCheckpointCol = 0;
 
         // Mile-marker overlay state — read by Renderer.drawHUD overlay path.
         this.overlay = {
             active: false,
-            kind:   null,        // 'round_1_2' | 'round_1_3' | 'round_1_4'
-            frames: 0,           // remaining frames
+            kind:   null,        // 'round_1_1' .. 'round_1_4' (Stage-N is implicit via stageIndex)
+            frames: 0,
         };
 
-        // Legacy v0.50 fields kept for renderer back-compat (the fade overlay code
-        // path is dormant in v0.50.1 since transitioning is no longer used for
-        // round-loads; left in place so a Stage 2 introduction can re-use it).
+        // Legacy v0.50 fields kept for renderer back-compat.
         this.transitioning  = false;
         this.transitionTimer = 0;
         this.transitionPhase = null;
     }
 
-    /** Begin Area `area` at the stage start. Resets vitality, lives, score-of-area. */
-    startArea(area, ecs, state) {
-        this.areaIndex     = area;
+    /**
+     * v0.75 — attach to a pre-built TileMap for a specific stage. AreaManager
+     * builds the level (so it can also wire tileCache.setActiveStage etc); we
+     * only handle the within-stage concerns (spawn hero + entities, reset overlay).
+     *
+     * @param {number} stageIndex
+     * @param {TileMap} level
+     * @param {ECS} ecs
+     * @param {StateManager} state
+     * @param {boolean} armed   carry pl.armed across stage transition
+     */
+    attachToStage(stageIndex, level, ecs, state, armed) {
+        this.areaIndex     = 1;
+        this.stageIndex    = stageIndex;
         this.roundIndex    = 1;
         this.stageCleared  = false;
         this.lastCheckpointCol = 0;
         this.overlay = { active: false, kind: null, frames: 0 };
 
-        // v0.50.1 — Phase 2 lives mode. Refill lives + vitality on stage start.
-        state.lives  = state.maxLives;
-        state.hunger = state.maxHunger;
-        state._stageRestartPending = false;
-        state._isPhase2 = true;          // teach state.killHero to route through loseLife
-
-        this.loadStage(ecs, state);
-        state.setGameState('PLAYING');
-    }
-
-    /** Build the stage's TileMap and spawn fresh entities + a fresh hero. */
-    loadStage(ecs, state) {
-        if (this.areaIndex !== 1) return;
-
-        // 1. Destroy ALL entities. Stage build is a clean slate.
-        const allRows = ecs.query();
-        for (const row of allRows) ecs.destroyEntity(row.id);
-
-        // 2. Build the concatenated TileMap.
-        const level = buildArea1Stage();
-        // Reset trigger _consumed flags (TileMap creates them false; double-safety)
-        for (let r = 0; r < level.rows; r++) {
-            for (let c = 0; c < level.cols; c++) {
-                const t = level.getTile(c, r);
-                if (t && t.isTrigger) t._consumed = false;
-            }
-        }
         this.lm.currentLevel = level;
         this.lm.scrollX      = 0;
 
-        // 3. Spawn the hero at stage start (always unarmed at stage start; the
-        //    round-1 dawn-husk gives him the hatchet).
-        this._spawnHero(ecs, level, level.spawn.col, level.spawn.row, /*armed*/ false);
+        // Spawn hero at stage spawn with the carried armed bit.
+        this._spawnHero(ecs, level, level.spawn.col, level.spawn.row, !!armed);
 
-        // 4. Spawn round entities.
+        // Spawn round entities (mossplodders / hummerwings / dawn-husks).
         for (const e of level.entities ?? []) {
             this._spawnRoundEntity(ecs, e, level);
         }
@@ -116,49 +83,37 @@ export class StageManager {
 
     /**
      * v0.50.1 — Mile-marker overlay. Called by TriggerSystem on contact. The
-     * marker also acts as a checkpoint anchor (lastCheckpointCol = marker col)
-     * AND advances the Round HUD chip.
+     * marker also acts as a checkpoint anchor AND advances the Round HUD chip.
      *
-     * v0.50.2 — markers were shifted from "between rounds" (end of round N) to
-     * "at the START of round N." The mapping is now:
-     *   mile_1 → "Round 1" (just past the stage spawn)
-     *   mile_2 → "Round 2" (early into round-1-2)
-     *   mile_3 → "Round 3" (early into round-1-3)
-     *   mile_4 → "Round 4" (early into round-1-4)
-     *   cairn  → STAGE CLEAR (unchanged; handled by clearStage)
-     *
-     * Each marker sets lastCheckpointCol = col + 1 so respawn lands JUST PAST
-     * the sign in the round it announces. This satisfies the user's "respawn at
-     * the most recent passed mile-marker" requirement.
-     *
-     * @param {string} markerKind  'mile_1' | 'mile_2' | 'mile_3' | 'mile_4'
-     * @param {number} col         column of the marker tile
+     * v0.75 — markers (`mile_1..mile_4`) live inside EACH stage and announce
+     * Round 1..4 of the current stage. Overlay text reads "Round N" via the
+     * generic `round_N` key (Renderer maps to bilingual labels).
      */
     fireRoundMarkerOverlay(markerKind, col, state) {
         if (this.overlay.active && this.overlay.kind === markerKind) return;
-        // v0.50.2 — marker N announces round N (1..4). The HUD chip "AREA 1-X"
-        // now matches the round Reed has just entered (or is starting in).
         const round = (markerKind === 'mile_1') ? 1
                     : (markerKind === 'mile_2') ? 2
                     : (markerKind === 'mile_3') ? 3
                     : (markerKind === 'mile_4') ? 4
                     : this.roundIndex;
         this.roundIndex = round;
-        this.lastCheckpointCol = col + 1;       // respawn just past the marker
+        this.lastCheckpointCol = col + 1;
 
         this.overlay = {
             active: true,
-            kind:   `round_1_${round}`,
+            kind:   `round_${round}`,
             frames: OVERLAY_TOTAL,
         };
 
-        // Per-marker vitality refill — same value as the v0.50 ROUND_TRANSITION.
-        // Refilling on each landmark gives the player a small reward beat without
-        // forcing a fade.
         state.hunger = state.maxHunger;
     }
 
-    /** Cairn at end of round 4 — emit the bilingual stage-clear overlay. */
+    /**
+     * Cairn at end of round 4 (Stage 1's terminal beat pre-v0.75). v0.75 keeps
+     * this as a back-compat code path; the only stage that fires it now is
+     * Stage 4's cairn tile (if any future round-data places one). For v0.75
+     * the boss arena drives Area-Cleared; no cairn is placed in level data.
+     */
     clearStage(_ecs, state) {
         if (this.stageCleared) return;
         this.stageCleared = true;
@@ -176,10 +131,9 @@ export class StageManager {
             }
         }
 
-        // v0.50.1 — Phase 2 RESPAWNING handler. State.killHero(player) flips the
-        // gameState to RESPAWNING; we observe it here, reposition Reed at the
-        // latest checkpoint (or stage start, on stage-restart), preserve armed,
-        // and flip back to PLAYING.
+        // RESPAWNING handler. _areaRestartPending is observed by AreaManager
+        // BEFORE this runs (full-Area reset on Continue). If we get here it's
+        // either a mid-stage respawn or a legacy `_stageRestartPending`.
         if (state.gameState === 'RESPAWNING') {
             this._handleRespawn(ecs, state);
         }
@@ -191,13 +145,21 @@ export class StageManager {
 
         const stageRestart = !!state._stageRestartPending;
         if (stageRestart) {
+            // Legacy v0.50.2 path — wipe & rebuild THIS stage. v0.75's Continue
+            // path normally routes through AreaManager (full-Area reset); this
+            // branch is preserved for any code path that sets only the stage flag.
             state._stageRestartPending = false;
             this.lastCheckpointCol = 0;
             this.roundIndex = 1;
             this.stageCleared = false;
             this.overlay = { active: false, kind: null, frames: 0 };
-            // Wipe & rebuild entities for a clean stage start; hero is unarmed.
-            this.loadStage(ecs, state);
+            // Wipe ALL entities, respawn fresh.
+            const allRows = ecs.query();
+            for (const row of allRows) ecs.destroyEntity(row.id);
+            this._spawnHero(ecs, level, level.spawn.col, level.spawn.row, /*armed*/ false);
+            for (const e of level.entities ?? []) {
+                this._spawnRoundEntity(ecs, e, level);
+            }
             state.setGameState('PLAYING');
             return;
         }
@@ -205,14 +167,12 @@ export class StageManager {
         // Mid-stage respawn: keep entity layout, reposition the existing hero.
         const players = ecs.query('transform', 'velocity', 'player');
         if (!players.length) {
-            // Defensive: if hero entity was destroyed, respawn fresh + unarmed.
             this._spawnHero(ecs, level, level.spawn.col, level.spawn.row, false);
         } else {
             const p = players[0];
             const tf = p.transform;
             const v  = p.velocity;
             const pl = p.player;
-            // Use the spawn-row anchor; checkpoint x lives on lastCheckpointCol.
             const col = this.lastCheckpointCol > 0 ? this.lastCheckpointCol : level.spawn.col;
             const row = level.spawn.row;
             tf.x = col * TILE + (TILE - tf.w) / 2;
@@ -225,16 +185,25 @@ export class StageManager {
             pl.facingRight = true;
             pl.coyoteTimer = 0;
             pl.jumpBuffer = 0;
-            // v0.50.2 — clear stumble/dying timers; the post-respawn hero gets
-            // a clean FSM. If we don't clear, a stumble-then-die sequence could
-            // bleed a partial stumble lock into the next life.
             pl.stumbleFrames = 0;
             pl.stumbleCooldown = 0;
             pl.dyingFrames = 0;
-            // pl.armed PRESERVED — equipment carries across respawns within a stage.
+            // pl.armed PRESERVED.
         }
-        // Vitality already refilled by loseLife(); ensure it's full.
         state.hunger = state.maxHunger;
+        // v0.75 — reset BOSS_TRIGGER's _consumed so re-crossing it re-locks the
+        // camera + re-spawns the boss. Other consumed triggers (mile-markers)
+        // stay consumed so they don't re-fire on respawn.
+        if (this.stageIndex === 4) {
+            for (let r = 0; r < level.rows; r++) {
+                for (let c = 0; c < level.cols; c++) {
+                    const t = level.getTile(c, r);
+                    if (t && t.triggerKind === 'boss_trigger') {
+                        t._consumed = false;
+                    }
+                }
+            }
+        }
         state.setGameState('PLAYING');
     }
 
@@ -256,16 +225,11 @@ export class StageManager {
             jumpBuffer: 0,
             aiState: 'idle',
             armed: !!armed,
-            // v0.50.2 — Phase 2 ECS extensions:
-            //   stumbleFrames     : ticks down each frame; > 0 → stumble FSM (input lock)
-            //   stumbleCooldown   : grace after stumble end before another rock can trip
-            //   dyingFrames       : ticks down each frame; > 0 → dying FSM (knockback + fall),
-            //                       loseLife() fires when it reaches 0.
             stumbleFrames: 0,
             stumbleCooldown: 0,
             dyingFrames: 0,
-            _phase1: true,           // re-uses HeroController Phase 1 path
-            _phase2: true,           // marker for Phase 2 systems
+            _phase1: true,
+            _phase2: true,
         });
         ecs.addComponent(player, 'sprite', {
             name: 'hero', anim: 'idle', frame: 0, scale: 3, flip: false, color: '#4a7c3a',

@@ -1,5 +1,6 @@
 // owning agent: dev-lead
-// TODO: top-level wiring — Phase 2 (v0.50) Area 1 default + Phase 1 retro debug.
+// TODO: top-level wiring — Phase 3 (v0.75) Area 1 (4 stages + Bracken Warden
+// boss) default + Phase 2 fall-through + Phase 1 retro debug.
 
 import { GameLoop }      from './src/core/GameLoop.js';
 import { ECS }           from './src/core/ECS.js';
@@ -23,6 +24,9 @@ import { HatchetSystem }     from './src/mechanics/HatchetSystem.js';
 import { HuskSystem }        from './src/mechanics/HuskSystem.js';
 import { Phase2EnemyAI }     from './src/mechanics/Phase2EnemyAI.js';
 import { TriggerSystem }     from './src/mechanics/TriggerSystem.js';
+// v0.75 — new systems
+import { BossSystem }            from './src/mechanics/BossSystem.js';
+import { StageTransitionSystem } from './src/mechanics/StageTransitionSystem.js';
 
 // Phase 1 sprite modules (kept loaded for retro debug entry)
 import * as heroReedModule       from './assets/sprites/hero-reed.js';
@@ -37,6 +41,13 @@ import * as hummerwingModule     from './assets/sprites/enemy-hummerwing.js';
 import * as dawnHuskModule       from './assets/sprites/item-dawn-husk.js';
 import * as hatchetModule        from './assets/sprites/projectile-stone-hatchet.js';
 import * as area1TilesModule     from './assets/tiles/area1.js';
+
+// v0.75 — Phase 3 sprite + tile modules (Stage 2-4 + boss + projectile)
+import * as bossBrackenModule    from './assets/sprites/boss-bracken-warden.js';
+import * as mossPulseModule      from './assets/sprites/projectile-moss-pulse.js';
+import * as area1Stage2TilesModule from './assets/tiles/area1-stage2-shore.js';
+import * as area1Stage3TilesModule from './assets/tiles/area1-stage3-cave.js';
+import * as area1Stage4TilesModule from './assets/tiles/area1-stage4-darkforest.js';
 
 const CANVAS_W = 768;
 const CANVAS_H = 576;
@@ -84,6 +95,10 @@ const huskSystem       = new HuskSystem(hatchetSystem);
 const phase2EnemyAI    = new Phase2EnemyAI();
 const triggerSystem    = new TriggerSystem();
 
+// v0.75 — Phase 3 systems
+const stageTransitionSystem = new StageTransitionSystem();
+const bossSystem            = new BossSystem();
+
 // Wire renderer references
 renderer.tileCache    = tileCache;
 renderer.parallax     = parallax;
@@ -92,7 +107,7 @@ renderer.parallax     = parallax;
 const _origMechanicsUpdate = mechanics.update.bind(mechanics);
 mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
 
-    // ── Phase 2 (v0.50 / v0.50.1) ─────────────────────────────────────
+    // ── Phase 2 / Phase 3 (v0.50 / v0.75) ──────────────────────────────
     if (levelManager._isPhase2) {
         // Pause toggle still useful
         if (inputArg.pause) {
@@ -101,31 +116,45 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
         }
         if (stateArg.gameState === 'PAUSED') return;
 
-        // v0.50.1 — give StageManager a chance to handle a pending RESPAWNING
-        // (reposition Reed, refill vitality, flip back to PLAYING). It also drives
-        // the mile-marker overlay timer. Run BEFORE the heavier systems so
-        // gameplay resumes the same frame.
-        levelManager.stageManager?.update(dt, ecsArg, stateArg);
+        // v0.75 — AreaManager observes RESPAWNING + _areaRestartPending and
+        // routes a Continue into a full Stage-1 reset. Run FIRST so the same
+        // tick can pick up the new stage's state.
+        levelManager.areaManager?.update(dt, ecsArg, stateArg);
 
-        // While RESPAWNING / STAGE_CLEAR / GAME_OVER: skip combat + AI but still
-        // tick the hero (HeroController internally handles each state) so the
-        // continue prompt input is responsive and animation keys settle.
+        // v0.75 — stage transition state machine. Reads AreaManager.transition;
+        // advances phases. Runs BEFORE HeroController so the transition gate
+        // sets gameState before the hero's input-lock check.
+        stageTransitionSystem.update(ecsArg, levelManager, stateArg);
+
+        // Skip combat + AI during respawn / stage-clear / game-over /
+        // stage-transition / area-cleared / boss-fight-with-no-fight-yet.
         const respawnLock = (stateArg.gameState === 'RESPAWNING'
                           || stateArg.gameState === 'STAGE_CLEAR'
-                          || stateArg.gameState === 'GAME_OVER');
+                          || stateArg.gameState === 'GAME_OVER'
+                          || stateArg.gameState === 'STAGE_TRANSITION'
+                          || stateArg.gameState === 'AREA_CLEARED');
 
-        // Drive Phase 2 systems. HeroController honors TRANSITIONING/STAGE_CLEAR/
-        // RESPAWNING internally.
         heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, null, hatchetSystem);
         if (!respawnLock) {
             hatchetSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.playerEntity);
             huskSystem.update(ecsArg, stateArg, levelManager.playerEntity);
             phase2EnemyAI.update(ecsArg, levelManager.currentLevel);
-            // Phase 1 EnemyAI is a no-op for Phase 2 enemy types; safe to call.
             enemyAI.update(ecsArg, levelManager.currentLevel, levelManager.playerEntity, seeddartSystem);
+            // v0.75 — TriggerSystem AFTER AI but BEFORE BossSystem so a
+            // same-frame BOSS_TRIGGER crossing fires the boss spawn in the
+            // same tick. Pass bossSystem so boss_trigger has a handler.
+            triggerSystem.update(ecsArg, levelManager, stateArg, bossSystem);
+            // v0.75 — BossSystem: spawn / FSM tick / moss-pulse tick. Runs
+            // BEFORE CombatSystem so same-frame collisions resolve cleanly.
+            bossSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.areaManager);
             combat.update(ecsArg, stateArg, levelManager.currentLevel);
-            triggerSystem.update(ecsArg, levelManager, stateArg);
         }
+
+        // Camera tick still runs even during respawn/transition so the
+        // viewport follows the (possibly re-positioned) hero on the very
+        // next frame.
+        levelManager.update(dt, ecsArg, stateArg);
+
         // Vitality tick (state heartbeat). state.update only ticks during PLAYING,
         // so it's automatically frozen during TRANSITIONING / STAGE_CLEAR / RESPAWNING.
         stateArg.update(dt);
@@ -166,25 +195,37 @@ async function init() {
 
     await audio.init();
 
-    // Sprite cache — Phase 1 + Phase 2 modules
-    await spriteCache.load('hero',        heroReedModule);
-    await spriteCache.load('crawlspine',  crawlspineModule);
-    await spriteCache.load('glassmoth',   glassmothModule);
-    await spriteCache.load('sapling',     saplingModule);
-    await spriteCache.load('stoneflake',  stoneflakeModule);
-    await spriteCache.load('mossplodder', mossplodderModule);
-    await spriteCache.load('hummerwing',  hummerwingModule);
-    await spriteCache.load('dawn-husk',   dawnHuskModule);
-    await spriteCache.load('hatchet',     hatchetModule);
+    // Sprite cache — Phase 1 + Phase 2 + Phase 3 modules
+    await spriteCache.load('hero',            heroReedModule);
+    await spriteCache.load('crawlspine',      crawlspineModule);
+    await spriteCache.load('glassmoth',       glassmothModule);
+    await spriteCache.load('sapling',         saplingModule);
+    await spriteCache.load('stoneflake',      stoneflakeModule);
+    await spriteCache.load('mossplodder',     mossplodderModule);
+    await spriteCache.load('hummerwing',      hummerwingModule);
+    await spriteCache.load('dawn-husk',       dawnHuskModule);
+    await spriteCache.load('hatchet',         hatchetModule);
+    // v0.75 boss + projectile
+    await spriteCache.load('bracken-warden',  bossBrackenModule);
+    await spriteCache.load('moss-pulse',      mossPulseModule);
     renderer.spriteCache = spriteCache;
 
-    // Tile cache + parallax (Phase 2)
-    await tileCache.loadArea(area1TilesModule);
+    // Tile cache — load all 4 tilesets up front, then activate stage 1.
+    await tileCache.loadStageSet(1, area1TilesModule);
+    await tileCache.loadStageSet(2, area1Stage2TilesModule);
+    await tileCache.loadStageSet(3, area1Stage3TilesModule);
+    await tileCache.loadStageSet(4, area1Stage4TilesModule);
+    tileCache.setActiveStage(1);
     await parallax.loadArea(1);
 
-    // Phase 2 entry: Area 1 Round 1
-    levelManager.loadAreaRound(1, 1, ecs, state);
+    // Phase 3 entry: Area 1, starting at Stage 1.
+    levelManager.loadAreaRound(1, 1, ecs, state, { tileCache, parallax });
+    // Wire renderer back-pointers (stageManager getter on LevelManager returns
+    // AreaManager.currentStage — old reads keep working).
     renderer.stageManager = levelManager.stageManager;
+    renderer.areaManager  = levelManager.areaManager;
+    // Wire BossSystem into AreaManager so stage swaps can call resetForStageLoad.
+    if (levelManager.areaManager) levelManager.areaManager.bossSystem = bossSystem;
 
     gameLoop.start();
 }
@@ -200,3 +241,5 @@ window.state        = state;
 window.lm           = levelManager;
 window.gameLoop     = gameLoop;
 window.renderer     = renderer;
+window.bossSystem   = bossSystem;
+window.tileCache    = tileCache;
