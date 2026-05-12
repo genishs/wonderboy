@@ -1,10 +1,16 @@
 // owning agent: design-lead
-// TODO: original tile module for Area 1 Stage 2 — "Sumphollow" (Phase 3, v0.75).
+// TODO: original tile module for Area 1 Stage 3 — "Sumphollow" (cave) (Phase 3, v0.75).
 // Consumed by dev-lead's tile-cache renderer per docs/design/contracts.md.
 // Each TILES entry is either a 16x16 matrix of palette indices (static) OR an
 // {frames, fps} object (animated — crystal_vein). Renderer scales 3x to canvas TILE=48.
 //
-// Tile keys & intent (per docs/briefs/phase3-area1-expansion.md §5 + §11):
+// Theme sequence reminder: forest → shore → cave → dark forest. This module
+// is the cave (Stage 3), arriving after the shore (Stage 2) and before the
+// dark forest (Stage 4). The cave-content authoring is unchanged from the
+// previous PR iteration; only the stage slot moved (cave was Stage 2, now
+// Stage 3 per the v0.75 theme remap).
+//
+// Tile keys & intent:
 //   flat          — standard cave-floor (cave-moss-blue-green top, cave-stone body)
 //   slope_up_22   — gentle uphill (22°)
 //   slope_up_45   — steep uphill (45°)
@@ -12,19 +18,17 @@
 //   slope_dn_45   — steep downhill (mirror of slope_up_45)
 //   rock_small    — standalone cave-rock (cooler-toned river-stone)
 //   crystal_vein  — animated amber-vein hazard, 3 frames @ ~6 fps. 1-hit-kill.
-//                   Replaces Stage 1's `fire_low` semantically. Glowing hairline
-//                   crack in the cave floor (NO flame tongues — just a steady
-//                   amber pulse on the stone surface).
+//                   Glowing hairline crack in the cave floor (NO flame
+//                   tongues — just a steady amber pulse on the stone surface).
 //   mile_1.._4    — round signposts (digits unchanged from Stage 1; the post
 //                   uses Stage 1's wet-bark/cuff-cream verbatim — mile markers
 //                   are a shared trail-language across all stages so the player
 //                   reads "same chain of markers, same world").
 //   stage_exit    — stage-to-stage transition gate (NEW Phase 3 tile key).
 //                   A short cave-stone arch with a glowing amber crossbeam.
-//                   Used at end of Stage 2 → Stage 3 (and identically at end
-//                   of Stage 3 → Stage 4 in the waterside tileset). Visually
-//                   distinct from `cairn` which is reserved for the end of
-//                   Stage 4 / Area-clear beat.
+//                   Used at end of Stage 3 → Stage 4. Visually distinct from
+//                   `cairn` which is reserved for the end of Stage 4 / Area-
+//                   clear beat.
 //
 // Decision recorded: hazard tile key chosen as `crystal_vein` per release-master
 // brief (recommended `crystal_vein` or `amber_vein`). `crystal_vein` reads
@@ -35,7 +39,7 @@
 // Brief allows either approach; new key gives renderer + dev-lead clearer
 // semantic separation — `cairn` always means area-clear; `stage_exit` always
 // means within-area stage chain. `cairn` is still defined here in case
-// downstream tooling needs the key but in practice no Stage 2 round emits a
+// downstream tooling needs the key but in practice no Stage 3 round emits a
 // `cairn` tile placement — it lives only at end-of-Stage-4.
 //
 // Frame ASCII legend (per palette index):
@@ -473,12 +477,12 @@ const stage_exit = [
 ];
 
 // cairn — RESERVED for end-of-Area (end of Stage 4). Defined here for
-// schema completeness and so a future stage-2 round COULD emit it as the
-// final stage-4 transit. In practice Stage 2 round-data never emits this
+// schema completeness and so a future stage-3 round COULD emit it as the
+// final stage-4 transit. In practice Stage 3 round-data never emits this
 // key; it is exported for renderer parity with `assets/tiles/area1.js`
 // only. Same matrix as Stage 1 cairn, retinted to cave-stone palette.
-// (Note: dev-lead's level-data for Stage 2 should use `stage_exit` at the
-// end of Round 2-4, NOT `cairn`. The cairn is the Area-clear marker; in
+// (Note: dev-lead's level-data for Stage 3 should use `stage_exit` at the
+// end of Round 3-4, NOT `cairn`. The cairn is the Area-clear marker; in
 // Phase 3 it lives only at the end of Stage 4.)
 const cairn = [
   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],

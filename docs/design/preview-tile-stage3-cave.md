@@ -1,21 +1,27 @@
-# Preview — `assets/tiles/area1-stage2-cave.js`
+# Preview — `assets/tiles/area1-stage3-cave.js`
 
-> **한국어 버전:** [`preview-tile-stage2-cave.ko.md`](./preview-tile-stage2-cave.ko.md)
+> **한국어 버전:** [`preview-tile-stage3-cave.ko.md`](./preview-tile-stage3-cave.ko.md)
 
 | Field         | Value                                       |
 |---------------|---------------------------------------------|
-| Path          | `assets/tiles/area1-stage2-cave.js`         |
-| Stage         | Stage 2 — Sumphollow (cave)                 |
+| Path          | `assets/tiles/area1-stage3-cave.js`         |
+| Stage         | Stage 3 — Sumphollow (cave)                 |
 | Tile matrix   | 16 × 16 art-pixels per tile                 |
 | Display size  | 48 × 48 canvas px (3× scale; matches `TILE = 48`) |
 | Palette       | 18 entries                                  |
 | Tile keys     | 13 keys (11 static + 1 animated + 1 cairn reserved) |
 
+Per the v0.75 theme remap, the cave is now Stage 3 in the sequence
+forest → shore → cave → dark forest (it was Stage 2 in the previous build).
+The file rename was `git mv area1-stage2-cave.js area1-stage3-cave.js`;
+the matrix data, palette, and animation frames are byte-for-byte identical
+to the previous PR — only the stage slot and header references shifted.
+
 The cave tileset mirrors `assets/tiles/area1.js` in structure (same locomotion
 shapes, mile-marker chain, same `META = { tile: 16, scale: 3, displayPx: 48 }`)
 and adds two stage-specific keys: `crystal_vein` (animated hazard) and
 `stage_exit` (within-area transition gate). `cairn` is declared for schema
-symmetry but is not emitted by Stage 2 round-data.
+symmetry but is not emitted by Stage 3 round-data.
 
 ## Tile keys
 
@@ -60,20 +66,20 @@ symmetry but is not emitted by Stage 2 round-data.
   digit) and from `cairn` (stone stack).
 
   **Decision recorded.** The brief allowed either (a) reusing the `cairn`
-  key with stage-2 palette retint, or (b) introducing a new `stage_exit`
+  key with stage-3 palette retint, or (b) introducing a new `stage_exit`
   key. We chose (b) for clearer semantics: in level-data, `cairn` always
   means *end-of-Area Cleared trigger*; `stage_exit` always means *within-
   area chain to next stage*. The same `stage_exit` key + visual is used by
-  the Stage 3 waterside tileset (retinted to wet-shelf-stone).
+  the Stage 2 shore tileset (retinted to wet-shelf-stone).
 
 - **`cairn`** — Reserved for end-of-Area (end of Stage 4). Defined in this
   module for schema parity with `assets/tiles/area1.js` so renderer + dev
-  code can scan a uniform key set across tilesets. **In practice Stage 2
-  round-data never emits this key.** The end of Round 2-4 emits
+  code can scan a uniform key set across tilesets. **In practice Stage 3
+  round-data never emits this key.** The end of Round 3-4 emits
   `stage_exit`. If a future tileset wants to refer to the cave-tinted cairn
   art (decorative use, not gameplay), it is here; for the actual Area-clear
-  beat, see `area1-stage4-ruins.js`'s cairn (which is the canonical Area 1
-  closure marker).
+  beat, see `area1-stage4-darkforest.js`'s cairn (which is the canonical
+  Area 1 closure marker).
 
 ### Animated tile
 

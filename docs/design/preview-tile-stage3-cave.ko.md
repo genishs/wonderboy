@@ -1,21 +1,27 @@
-# 미리보기 — `assets/tiles/area1-stage2-cave.js`
+# 미리보기 — `assets/tiles/area1-stage3-cave.js`
 
-> **영문 원본:** [`preview-tile-stage2-cave.md`](./preview-tile-stage2-cave.md)
+> **영문 원본:** [`preview-tile-stage3-cave.md`](./preview-tile-stage3-cave.md)
 
 | 항목          | 값                                          |
 |---------------|---------------------------------------------|
-| 경로          | `assets/tiles/area1-stage2-cave.js`         |
-| 스테이지      | Stage 2 — Sumphollow (동굴)                 |
+| 경로          | `assets/tiles/area1-stage3-cave.js`         |
+| 스테이지      | Stage 3 — Sumphollow (동굴)                 |
 | 타일 매트릭스 | 타일당 16 × 16 아트-픽셀                    |
 | 화면 크기     | 캔버스 48 × 48 px (3× 스케일; `TILE = 48`) |
 | 팔레트        | 18 항목                                     |
 | 타일 키       | 13 키 (정적 11 + 애니메이션 1 + cairn 예약 1) |
 
+v0.75 테마 리맵에 따라, 동굴은 이제 forest → shore → cave → dark forest
+시퀀스의 Stage 3이다 (이전 빌드에서는 Stage 2). 파일 이름 변경은 `git mv
+area1-stage2-cave.js area1-stage3-cave.js`; 매트릭스 데이터, 팔레트, 애니메
+이션 프레임은 이전 PR과 바이트-단위 동일하다 — 스테이지 슬롯과 헤더 참조
+만 이동.
+
 동굴 타일셋은 `assets/tiles/area1.js`와 구조적으로 같다 (같은 locomotion
 형태, 마일-마커 체인, 같은 `META = { tile: 16, scale: 3, displayPx: 48 }`)
 그리고 스테이지 특유의 두 키를 추가한다: `crystal_vein` (애니메이션 위험)
 과 `stage_exit` (Area 내 전환 게이트). `cairn`은 스키마 대칭을 위해 정의되
-었지만 Stage 2 레벨 데이터는 그것을 emit하지 않는다.
+었지만 Stage 3 레벨 데이터는 그것을 emit하지 않는다.
 
 ## 타일 키
 
@@ -54,17 +60,17 @@
   나가는 문"으로 읽는다. mile-marker (기둥 + 판 + 숫자) 그리고 cairn
   (돌 더미)과 다른 "걸어 들어가는 출입구"로 읽힌다.
 
-  **결정 기록.** 브리프는 (a) `cairn` 키 재사용 + Stage 2 팔레트 재색
+  **결정 기록.** 브리프는 (a) `cairn` 키 재사용 + Stage 3 팔레트 재색
   또는 (b) 새 `stage_exit` 키 도입 둘 다 허용했다. 의미 명확화를 위해
   (b)를 선택: 레벨 데이터에서 `cairn`은 항상 *Area-Cleared 트리거*,
-  `stage_exit`은 항상 *Area 내 다음 스테이지로의 사슬*. Stage 3 강가
+  `stage_exit`은 항상 *Area 내 다음 스테이지로의 사슬*. Stage 2 해변
   타일셋도 같은 `stage_exit` 키 + 시각 (wet-shelf-stone으로 재색)을
   사용한다.
 
 - **`cairn`** — Area 종료 (Stage 4 종료)용 예약. 이 모듈에서는 `assets/
   tiles/area1.js`와의 스키마 패리티를 위해 정의되어 있어 렌더러 + dev
   코드가 타일셋 전체에 걸쳐 통일된 키 집합을 스캔할 수 있다. **실제로
-  Stage 2 레벨 데이터는 이 키를 emit하지 않는다.** Round 2-4의 끝은
+  Stage 3 레벨 데이터는 이 키를 emit하지 않는다.** Round 3-4의 끝은
   `stage_exit`을 emit한다.
 
 ### 애니메이션 타일

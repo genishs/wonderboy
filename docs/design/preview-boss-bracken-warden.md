@@ -11,11 +11,22 @@
 | Palette      | 18 entries                                            |
 | Frame total  | 17 frames across 6 animations                         |
 
-The Bracken Warden is the Area 1 boss — a kneeling moss-and-stone colossus
-at the back wall of the boss arena (Round 4-4 cols 41-42). Spec source:
+The Bracken Warden is the Area 1 boss — a kneeling moss-and-bracken colossus
+at the back wall of the boss arena, a **moonlit dark-forest clearing** at the
+end of Stage 4 (Round 4-4 cols 41-42). Spec source:
 `docs/briefs/phase3-boss-cast.md`. The sprite ships **all 6 FSM states**
 called for in §3 of the boss brief: `idle`, `windup`, `attack`, `recover`,
 `hurt`, `dead`.
+
+Per the v0.75 theme remap, the boss arena is now a dark-forest clearing
+under the canopy rather than the ruin chamber the previous PR iteration
+contemplated. **The sprite itself is unchanged** — a moss-covered stone-
+and-bracken guardian reads as well in a dark forest as it did in a ruin
+arena (the moss + bracken + dim warm-stone joinery now read as "an old
+stone shrine the forest has reclaimed" instead of "a piece of the ruin
+floor stood up"). Only the surrounding arena context shifted in the
+preview docs; the silhouette, animations, and palette are byte-for-byte
+identical to the previous PR.
 
 ## Final dimensions (decision recorded)
 
@@ -34,12 +45,16 @@ data — implementation detail, not story-lead's call."
   scale (Reed is 16 × 24 art and renders at ~36 × 48 canvas ≈ 2.25× scale).
   The Warden will render at ~3× scale → 120 × 144 canvas px ≈ 2.5 × 3
   tiles, close enough to the brief's "3 tiles × 4 tiles risen" intent
-  that the arena reads correctly. The Warden visibly dominates the arena's
-  right wall (col 9 to col 11 area).
+  that the clearing reads correctly. The Warden visibly dominates the
+  clearing's right wall (col 9 to col 11 area of the arena viewport).
 - The brief's silhouette intent ("kneeling colossus" / "head bowed" /
   "moss-covered cairn shape") reads cleanly at 40 × 48 — we've designed
   the silhouette so each major silhouette element (head, torso, knee,
   forearm, sigil slit) occupies an area large enough to be unambiguous.
+  The shape continues to read in a dark-forest clearing: against the
+  moonlit canopy floor the moss-and-stone silhouette stands out by
+  contrast (warm-grey joinery + warm sigil amber pop against the cool
+  canopy mid-tones).
 
 ## Anchor
 
@@ -47,7 +62,7 @@ data — implementation detail, not story-lead's call."
 are always on the floor row regardless of pose (kneeling at rest, standing
 in windup, slumped in death). All pose variation composes the silhouette
 *above* the anchor. Dev-lead places the sprite at the floor-row in the
-arena (Round 4-4 col 41-42, floor row 10) and the renderer aligns to
+clearing (Round 4-4 col 41-42, floor row 10) and the renderer aligns to
 anchor automatically.
 
 ## Sigil flare visual approach (decision recorded)
@@ -208,11 +223,15 @@ Phase 3 stage tilesets. Per `palette-phase3.md`:
   (`#7a8088`), river-stone highlight (`#a8b0b8`), velvet under-flame
   (`#5a4a6e` — under-bracken shadow, carried over from Phase 2 fire-
   shadow by deliberate consistency).
-- Phase 3 shared (from `area1-stage4-ruins.js`): pillar-shadow-violet
-  (`#684e6e`), carved-stone-pale (`#8a8478`), carved-stone shadow
-  (`#5a5448`), carved-stone highlight (`#a89c80`). The Warden visibly
-  shares material with the ruin floor — the brief's "made of the same
-  material as the floor and pillars, just animated."
+- Phase 3 shared (from `area1-stage4-darkforest.js`): canopy-shadow-violet
+  (`#684e6e`), dry-bark-pale (`#8a8478`), tree-bark-shadow (`#5a5448`),
+  moonlit bark crest (`#a89c80`). The Warden visibly shares material with
+  the dark-forest floor and trunks — re-roled hexes from the previous PR's
+  ruin-floor build (the values are the same; their narrative role moved
+  from "carved stone in a ruin chamber" to "weathered bark + violet
+  undercut in a moonlit clearing"). The brief's "made of the same material
+  as the floor and pillars, just animated" still holds — the Warden looks
+  like a piece of the clearing that stood up.
 
 The remaining 4 hexes are new to the boss + Phase 3:
 - `#a8744a` (stone-joinery warm — carved warm-grey, sun-touched joinery)
