@@ -18,6 +18,28 @@ Phases 1 and 2 (so the project's visual chord stays unified). Per-module
 palettes live inside each `.js` file and are tuned independently for byte cost;
 this doc rolls them up.
 
+## v0.75 hero rebuild addendum (24×36 res)
+
+A second amendment in PR #27 rebuilt the hero sprite (`assets/sprites/hero-reed.js`)
+from 16 × 24 art-pixels to 24 × 36 art-pixels, with calmer per-anim fps. Two new
+palette concerns:
+
+- **One genuinely new hex** introduced for higher-resolution skin shading:
+  `#f4c898` (skin highlight — forehead / cheekbone / knuckle catchlight,
+  one pale step lighter than the existing dawn-amber skin `#e8a878`). Stays
+  inside the dawn-amber family so the warmth chord is preserved.
+- **One existing Phase 3 hex reused** for tunic shoulder catchlight:
+  `#5a8a4a` (cairn-mantle moss / pale moss highlight, originally introduced
+  by `boss-bracken-warden.js` and the dark-forest tileset). No new hex; the
+  reuse strengthens the tunic-as-moss-cloth read.
+
+Both palette additions are inside `hero-reed.js`; no other Phase 3 module
+gains an entry from this amendment.
+
+The hero module's per-file PALETTE entry count grew from 18 (v0.50.2) to 20
+(v0.75): +1 new hex `#f4c898`, +1 reused-from-Phase-3 hex `#5a8a4a`. Only the
+former counts toward the cumulative project total.
+
 ## v0.75 theme remap notice
 
 The Stage-2 / Stage-3 / Stage-4 themes were remapped mid-PR to the sequence
@@ -53,19 +75,24 @@ Specifically:
 | `assets/tiles/area1-stage4-darkforest.js`           | tile   | 21                        |
 | `assets/sprites/boss-bracken-warden.js`             | sprite | 18                        |
 | `assets/sprites/projectile-moss-pulse.js`           | sprite | 9                         |
+| `assets/sprites/hero-reed.js` (v0.75 rebuild)       | sprite | 20                        |
 
 ## Totals
 
 | Metric                                                | Count |
 |-------------------------------------------------------|------:|
-| Distinct hex values introduced in Phase 3 (new)       | **26**|
+| Distinct hex values introduced in Phase 3 (new)       | **27**|
 | Distinct hex values reused verbatim from Phase 1 or 2 | **11**|
-| Total distinct hexes touched by Phase 3 modules       | 37    |
-| Sum of per-module entries (sprites + tiles)           | 84    |
+| Total distinct hexes touched by Phase 3 modules       | 38    |
+| Sum of per-module entries (sprites + tiles)           | 104   |
 
 The cumulative project palette (Phase 1 + Phase 2 + Phase 3 distinct) is
-**91** hex values (Phase 1's 34 + Phase 2's 31 + Phase 3's 26 = 91).
-**29 colors of headroom** against the 120-color project budget.
+**92** hex values (Phase 1's 34 + Phase 2's 31 + Phase 3's 27 = 92).
+**28 colors of headroom** against the 120-color project budget.
+
+The Phase 3 count of 27 = 26 from the theme remap (Stage 2 shore / Stage 3
+cave / Stage 4 dark forest + boss + moss-pulse) + 1 from the v0.75 hero
+rebuild (`#f4c898` skin highlight).
 
 ## Hexes shared verbatim with Phases 1 or 2
 
@@ -246,8 +273,9 @@ Hummerwing cave/dark-forest reskins, they reuse the same `#f4e8f0a0` /
 - Cap (project): ≤ 120 distinct colors total.
 - Phase 1: 34 distinct hexes.
 - Phase 2: 30 new distinct hexes (v0.50) + 1 new hex (v0.50.2, sprint trail) = 31.
-- Phase 3: **26 new distinct hexes** (v0.75 after the theme remap).
-- Cumulative: **91 distinct hexes.** **29 colors of headroom** for Phase 4.
+- Phase 3: **27 new distinct hexes** (v0.75 after the theme remap + the
+  hero-rebuild amendment).
+- Cumulative: **92 distinct hexes.** **28 colors of headroom** for Phase 4.
 
 The Phase 3 addition is the largest single-phase delta in the project so
 far because Phase 3 ships three new tilesets + a boss + a projectile.
@@ -352,6 +380,31 @@ audio integration + polish).
 |  15 | `#e8d4a0`    | cuff-cream (sigil rim highlight)              | shared P1+P2            |
 |  16 | `#7a8088`    | river-stone-grey (deeper joinery rim)         | shared P2               |
 |  17 | `#a8b0b8`    | river-stone highlight (rare highlight on shoulder stone) | shared P2     |
+
+### `assets/sprites/hero-reed.js` (v0.75 rebuild) — 20 entries
+
+| Idx | Hex          | Role                                          | Origin                  |
+|----:|--------------|-----------------------------------------------|-------------------------|
+|   0 | `#00000000`  | transparent                                   | universal               |
+|   1 | `#1a2618`    | deep moss outline (silhouette ink)            | Phase 1 hero            |
+|   2 | `#3a2e4a`    | violet undershadow                            | Phase 1 hero (=P1+P2 ink) |
+|   3 | `#e8a878`    | dawn-amber skin                               | Phase 1 hero            |
+|   4 | `#a8704a`    | skin shadow                                   | Phase 1 hero            |
+|   5 | `#c25a30`    | hair ginger-warm                              | Phase 1 hero            |
+|   6 | `#7a2e18`    | hair shadow                                   | Phase 1 hero            |
+|   7 | `#4a7c3a`    | tunic moss-green base                         | Phase 1 hero (P1+P2)    |
+|   8 | `#2e5028`    | tunic shadow                                  | Phase 1 hero (P1+P2)    |
+|   9 | `#e8d4a0`    | cuff-cream highlight                          | Phase 1 hero (P1+P2)    |
+|  10 | `#6e7a82`    | pouch river-stone-grey                        | Phase 1 hero            |
+|  11 | `#3e4850`    | pouch dark                                    | Phase 1 hero            |
+|  12 | `#d8c8a8`    | river-stone pebble / belt buckle highlight    | Phase 1 hero            |
+|  13 | `#7e858e`    | chip-stone-grey (hatchet head main)           | Phase 2 hero            |
+|  14 | `#5a6068`    | chip-stone-grey shadow (hatchet head dark)    | Phase 2 hero            |
+|  15 | `#c89a68`    | cloth-wrap-tan (hatchet handle binding)       | Phase 2 hero            |
+|  16 | `#f8b860`    | amber-underglow wisp (sprint trail)           | v0.50.2 hero (=Hummerwing) |
+|  17 | `#a888b0`    | pale-violet wisp (sprint trail)               | v0.50.2 hero            |
+|  18 | `#f4c898`    | skin highlight (cheek/nose catchlight)        | **new v0.75 (P3 amendment)** |
+|  19 | `#5a8a4a`    | moss-mid highlight (shoulder catchlight)      | reuse of Phase 3 cairn-mantle moss |
 
 ### `assets/sprites/projectile-moss-pulse.js` — 9 entries
 

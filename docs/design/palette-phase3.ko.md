@@ -18,6 +18,28 @@
 `.js` 파일 내부에 들어 있고 바이트 비용에 맞춰 별도로 조정된다; 이 문서는
 그것들을 한곳에 모은 것이다.
 
+## v0.75 hero 재구축 보정 (24×36 해상도)
+
+PR #27의 두 번째 보정에서 hero 스프라이트 (`assets/sprites/hero-reed.js`)를
+16 × 24 아트픽셀에서 24 × 36 아트픽셀로 재구축하고, 애니메이션별 fps를
+더 차분하게 조정했다. 팔레트 관련 변경사항 두 가지:
+
+- **새로운 hex 1개**가 고해상도 피부 셰이딩을 위해 도입됨: `#f4c898`
+  (피부 하이라이트 — 이마 / 광대 / 너클의 빛 받는 점, 기존 dawn-amber
+  피부 `#e8a878`보다 한 단계 밝다). dawn-amber 가족 안에 머무르므로
+  따뜻한 화음은 보존된다.
+- **기존 Phase 3 hex 1개**가 튜닉 어깨 catchlight로 재사용됨: `#5a8a4a`
+  (cairn-mantle moss / pale moss highlight — `boss-bracken-warden.js`와
+  dark-forest 타일셋에서 처음 도입). 신규 hex 아님; 재사용으로 "튜닉은
+  이끼 옷감"이라는 읽기를 강화한다.
+
+두 팔레트 추가 모두 `hero-reed.js` 내부에만 있고, 이번 보정으로 다른
+Phase 3 모듈에는 항목이 추가되지 않는다.
+
+hero 모듈의 파일별 PALETTE 항목 수는 18 (v0.50.2) → 20 (v0.75)으로 증가:
+신규 hex `#f4c898` 1개 + Phase 3에서 재사용된 hex `#5a8a4a` 1개. 누적
+프로젝트 총합에는 전자만 카운트된다.
+
 ## v0.75 테마 리맵 공지
 
 Stage 2 / Stage 3 / Stage 4 테마가 PR 중간에 시퀀스 **forest → shore → cave
@@ -50,18 +72,23 @@ Stage 2 / Stage 3 / Stage 4 테마가 PR 중간에 시퀀스 **forest → shore 
 | `assets/tiles/area1-stage4-darkforest.js`           | 타일    | 21                 |
 | `assets/sprites/boss-bracken-warden.js`             | 스프라이트 | 18              |
 | `assets/sprites/projectile-moss-pulse.js`           | 스프라이트 | 9               |
+| `assets/sprites/hero-reed.js` (v0.75 재구축)        | 스프라이트 | 20              |
 
 ## 합계
 
 | 지표                                                  |    수치 |
 |------------------------------------------------------|-------:|
-| Phase 3에서 처음 도입된 고유 hex 값 (신규)            | **26** |
+| Phase 3에서 처음 도입된 고유 hex 값 (신규)            | **27** |
 | Phase 1 또는 2에서 그대로 재사용된 고유 hex 값         | **11** |
-| Phase 3 모듈이 사용하는 고유 hex 값 총합              | 37     |
-| 모듈별 항목 수 총합 (스프라이트 + 타일)               | 84     |
+| Phase 3 모듈이 사용하는 고유 hex 값 총합              | 38     |
+| 모듈별 항목 수 총합 (스프라이트 + 타일)               | 104    |
 
-누적 프로젝트 팔레트 (Phase 1 + 2 + 3 고유 hex)는 **91**개이다 (Phase 1의
-34 + Phase 2의 31 + Phase 3의 26). 120색 프로젝트 예산 대비 **여유 29색**.
+누적 프로젝트 팔레트 (Phase 1 + 2 + 3 고유 hex)는 **92**개이다 (Phase 1의
+34 + Phase 2의 31 + Phase 3의 27). 120색 프로젝트 예산 대비 **여유 28색**.
+
+Phase 3 27개 = 테마 리맵 26개 (Stage 2 shore / Stage 3 cave / Stage 4
+dark forest + 보스 + moss-pulse) + v0.75 hero 재구축 1개 (`#f4c898`
+피부 하이라이트).
 
 ## Phase 1 또는 2와 그대로 공유되는 hex
 
