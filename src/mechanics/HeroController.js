@@ -49,8 +49,15 @@ export class HeroController {
         // NOTE: dyingFrames is decremented inside the dying block below so we
         // can detect the 1→0 edge cleanly and fire loseLife() on the same frame.
 
-        // Phase 2: freeze input during transitions / stage-clear, but still apply gravity.
-        const transitionLock = (state.gameState === 'TRANSITIONING' || state.gameState === 'STAGE_CLEAR');
+        // Phase 2 / v0.75: freeze input during transitions / stage-clear, but still
+        // apply gravity. STAGE_TRANSITION is the v0.75 inter-stage fade ritual; input
+        // stays frozen for the whole ritual. AREA_CLEARED is the post-boss closure
+        // overlay; input frozen too (any key dismisses to TITLE via the overlay path,
+        // handled separately below).
+        const transitionLock = (state.gameState === 'TRANSITIONING'
+                             || state.gameState === 'STAGE_CLEAR'
+                             || state.gameState === 'STAGE_TRANSITION'
+                             || state.gameState === 'AREA_CLEARED');
 
         // Death state — terminal in Phase 1; respawn-pending in Phase 2.
         // v0.50.1 — Phase 2 RESPAWNING freezes the hero in place; StageManager
@@ -87,6 +94,27 @@ export class HeroController {
             pl.stumbleFrames = 0;
             pl.stumbleCooldown = 0;
             pl.dyingFrames = 0;
+            return;
+        }
+        if (state.gameState === 'AREA_CLEARED') {
+            // v0.75 — Area-cleared overlay holds. Any of the gameplay action /
+            // direction inputs dismisses to TITLE (consistent with the v0.50.2
+            // continueRun path's input handling). Hero is frozen; let the
+            // existing physics handle the few frames before the overlay completes.
+            if ((input.jumpPressed || input.attack || input.sprintHeld ||
+                 input.left || input.right)) {
+                state.setGameState('TITLE');
+            }
+            pl.aiState = 'idle';
+            v.vx = 0;
+            return;
+        }
+        if (state.gameState === 'STAGE_TRANSITION') {
+            // v0.75 — physics & input frozen during the inter-stage ritual.
+            // StageTransitionSystem advances the phases.
+            v.vx = 0;
+            v.vy = 0;
+            pl.aiState = 'idle';
             return;
         }
 

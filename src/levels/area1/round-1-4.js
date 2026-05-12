@@ -67,10 +67,12 @@ export const ROUND = Object.freeze({
     ],
     triggers: [
         // v0.50.2 — Round 4 sign at the START of round-1-4 (NEW; uses mile_4 tile
-        // shipped by design-lead in PR #22). The cairn at col 63 stays as the
-        // Stage Cleared trigger.
+        // shipped by design-lead in PR #22).
         { col: 2, row: 9, kind: 'mile_4' },
-        { col: 63, row: 9, kind: 'cairn' },
+        // v0.75 — final tile changed from `cairn` (Stage Cleared) to `stage_exit`
+        // with nextStage=2. Walking into it fires AreaManager.beginStageTransition(2)
+        // → fade-out → swap → "Stage 2 — Sumphollow" overlay → fade-in.
+        { col: 63, row: 9, kind: 'stage_exit', nextStage: 2 },
     ],
     fires: [
         { col: 33, row: 7 },     // on the steep crest plateau

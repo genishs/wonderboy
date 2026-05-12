@@ -49,6 +49,26 @@ export class ParallaxBackground {
         this._layers = this._buildLayers(theme);
     }
 
+    /**
+     * v0.75 — switch parallax to a different stage of the current Area. For
+     * v0.75 ship all 4 stages reuse Stage 1's parallax SVGs (the shore, cave,
+     * and dark-forest backgrounds are out of scope for this PR; design ships
+     * them in a later patch). This method exists so AreaManager can call it
+     * unconditionally without a runtime branch; once SVG sets ship, swap the
+     * `_svgLayers` reference here per stageIndex.
+     */
+    setStage(stageIndex) {
+        // Map per-stage themes for the procedural fallback (used if SVG load
+        // failed). This gives the player a hue cue across stages even without
+        // SVG art.
+        const fallbackThemes = { 1: 'forest', 2: 'beach', 3: 'cave', 4: 'forest' };
+        const t = fallbackThemes[stageIndex] ?? 'forest';
+        // Only switch the procedural fallback set; SVG layers (if loaded) stay
+        // in place — for v0.75 all stages use Stage 1's SVGs by design.
+        this.theme   = t;
+        this._layers = this._buildLayers(t);
+    }
+
     // ── Phase 2: SVG draw ──────────────────────────────────────────────────
     _drawSvg(ctx, scrollX) {
         for (const { img, factor } of this._svgLayers) {
