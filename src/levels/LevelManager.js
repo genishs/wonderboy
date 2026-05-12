@@ -10,7 +10,7 @@ import { TileMap }   from './TileMap.js';
 import { buildPhase1TestMap, PHASE1_STAGE_DATA } from './TestStage.js';
 import { initEnemy } from '../mechanics/EnemyAI.js';
 import { HERO } from '../config/PhaseOneTunables.js';
-import { StageManager } from './StageManager.js';
+import { AreaManager } from './AreaManager.js';
 
 const TILE = 48;
 const VIEWPORT_W = 768;
@@ -29,8 +29,13 @@ export class LevelManager {
         this._areaIndex    = 1;
         this._isPhase1Test = false;
         this._isPhase2     = false;
-        this.stageManager  = null;     // lazy — instantiated in loadAreaRound
+        // v0.75 — AreaManager replaces direct stageManager wiring. The
+        // `stageManager` getter below returns AreaManager.currentStage so
+        // existing renderer reads (`renderer.stageManager.overlay`, etc.)
+        // continue to resolve without changes.
+        this.areaManager   = null;
     }
+    get stageManager() { return this.areaManager ? this.areaManager.currentStage : null; }
 
     loadLevel(area, ecs, state) {
         this._isPhase1Test = false;
@@ -58,16 +63,23 @@ export class LevelManager {
     /**
      * Phase 2 — start an Area as a single continuous stage. v0.50.1 collapses
      * the 4 rounds into one TileMap, so `round` is no longer used to switch
-     * levels; the StageManager just calls startArea(area).
+     * levels.
      *
-     * Signature kept for back-compat with game.js.
+     * v0.75 — delegates to AreaManager (which owns the multi-stage lifecycle).
+     * Signature preserved for back-compat with game.js.
+     *
+     * @param {object} opts  optional { tileCache, parallax } passed to AreaManager
      */
-    loadAreaRound(area, _round, ecs, state) {
+    loadAreaRound(area, _round, ecs, state, opts = null) {
         this._isPhase2     = true;
         this._isPhase1Test = false;
         this._areaIndex    = area;
-        if (!this.stageManager) this.stageManager = new StageManager(this);
-        this.stageManager.startArea(area, ecs, state);
+        if (!this.areaManager) {
+            this.areaManager = new AreaManager(this,
+                opts?.tileCache ?? null,
+                opts?.parallax  ?? null);
+        }
+        this.areaManager.startArea(area, ecs, state);
     }
 
     update(dt, ecs, state) {
@@ -76,14 +88,20 @@ export class LevelManager {
         const tf = ecs.getComponent(this.playerEntity, 'transform');
         if (!tf) return;
 
-        // Smooth camera: player locked ~1/3 from left.
-        const target    = tf.x - Math.floor(VIEWPORT_W / 3);
-        const maxScroll = Math.max(0, (this.currentLevel.cols - 16) * TILE);
-        this.scrollX    = Math.max(0, Math.min(target, maxScroll));
+        // v0.75 — camera lock during boss arena fight. AreaManager sets
+        // cameraLocked + cameraLockX when BOSS_TRIGGER fires; cleared on
+        // hero death (RESPAWNING handler) or stage swap.
+        if (this.areaManager && this.areaManager.cameraLocked) {
+            this.scrollX = this.areaManager.cameraLockX;
+        } else {
+            // Smooth camera: player locked ~1/3 from left.
+            const target    = tf.x - Math.floor(VIEWPORT_W / 3);
+            const maxScroll = Math.max(0, (this.currentLevel.cols - 16) * TILE);
+            this.scrollX    = Math.max(0, Math.min(target, maxScroll));
+        }
 
-        // Phase 2: StageManager.update is driven from the mechanics tick (game.js
-        // wraps it before HeroController). Skip legacy item/enemy/hazard/goal
-        // checks — Phase 2 systems run them. (We still let camera scroll above.)
+        // Phase 2: AreaManager.update is driven from the mechanics tick. Skip
+        // legacy item/enemy/hazard/goal checks — Phase 2 systems run them.
         if (this._isPhase2) {
             return;
         }

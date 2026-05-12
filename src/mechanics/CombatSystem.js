@@ -3,9 +3,18 @@
 //   - mossplodder/hummerwing kill on hatchet contact (always 1-hit-kill);
 //   - hero stepping on fire_low tile = game over;
 //   - mossplodder walking onto fire_low = mossplodder dies.
+// v0.75 adds:
+//   - generalized fatal-tile check (`_heroVsFatalTile`) covers fire_low,
+//     water_gap, crystal_vein via the new `isFatal` flag on TileMap tiles;
+//   - hero contact with the Bracken Warden's body kills hero (`_bossBodyVsHero`);
+//   - hatchet ↔ moss-pulse mutual despawn (`_hatchetVsMossPulse`);
+//   - hatchet ↔ boss-chest hitbox decrements boss HP (`_hatchetVsBoss`);
+//   - moss-pulse projectile kills hero on contact (existing
+//     `_enemyProjectileVsHero` extended to also catch ownerKind === 'boss').
 
 import { CRAWLSPINE, GLASSMOTH, SAPLING } from '../config/PhaseOneTunables.js';
 import { MOSSPLODDER, HUMMERWING, FIRE }  from '../config/PhaseTwoTunables.js';
+import { BRACKEN_WARDEN }                 from '../config/PhaseThreeTunables.js';
 
 const TILE = 48;
 const DAMAGING_SAPLING_STATES = new Set(['windup', 'firing']);
@@ -34,11 +43,19 @@ export class CombatSystem {
         this._enemyProjectileVsHero(ecs, state, player);
         if (dead(state.gameState)) return;
 
-        // Phase 2 fire-tile interactions
+        // v0.75 — boss interactions (only relevant if a boss entity is present).
+        this._hatchetVsBoss(ecs, state);
+        if (dead(state.gameState)) return;
+        this._hatchetVsMossPulse(ecs);
+        if (dead(state.gameState)) return;
+        this._bossBodyVsHero(ecs, state, player);
+        if (dead(state.gameState)) return;
+
+        // Phase 2 + v0.75 fatal-tile interactions
         if (level) {
-            this._heroVsFireTile(ecs, state, player, level);
+            this._heroVsFatalTile(ecs, state, player, level);
             if (dead(state.gameState)) return;
-            this._mossplodderVsFireTile(ecs, level);
+            this._mossplodderVsFatalTile(ecs, level);
         }
     }
 
@@ -79,22 +96,32 @@ export class CombatSystem {
 
     _enemyProjectileVsHero(ecs, state, player) {
         const ptf = player.transform;
-        const projectiles = ecs.query('transform', 'projectile').filter(r => r.projectile.ownerKind === 'enemy');
+        // v0.75 — also catch boss-owned projectiles (moss-pulse). The kill path
+        // is identical to enemy-owned hatchet shrapnel: any contact = death.
+        const projectiles = ecs.query('transform', 'projectile').filter(r =>
+            r.projectile.ownerKind === 'enemy' || r.projectile.ownerKind === 'boss');
         for (const proj of projectiles) {
             if (!this._overlaps(proj.transform, ptf)) continue;
             this._killHero(state, player);
-            ecs.destroyEntity(proj.id);
+            // The boss-owned moss-pulse should NOT despawn on hero contact —
+            // per boss brief §13 the pulse continues to its left-wall despawn.
+            // The hero is already dying; subsequent CombatSystem ticks bail out
+            // via the `dead` guard. Keep this branch destroying the projectile
+            // for enemy hatchet shrapnel where the hit-once semantics apply.
+            if (proj.projectile.ownerKind === 'enemy') ecs.destroyEntity(proj.id);
             return;
         }
     }
 
-    _heroVsFireTile(ecs, state, player, level) {
+    /**
+     * v0.75 — generalized fatal-tile check. Tests Reed's body AABB against any
+     * tile flagged isFatal (fire_low, water_gap, crystal_vein). Replaces the
+     * v0.50 fire-specific path; v0.50 fire still fires through this code path
+     * because `isFire` and `isFatal` are both true for FIRE_LOW.
+     */
+    _heroVsFatalTile(ecs, state, player, level) {
         const ptf = player.transform;
-        // Fire tiles live at row = floorRow - 1. Reed's feet are at floorRow but
-        // his bbox extends ~1.4 tiles upward — sample both rows under his foot center
-        // and lower-body band. AABB-test the actual fire hitbox.
         const cx = ptf.x + ptf.w / 2;
-        // Probe column band (left, center, right) at body-mid + foot.
         const xs = [ptf.x + 4, cx, ptf.x + ptf.w - 4];
         const ys = [ptf.y + ptf.h - 4, ptf.y + ptf.h * 0.6, ptf.y + ptf.h * 0.3];
         for (const py of ys) {
@@ -102,13 +129,16 @@ export class CombatSystem {
                 const c = Math.floor(px / TILE);
                 const r = Math.floor(py / TILE);
                 const t = level.getTile(c, r);
-                if (!t || !t.isFire) continue;
-                const fireTop = r * TILE + (TILE - FIRE.hitboxH);
-                const fireBot = (r + 1) * TILE;
-                const fireLeft  = c * TILE + (TILE - FIRE.hitboxW) / 2;
-                const fireRight = fireLeft + FIRE.hitboxW;
-                if (ptf.x + ptf.w > fireLeft && ptf.x < fireRight &&
-                    ptf.y + ptf.h > fireTop  && ptf.y < fireBot) {
+                if (!t || !t.isFatal) continue;
+                // For visual fairness we shrink each fatal tile's hitbox to the
+                // same fire-style footprint (FIRE constants). This means a Reed
+                // jumping AT a hazard tile from the side has a survivable gap.
+                const hzTop = r * TILE + (TILE - FIRE.hitboxH);
+                const hzBot = (r + 1) * TILE;
+                const hzLeft  = c * TILE + (TILE - FIRE.hitboxW) / 2;
+                const hzRight = hzLeft + FIRE.hitboxW;
+                if (ptf.x + ptf.w > hzLeft && ptf.x < hzRight &&
+                    ptf.y + ptf.h > hzTop  && ptf.y < hzBot) {
                     this._killHero(state, player);
                     return;
                 }
@@ -116,13 +146,12 @@ export class CombatSystem {
         }
     }
 
-    _mossplodderVsFireTile(ecs, level) {
+    /** v0.75 — mossplodder dies on fire OR water_gap OR crystal_vein contact. */
+    _mossplodderVsFatalTile(ecs, level) {
         for (const e of ecs.query('transform', 'enemy')) {
             const en = e.enemy;
             if (en.type !== 'mossplodder' || en.ai === 'dead') continue;
             const tf = e.transform;
-            // Sample body band; fire tile sits one row above the surface, so probe
-            // both the foot-row and the row above (body straddles the boundary).
             const xs = [tf.x + 6, tf.x + tf.w / 2, tf.x + tf.w - 6];
             const ys = [tf.y + tf.h - 4, tf.y + tf.h * 0.6, tf.y + 4];
             let dead = false;
@@ -132,7 +161,7 @@ export class CombatSystem {
                     const c = Math.floor(px / TILE);
                     const r = Math.floor(py / TILE);
                     const t = level.getTile(c, r);
-                    if (t && t.isFire) {
+                    if (t && t.isFatal) {
                         en.ai = 'dead';
                         en.deathFrames = MOSSPLODDER.deathFrames;
                         dead = true;
@@ -140,6 +169,80 @@ export class CombatSystem {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * v0.75 — hatchet vs Bracken Warden chest sigil. AABB-test hero hatchet
+     * projectiles against the boss's chest hitbox (BRACKEN_WARDEN.hitboxOffset*).
+     * Hit decrements boss.hp, sets a pause timer, swaps sprite anim to 'hurt',
+     * and despawns the hatchet. State.addScore awards 200 per hit.
+     */
+    _hatchetVsBoss(ecs, state) {
+        const bosses = ecs.query('transform', 'boss', 'sprite');
+        if (!bosses.length) return;
+        const b    = bosses[0];
+        const boss = b.boss;
+        if (boss.ai === 'dead') return;
+
+        const hitbox = {
+            x: b.transform.x + BRACKEN_WARDEN.hitboxOffsetX,
+            y: b.transform.y + BRACKEN_WARDEN.hitboxOffsetY,
+            w: BRACKEN_WARDEN.hitboxWidth,
+            h: BRACKEN_WARDEN.hitboxHeight,
+        };
+        const hatchets = ecs.query('transform', 'projectile').filter(r =>
+            r.projectile.type === 'hatchet' && r.projectile.ownerKind === 'hero');
+        for (const h of hatchets) {
+            if (!this._overlaps(h.transform, hitbox)) continue;
+            boss.hp = Math.max(0, boss.hp - 1);
+            // Preserve the underlying state so the timer resumes on the same beat.
+            if (boss.ai !== 'hurt') boss.prevAi = boss.ai;
+            boss.pauseTimer = BRACKEN_WARDEN.hurtFrames;
+            b.sprite.anim = 'hurt';
+            b.sprite._lastAnim = null;
+            ecs.destroyEntity(h.id);
+            state.addScore?.(200);
+            return;
+        }
+    }
+
+    /**
+     * v0.75 — hatchet ↔ moss-pulse mutual despawn. If a thrown hatchet AABB
+     * overlaps an active moss-pulse projectile, both are destroyed. Awards no
+     * score (the pulse is a defensive counter, not an enemy kill).
+     */
+    _hatchetVsMossPulse(ecs) {
+        const hatchets = ecs.query('transform', 'projectile')
+                            .filter(r => r.projectile.type === 'hatchet'
+                                      && r.projectile.ownerKind === 'hero');
+        if (!hatchets.length) return;
+        const pulses = ecs.query('transform', 'projectile')
+                          .filter(r => r.projectile.type === 'moss-pulse');
+        if (!pulses.length) return;
+        for (const h of hatchets) {
+            for (const p of pulses) {
+                if (this._overlaps(h.transform, p.transform)) {
+                    ecs.destroyEntity(h.id);
+                    ecs.destroyEntity(p.id);
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * v0.75 — Reed body-contact with the Bracken Warden's full transform AABB
+     * (NOT the chest hitbox) kills hero. Per boss brief §13: "Reed walks into
+     * the Warden's body hitbox = state.killHero(player)."
+     */
+    _bossBodyVsHero(ecs, state, player) {
+        const bosses = ecs.query('transform', 'boss');
+        if (!bosses.length) return;
+        const b = bosses[0];
+        if (b.boss.ai === 'dead') return;
+        if (this._overlaps(player.transform, b.transform)) {
+            this._killHero(state, player);
         }
     }
 

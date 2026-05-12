@@ -2,6 +2,12 @@
 // TODO: TileCache — convert design tile modules (PALETTE + TILES + META) into per-frame
 // canvases at displayPx resolution. Mirrors SpriteCache pattern.
 //
+// v0.75 — multi-stage support. Phase 2 used `loadArea(mod)` and a single
+// per-key entry table. Phase 3 needs up to 4 active tilesets (Stages 1-4 of
+// Area 1). Each stageIndex (1..N) gets its own per-key Map; `setActiveStage`
+// flips which map services `has` / `canvasAt` / `frameIndexAt`. The legacy
+// `loadArea` is preserved as a thin shim that loads into stage 1 + activates it.
+//
 // Per design contract (docs/design/contracts.md):
 //   TILES[key] = matrix                        (static)
 //   TILES[key] = { frames: [matrix...], fps }  (animated, v0.50+)
@@ -17,20 +23,29 @@ const _hex2rgba = (hex) => {
 
 export class TileCache {
     constructor() {
-        // tileKey -> { frames: HTMLCanvasElement[], fps: number, isAnimated: boolean, displayPx: number }
-        this._entries = new Map();
-        this._displayPx = 48;
+        // stageIndex -> Map<key, { frames: HTMLCanvasElement[], fps, isAnimated, displayPx }>
+        this._stageSets   = new Map();
+        this._activeStage = 1;
+        this._displayPx   = 48;
     }
 
     /**
-     * Loads an Area's tile module (mod = { PALETTE, TILES, META }).
-     * Builds one canvas per matrix at META.displayPx (or META.tile * scale) size.
-     * Uses ImageData fill at the matrix resolution then ctx.drawImage upscale with
-     * imageSmoothingEnabled=false to avoid bleeding.
+     * Loads an Area's tile module (mod = { PALETTE, TILES, META }) into the
+     * stage-1 slot and activates stage 1. Preserved for back-compat with v0.50
+     * game.js wiring; new code should use loadStageSet + setActiveStage.
      */
     async loadArea(mod) {
+        await this.loadStageSet(1, mod);
+        this.setActiveStage(1);
+    }
+
+    /**
+     * v0.75 — load a tile module into a specific stage slot. Idempotent;
+     * subsequent calls for the same stageIndex overwrite the slot.
+     */
+    async loadStageSet(stageIndex, mod) {
         if (!mod || !mod.PALETTE || !mod.TILES || !mod.META) {
-            throw new Error('TileCache.loadArea: module missing PALETTE/TILES/META');
+            throw new Error('TileCache.loadStageSet: module missing PALETTE/TILES/META');
         }
         const palette  = mod.PALETTE.map(_hex2rgba);
         const meta     = mod.META;
@@ -39,31 +54,43 @@ export class TileCache {
         const displayPx = meta.displayPx ?? (tile * scale);
         this._displayPx = displayPx;
 
+        const slot = new Map();
         for (const key of Object.keys(mod.TILES)) {
             const entry = mod.TILES[key];
             const isAnimated = !Array.isArray(entry) && entry && Array.isArray(entry.frames);
             if (isAnimated) {
                 const fps = entry.fps || 8;
                 const frames = entry.frames.map(matrix => this._buildCanvas(matrix, palette, tile, displayPx));
-                this._entries.set(key, { frames, fps, isAnimated: true, displayPx });
+                slot.set(key, { frames, fps, isAnimated: true, displayPx });
             } else {
                 const matrix = entry;
                 const canvas = this._buildCanvas(matrix, palette, tile, displayPx);
-                this._entries.set(key, { frames: [canvas], fps: 0, isAnimated: false, displayPx });
+                slot.set(key, { frames: [canvas], fps: 0, isAnimated: false, displayPx });
             }
         }
+        this._stageSets.set(stageIndex, slot);
     }
 
-    has(key)            { return this._entries.has(key); }
-    get(key)            { return this._entries.get(key); }
-    get displayPx()     { return this._displayPx; }
+    /** v0.75 — switch which stage's tile slot services has/canvasAt/frameIndexAt. */
+    setActiveStage(stageIndex) {
+        this._activeStage = stageIndex;
+    }
+
+    get activeStage() { return this._activeStage; }
+    get displayPx()   { return this._displayPx; }
+
+    has(key) {
+        const slot = this._stageSets.get(this._activeStage);
+        return !!(slot && slot.has(key));
+    }
 
     /**
      * Returns the frame index to use for an animated tile at the given simulation frame.
      * Lockstep — every instance of a given key shows the same frame this tick.
      */
     frameIndexAt(key, simFrame) {
-        const e = this._entries.get(key);
+        const slot = this._stageSets.get(this._activeStage);
+        const e = slot?.get(key);
         if (!e) return 0;
         if (!e.isAnimated || e.frames.length <= 1) return 0;
         return Math.floor(simFrame * e.fps / 60) % e.frames.length;
@@ -71,7 +98,8 @@ export class TileCache {
 
     /** Returns the canvas to draw for `key` at `simFrame`. Null if missing. */
     canvasAt(key, simFrame) {
-        const e = this._entries.get(key);
+        const slot = this._stageSets.get(this._activeStage);
+        const e = slot?.get(key);
         if (!e) return null;
         const idx = (e.isAnimated && e.frames.length > 1)
             ? (Math.floor(simFrame * e.fps / 60) % e.frames.length)

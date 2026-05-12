@@ -37,7 +37,8 @@ export class Renderer {
         this.spriteCache  = null;       // wired by game.js after init
         this.tileCache    = null;       // wired by game.js after Phase 2 init
         this.parallax     = null;       // ParallaxBackground instance (wired by game.js)
-        this.stageManager = null;       // wired by game.js for transition / stage-clear overlays
+        this.stageManager = null;       // legacy back-pointer; v0.75 prefers areaManager
+        this.areaManager  = null;       // v0.75 — wired by game.js after AreaManager init
         this._frame       = 0;          // (legacy) render-rate frame counter
         this._simFrame    = 0;          // fixed-step simulation frame counter (driven by GameLoop.tick())
     }
@@ -345,15 +346,18 @@ export class Renderer {
         ctx.fillStyle = '#FFF';
         ctx.fillText('VITALITY', this.width / 2, by + bh + 11);
 
-        // Round indicator (Phase 2): top-right when stage manager wired
+        // Round indicator (Phase 2/3): top-right when stage manager wired.
+        // v0.75 — chip reads "AREA 1-(stageIndex)-(roundIndex)" when AreaManager
+        // is active so the player can see which stage AND which round they're in.
         if (this.stageManager && this.stageManager.areaIndex > 0) {
             ctx.font = '14px monospace';
             ctx.textAlign = 'right';
             ctx.fillStyle = '#FFD878';
-            ctx.fillText(
-                `AREA ${this.stageManager.areaIndex}-${this.stageManager.roundIndex}`,
-                this.width - PAD, 20,
-            );
+            const am = this.areaManager;
+            const text = am
+                ? `AREA ${am.areaIndex}-${am.currentStageIndex}-${this.stageManager.roundIndex}`
+                : `AREA ${this.stageManager.areaIndex}-${this.stageManager.roundIndex}`;
+            ctx.fillText(text, this.width - PAD, 20);
         }
 
         // v0.50.1 — Lives hearts. Render to the right of the score, top area.
@@ -399,6 +403,26 @@ export class Renderer {
 
         if (state.gameState === 'STAGE_CLEAR') {
             this.drawStageClear();
+        }
+
+        // v0.75 — STAGE_TRANSITION fade. Reads AreaManager.transition phase to
+        // compute the alpha. Phase progression:
+        //   input_suspend → no fade (alpha 0)
+        //   fade_out      → alpha 0 → 1
+        //   hold          → alpha 1 (stage name overlay drawn)
+        //   fade_in       → alpha 1 → 0
+        if (state.gameState === 'STAGE_TRANSITION') {
+            this._drawStageTransition();
+        }
+
+        // v0.75 — Boss HP bar (BOSS_FIGHT only).
+        if (state.gameState === 'BOSS_FIGHT') {
+            this._drawBossHpBar();
+        }
+
+        // v0.75 — Area-cleared overlay (terminal closure after boss death).
+        if (state.gameState === 'AREA_CLEARED') {
+            this._drawAreaCleared();
         }
 
         // v0.50.1 — Mile-marker overlay (Round 1-X bilingual title). Driven by
@@ -451,11 +475,13 @@ export class Renderer {
         const o  = sm.overlay;
         if (!o || !o.active) return;
 
-        // Map kind → bilingual labels.
-        // v0.50.2 — added round_1_1 because mile-markers shifted from "between
-        // rounds" to "at round STARTS." Round 1 sign now fires right after the
-        // stage spawn.
+        // v0.75 — generic round_N key works for any stage. v0.50.2 round_1_N
+        // keys are preserved as aliases for back-compat.
         const labels = {
+            round_1:   ['Round 1', '라운드 1'],
+            round_2:   ['Round 2', '라운드 2'],
+            round_3:   ['Round 3', '라운드 3'],
+            round_4:   ['Round 4', '라운드 4'],
             round_1_1: ['Round 1', '라운드 1'],
             round_1_2: ['Round 2', '라운드 2'],
             round_1_3: ['Round 3', '라운드 3'],
@@ -534,6 +560,161 @@ export class Renderer {
         ctx.font = '16px monospace';
         ctx.fillText('The path continues — soon.', this.width / 2, this.height / 2 + 8);
         ctx.fillText('길은 이어진다 — 곧.',          this.width / 2, this.height / 2 + 32);
+    }
+
+    /**
+     * v0.75 — STAGE_TRANSITION fade overlay. Reads AreaManager.transition phase
+     * + frames. Renders a full-screen black quad with alpha curve:
+     *   fade_out: 0..1 over fadeOutFrames
+     *   hold:     1 (with bilingual stage-name text drawn on top)
+     *   fade_in:  1..0 over fadeInFrames
+     */
+    _drawStageTransition() {
+        const am = this.areaManager;
+        if (!am || !am.transition.active) return;
+        const tr = am.transition;
+        const ctx = this.ctx;
+
+        // Read STAGE_TRANSITION timing from the tunables file via dynamic read
+        // would be cleaner; we duplicate the fadeOut/hold/fadeIn frame counts
+        // here so this method is self-contained. Numbers come from
+        // PhaseThreeTunables.STAGE_TRANSITION (must stay in sync).
+        const FADE_OUT = 45, HOLD = 75, FADE_IN = 45;
+
+        let alpha = 0;
+        if (tr.phase === 'fade_out') {
+            const t = tr.frames | 0;
+            alpha = 1 - (t / FADE_OUT);
+        } else if (tr.phase === 'hold') {
+            alpha = 1;
+        } else if (tr.phase === 'fade_in') {
+            const t = tr.frames | 0;
+            alpha = (t / FADE_IN);
+        }
+        alpha = Math.max(0, Math.min(1, alpha));
+
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Bilingual stage-name overlay during hold + fade_in.
+        if ((tr.phase === 'hold' || tr.phase === 'fade_in')
+            && am.overlay.active && am.overlay.kind === 'stage_name'
+            && am.overlay.payload) {
+            const p = am.overlay.payload;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.textAlign   = 'center';
+            ctx.fillStyle   = '#FFD700';
+            ctx.font        = 'bold 28px monospace';
+            ctx.fillText(p.en, this.width / 2, this.height / 2 - 12);
+            ctx.fillStyle   = '#FFF';
+            ctx.font        = '18px monospace';
+            ctx.fillText(p.ko, this.width / 2, this.height / 2 + 18);
+            ctx.restore();
+        }
+
+        void HOLD;   // referenced for documentation; HOLD-phase has alpha=1 above.
+    }
+
+    /**
+     * v0.75 — boss HP bar HUD. Top-center, 6 pips. Filled pip = sigil-amber
+     * (`#f8d878`); empty pip = velvet-shadow (`#3a2e4a`). 1px violet outline.
+     */
+    _drawBossHpBar() {
+        // Walk ECS to find a `boss` component. (Renderer doesn't hold an ECS
+        // ref — drawHUD is called from GameLoop with state; the ecs walk lives
+        // in drawEntities. For the HP read we expose a reader through window.ecs
+        // (always wired in game.js) but that's a hidden dep. Cleaner: stash the
+        // boss row on AreaManager.bossSystem when active. We keep this simple
+        // by walking the renderer's last-drawn entity set if available; failing
+        // that, render a placeholder bar at max HP so the player still has the
+        // visual cue.)
+        const am = this.areaManager;
+        const ecs = (typeof window !== 'undefined') ? window.ecs : null;
+        let hp = 6, maxHp = 6;
+        if (ecs) {
+            const bosses = ecs.query('boss');
+            if (bosses.length) {
+                hp    = bosses[0].boss.hp | 0;
+                maxHp = bosses[0].boss.maxHp | 0;
+            }
+        }
+        if (maxHp <= 0) return;
+
+        const ctx = this.ctx;
+        const pipW = 26, pipH = 12, gap = 4;
+        const totalW = maxHp * pipW + (maxHp - 1) * gap;
+        const startX = (this.width - totalW) / 2;
+        const y      = 56;
+
+        ctx.save();
+        ctx.font      = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD878';
+        ctx.fillText('BRACKEN WARDEN', this.width / 2, y - 4);
+        for (let i = 0; i < maxHp; i++) {
+            const x = startX + i * (pipW + gap);
+            const filled = i < hp;
+            ctx.fillStyle = filled ? '#f8d878' : '#3a2e4a';
+            ctx.fillRect(x, y, pipW, pipH);
+            ctx.strokeStyle = '#3a2e4a';
+            ctx.lineWidth   = 1;
+            ctx.strokeRect(x, y, pipW, pipH);
+        }
+        ctx.restore();
+        void am;
+    }
+
+    /**
+     * v0.75 — Area-cleared closure overlay. Fade-out (60f) → hold (300f) with
+     * bilingual closure text. Triggered when boss dies + celebrationFrames elapse.
+     */
+    _drawAreaCleared() {
+        const am = this.areaManager;
+        if (!am || !am.overlay.active || am.overlay.kind !== 'area_cleared') {
+            // Fallback: render a black screen so the player isn't left with the
+            // last frame of gameplay if overlay wiring fails.
+            const ctx = this.ctx;
+            ctx.fillStyle = 'rgba(0,0,0,0.95)';
+            ctx.fillRect(0, 0, this.width, this.height);
+            return;
+        }
+        const p = am.overlay.payload;
+        const ctx = this.ctx;
+
+        // Fade alpha — first 60 frames count down from total; we want alpha to
+        // ramp from 0 to ~0.92 over those 60, then hold.
+        const total    = am.overlay.frames;
+        const FADE_OUT = 60;
+        // overlay.frames started at fadeOutFrames + holdFrames; current value
+        // counts DOWN. When total > holdFrames we're in fade_out.
+        let alpha = 0.92;
+        if (total > 300) {
+            // fade-out window
+            const t = total - 300;          // 60..1
+            alpha = (1 - (t / FADE_OUT)) * 0.92;
+        }
+        alpha = Math.max(0, Math.min(0.92, alpha));
+
+        ctx.fillStyle = `rgba(10,8,18,${alpha})`;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.save();
+        ctx.globalAlpha = alpha / 0.92;
+        ctx.textAlign   = 'center';
+        ctx.fillStyle   = '#f8d878';
+        ctx.font        = 'bold 28px monospace';
+        ctx.fillText('AREA 1 — CLEARED', this.width / 2, this.height / 2 - 36);
+        ctx.fillStyle   = '#FFF';
+        ctx.font        = '16px monospace';
+        if (p) {
+            ctx.fillText(p.en, this.width / 2, this.height / 2 + 4);
+            ctx.fillText(p.ko, this.width / 2, this.height / 2 + 28);
+        }
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Press any key', this.width / 2, this.height / 2 + 64);
+        ctx.restore();
     }
 
     // ── Asset loading helper (legacy) ──────────────────────────────────────
