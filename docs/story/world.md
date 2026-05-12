@@ -62,3 +62,47 @@ Cosmetic notes for Design:
 - The boundary at the end of Area 1 is marked by a small cairn of three river-stones,
   the topmost carved with a sigil too worn to read. Beyond it: Area 2 (in v0.75).
   The boundary holds; Reed walks on.
+
+## Verdant Ruin — interior (added in Phase 3)
+
+Area 1 expands in Phase 3 from the Mossline Path alone into a four-stage walk that
+takes Reed down off the path and into the **Verdant Ruin's interior**: a cave, a
+waterside, and an ancient ruin chamber, in that order. The lore is short and the
+mood matters most.
+
+**Sumphollow (cave).** Past the Mossline's last marker, the path opens into a
+cave-mouth and Reed climbs down. The Sumphollow is the Verdant Ruin's first
+underground room — a long horizontal cave with a low stone ceiling and drip-fed
+pools at the floor. The cave doesn't feel hostile; it feels *quiet*, like a cellar
+someone left the door open on. Hairline cracks in the stone still glow faintly
+amber from whatever the ruins used to keep there — the same stored heat that leaks
+fire in the surface Mossline, here lives along the cave's veins. Mossplodders down
+here are slightly paler and cooler; Hummerwings drift in the warmer pockets near
+the ceiling cracks. The fauna are cousins of the surface ones — same world, dimmer
+light.
+
+**Brinklane (waterside).** The Sumphollow's far end opens onto a strip of
+river-edge: a band of damp stone shelf running alongside a slow underground river.
+Reed walks the bank with the river to his right, visible but never entered. A long
+crack in the cave-roof overhead lets dawn-amber light reach the water, and the
+river reflects it. The Brinklane is the visually richest stretch of Area 1 —
+warm-from-above, cool-from-below, wet underfoot. Mossplodders along the bank tend
+to walk *into* the water and drown — the river takes whatever forgets to read it.
+
+**The Old Threshold (ancient ruins).** Brinklane's last shelf climbs back up a
+flight of root-broken steps into a domed inner chamber — the ancient ruin proper,
+the room the Verdant Ruin was named for. Half the floor is mosaic tile under moss,
+half is open ruin-floor with carved channels Reed can read but not understand.
+There are no Hummerwings here; the ceiling is too high. There are no fires; the
+ruin still keeps its heat down at the heart of the chamber, in **carved channels**
+that run along the floor and glow dawn-amber where the warmth has settled. The
+room **wakes up** as Reed approaches the back wall — and what wakes is the
+**Bracken Warden**, the last thing the Verdant Ruin's people posted before they
+stepped sideways out of the world. The Warden does not chase Reed; it does not
+hate him. It raises its head only because the room woke it.
+
+The four stages together form one day's walk: morning forest, mid-morning
+underground, late-morning waterline, noon at the threshold of something older
+than the path. The boundary cairn of Phase 2 turns out, in retrospect, to have
+been a roadside marker — not a boundary — and the **real** boundary is the Old
+Threshold.
