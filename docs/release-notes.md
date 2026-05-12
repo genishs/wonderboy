@@ -6,6 +6,63 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.75 — Phase 3: Area 1 = 4 stages + Bracken Warden boss + hero anim rebuild
+
+**Released:** 2026-05-13 (planned)
+**Tag:** `v0.75` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+Third quartile milestone. Area 1 grows from one continuous 224-column stage to a **4-stage Area** (forest → beach/shore → cave → dark forest), each with its own 4 rounds + mile-marker overlays, connected by `stage_exit` tile transitions. Stage 4 ends with the **Bracken Warden** boss fight in a camera-locked arena. Reed's sprite is rebuilt at higher resolution (24×36) with slower, more grounded animation cadence to address v0.50.2's "looks like dancing" feedback.
+
+### What's playable
+
+- **Area 1 — "The Mossline Path"**, expanded to 4 stages:
+  - **Stage 1** (forest, unchanged) — the existing Mossline Path content from v0.50.x. 4 rounds (1-1 to 1-4) ending in `stage_exit` instead of cairn.
+  - **Stage 2** (beach/shore) — 4 rounds (2-1 to 2-4). Sun-warmed sand surface, sea-foam tide-line, `water_gap` 1-hit-kill water at gaps.
+  - **Stage 3** (cave) — 4 rounds (3-1 to 3-4). Deeper-greens-cooled-by-mineral palette. `crystal_vein` 1-hit-kill animated hazard (Stage 1's fire repurposed). Low-ceiling crawl section in 3-1 as the signature beat.
+  - **Stage 4** (dark forest) — 4 rounds (4-1 to 4-4) + boss arena. Deep blue-green canopy, violet undertones, `moonlight_streak` decorative tiles in 4-4 leading the eye to the boss.
+- **Stage transitions** — crossing a `stage_exit` tile triggers a 195-frame stage-transition ritual (input lock 30 / fade-out 45 / hold + bilingual overlay "Stage N / 스테이지 N" 75 / fade-in 45) then loads next stage. Vitality refills. Lives + score + `pl.armed` all carry.
+- **Bracken Warden boss fight** — moss-covered stone-and-bracken guardian at the back of a 12×11 dark-forest clearing. FSM: idle → windup (45 f telegraph; chest sigil flares) → attack (slam, spawns moss-pulse projectile at sub-frame 12) → recover (90 f). HP 6 (hatchet hits). Hatchet/moss-pulse mutual despawn on overlap.
+- **moss-pulse projectile** — boss-spawned shockwave entity. Travels left at walk speed (3.5 px/frame). Sprint outruns it; hatchet despawns it. 1-hit-kill on hero contact.
+- **Boss arena camera lock** — when Reed crosses the boss-trigger column in Round 4-4, camera locks at the arena entry and boss spawns. Reed cannot retreat past the lock-left. Right wall solid.
+- **HP bar HUD during boss fight** — 6 pip bar at top-center under vitality bar, "BRACKEN WARDEN" title above. Sigil-amber filled / velvet-shadow empty.
+- **Area cleared overlay** — after boss death (60-f death anim + 60-f celebratory beat), shows bilingual "Area 1 cleared — the path continues. / Area 1 클리어 — 길은 이어진다." Any input dismisses to title. Terminal (Area 2 not built; deferred to a future quartile).
+- **Hero sprite rebuild** — 24×36 art-pixels (was 16×24), anchor (12, 35). META.animFps slowed across the board (idle 3 fps, walk 5 fps, sprint 8 fps, etc.) so the silhouette reads as grounded motion rather than rapid cycling. Walk = ~1.25 strides/sec, sprint = 2 strides/sec at the actual physics speeds.
+- **Lives system + all v0.50.2 semantics** preserved (vitality = one life, 3 lives per Area; mile-marker checkpoints; dying FSM with knockback; GAME OVER unlimited continue → returns to Area 1 Stage 1 start with refilled lives; sprint via X-held; rock stumble; slope step-up).
+
+### Engine additions / changes
+
+- **New modules**: `src/levels/AreaManager.js`, `src/levels/area1/stage{2,3,4}/index.js` + `round-{N}-{1..4}.js` (12 new round modules), `src/mechanics/BossSystem.js`, `src/mechanics/StageTransitionSystem.js`, `src/config/PhaseThreeTunables.js`.
+- **Major rewrites**: `src/levels/StageManager.js` (now handles ONE stage's lifecycle; multi-stage flow moved to AreaManager), `src/levels/area1/index.js` (now delegates to per-stage builders), `src/graphics/TileCache.js` (loads all 4 tilesets at init; active palette swaps on stage transition), `src/mechanics/{TriggerSystem, CombatSystem, HeroController}.js`, `src/graphics/Renderer.js` (boss HP bar, stage-transition overlay, area-cleared overlay).
+- **TileMap new types**: `WATER_GAP` (Stage 2 hazard), `CRYSTAL_VEIN` (Stage 3 hazard, animated), `MOONLIGHT_STREAK` (Stage 4 decoration, animated), `STAGE_EXIT` (mid-stage transition trigger), `BOSS_TRIGGER` (boss arena entry trigger). `tile.isFatal` flag generalizes `tile.isFire` across all hazard tiles.
+- **GAME_STATES** added: `STAGE_TRANSITION`, `BOSS_FIGHT`, `AREA_CLEARED`.
+- **ECS** field additions on `player`: none new for v0.75 (uses v0.50.2's `dyingFrames`, `stumbleFrames`, etc.). New `boss` component on the Bracken Warden entity (state, hp, maxHp, stateTimer, facingRight).
+- **CI required-files list** extended in `.github/workflows/pr-feature-to-develop.yml` with the new src files.
+
+### Known limitations carried to v1.0 backlog
+
+- Stage 4's right-wall column at the boss arena uses the renderer's `TILE_COLORS[6]` brown fallback instead of an art-tile; visually quiet, but Design can ship a dark-forest wall tile in a follow-up.
+- Inside Stages 2/3/4, mile-marker overlays still read "Round 1/2/3/4" (matches the v0.50.2 convention preserved by the plan); could be re-themed as "Round 2-3" etc. for clarity in a polish patch.
+- **No in-browser smoke ran during dev** — Node unavailable on the dev workstation. Static analysis (paren/brace balance + import resolution) PASS on all 49 changed JS files; round/stage builder simulation PASS on all 4 stages. **Live URL post-deploy is the first real run.**
+- Area 2 not yet built. The area-cleared overlay is intentionally terminal.
+- Audio integration deferred to v1.0 (still no BGM / SFX).
+- Parallax: existing forest 3-layer parallax used in all stages (no per-stage parallax variation yet; design could ship per-stage bg modules in a follow-up).
+
+### PRs in this quartile
+
+- #26 `story(phase3): Area 1 expansion — 4 stages (forest/cave/water/ruin) + boss (EN+KO)` (themes later corrected by #28)
+- #27 `design(phase3): shore + cave + dark-forest tilesets + Bracken Warden boss + moss-pulse (+ hero rebuild + theme remap absorbed)`
+- #28 `story(phase3-correction): theme remap — Stage 2 beach / Stage 3 cave / Stage 4 dark forest (EN+KO)`
+- #29 `dev(v0.75): Phase 3 — multi-stage Area 1 + Bracken Warden boss + hero anim wire`
+- next: `chore(release): v0.75 release notes` (this PR family)
+- next: `release(v0.75): Phase 3 quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All v0.75 characters, sprites, world fiction, level layouts, and boss design are original to this project. The Bracken Warden, moss-pulse, the Stage 2/3/4 themes (executed with our own palette/silhouette decisions), and the dark-forest arena composition are coined for this work. Generic action-platformer conventions (multi-stage areas, end-of-area boss fights, camera-lock arenas) are universal. No reproduction of copyrighted material.
+
+---
+
 ## v0.50.2 — Phase 2 patch: jitter fix + slope step-up + new anims + mile-marker shift + death FSM + rock stumble
 
 **Released:** 2026-05-10 (planned)

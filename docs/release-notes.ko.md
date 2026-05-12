@@ -6,6 +6,63 @@
 
 ---
 
+## v0.75 — Phase 3: Area 1 = 4 스테이지 + Bracken Warden 보스 + 히어로 애니 리빌드
+
+**릴리즈:** 2026-05-13 (예정)
+**태그:** `main` 의 `v0.75`
+**Pages:** https://genishs.github.io/wonderboy/
+
+세 번째 quartile 마일스톤. Area 1 이 단일 224-칼럼 연속 스테이지에서 **4-스테이지 Area**(숲 → 해변 → 동굴 → 어두운 숲)로 확장. 각 스테이지는 4 라운드 + mile-marker 오버레이 + `stage_exit` 전환 타일로 연결. Stage 4 끝에 카메라-락 보스 아레나에서 **Bracken Warden** 보스 파이트. Reed 스프라이트는 v0.50.2 의 "춤추는 것 같다" 피드백에 응답해 더 큰 해상도(24×36) + 더 느린 그라운디드 케이던스로 리빌드.
+
+### 플레이 가능한 것
+
+- **Area 1 — "The Mossline Path"**, 4 스테이지로 확장:
+  - **Stage 1**(숲, 변경 없음) — v0.50.x 의 기존 Mossline Path 콘텐츠. 4 라운드(1-1~1-4), 끝에 cairn 대신 `stage_exit`.
+  - **Stage 2**(해변) — 4 라운드(2-1~2-4). 햇볕에 데워진 모래 표면 + 바다거품 조류 라인 + 갭의 `water_gap` 1-hit-kill 바닷물.
+  - **Stage 3**(동굴) — 4 라운드(3-1~3-4). 미네랄로 식힌 깊은 녹색 팔레트. `crystal_vein` 1-hit-kill 애니메이션 해저드(Stage 1 의 fire 재용도). 3-1 의 천장 낮은 크롤 구간이 시그니처 비트.
+  - **Stage 4**(어두운 숲) — 4 라운드(4-1~4-4) + 보스 아레나. 깊은 청록 캐노피 + 보라 색조 + 4-4 의 `moonlight_streak` 데코레이션 타일이 보스로 시선 유도.
+- **스테이지 전환** — `stage_exit` 타일 통과 시 195 프레임 의식(입력 락 30 / 페이드 아웃 45 / 홀드 + 이중언어 오버레이 "Stage N / 스테이지 N" 75 / 페이드 인 45) 후 다음 스테이지 로드. Vitality 리필. 목숨 + 점수 + `pl.armed` 모두 carry.
+- **Bracken Warden 보스 파이트** — 12×11 어두운 숲 빈터 안쪽에 무릎 꿇은 이끼 덮인 돌-고사리 가디언. FSM: idle → windup(45 프레임 텔레그래프; 가슴 sigil 발광) → attack(슬램, 서브프레임 12 에서 moss-pulse 발사체 스폰) → recover(90 프레임). HP 6(hatchet 적중). hatchet ↔ moss-pulse 접촉 시 mutual despawn.
+- **moss-pulse 발사체** — 보스 스폰 쇼크웨이브. 왼쪽으로 walk speed(3.5 px/frame)로 이동. 대시는 추월 가능; hatchet 으로 despawn. 히어로 접촉 시 1-hit-kill.
+- **보스 아레나 카메라 락** — Reed 가 Round 4-4 의 boss-trigger 칼럼을 넘으면 카메라 아레나 입구에 락 + 보스 스폰. Reed 왼쪽 락 너머로 후퇴 불가. 오른쪽 벽 솔리드.
+- **보스 파이트 HP 바 HUD** — vitality 바 아래 상단 중앙에 6-pip 바, 위에 "BRACKEN WARDEN" 타이틀. sigil-amber 채움 / velvet-shadow 빈 칸.
+- **Area 클리어 오버레이** — 보스 사망(60 프레임 죽음 애니 + 60 프레임 축하 비트) 후 이중언어 "Area 1 cleared — the path continues. / Area 1 클리어 — 길은 이어진다." 표시. 아무 입력으로 타이틀로 해제. 종착(Area 2 미구현; 차기 quartile 로 연기).
+- **히어로 스프라이트 리빌드** — 24×36 아트픽셀(이전 16×24), 앵커 (12, 35). META.animFps 전반 느려짐(idle 3 fps, walk 5 fps, sprint 8 fps 등) — 실루엣이 빠른 사이클이 아닌 그라운디드 모션으로 읽힘. walk = ~1.25 스트라이드/초, sprint = 2 스트라이드/초.
+- **목숨 시스템 + v0.50.2 의 모든 의미론** 유지(vitality = 1 목숨, Area 당 3 목숨; mile-marker 체크포인트; 넉백 dying FSM; GAME OVER 무제한 continue → Area 1 Stage 1 시작으로 목숨 리필 복귀; X 홀드 sprint; rock stumble; 슬로프 step-up).
+
+### 엔진 추가/변경
+
+- **신규 모듈**: `src/levels/AreaManager.js`, `src/levels/area1/stage{2,3,4}/index.js` + `round-{N}-{1..4}.js`(12 신규 라운드 모듈), `src/mechanics/BossSystem.js`, `src/mechanics/StageTransitionSystem.js`, `src/config/PhaseThreeTunables.js`.
+- **메이저 재작성**: `src/levels/StageManager.js`(이제 한 스테이지 라이프사이클만; 멀티 스테이지 흐름은 AreaManager 로), `src/levels/area1/index.js`(스테이지별 빌더로 위임), `src/graphics/TileCache.js`(init 에 4 타일셋 모두 로드; 활성 팔레트는 스테이지 전환 시 스왑), `src/mechanics/{TriggerSystem, CombatSystem, HeroController}.js`, `src/graphics/Renderer.js`(보스 HP 바, 스테이지 전환 오버레이, area-cleared 오버레이).
+- **TileMap 신규 타입**: `WATER_GAP`(Stage 2 해저드), `CRYSTAL_VEIN`(Stage 3 해저드 애니), `MOONLIGHT_STREAK`(Stage 4 데코 애니), `STAGE_EXIT`(중간 스테이지 전환 트리거), `BOSS_TRIGGER`(보스 아레나 입구 트리거). `tile.isFatal` 플래그가 모든 해저드 타일에 걸쳐 `tile.isFire` 를 일반화.
+- **GAME_STATES** 추가: `STAGE_TRANSITION`, `BOSS_FIGHT`, `AREA_CLEARED`.
+- **ECS**: v0.75 에서 player 필드 신규 없음(v0.50.2 의 `dyingFrames`, `stumbleFrames` 등 그대로). Bracken Warden 엔티티의 신규 `boss` 컴포넌트(state, hp, maxHp, stateTimer, facingRight).
+- **CI 필수 파일 리스트** `.github/workflows/pr-feature-to-develop.yml` 에 신규 src 파일들 잠금.
+
+### 알려진 제약 (v1.0 백로그)
+
+- Stage 4 의 보스 아레나 오른쪽 벽 칼럼이 아트 타일 대신 렌더러의 `TILE_COLORS[6]` 갈색 폴백으로 그려짐; 시각적으로는 조용하나 Design 이 후속 패치에 dark-forest 벽 타일을 ship 할 수 있음.
+- Stages 2/3/4 안에서 mile-marker 오버레이가 여전히 "Round 1/2/3/4"로 표시(plan 이 보존한 v0.50.2 컨벤션 일치); 폴리시 패치에서 "Round 2-3" 등으로 재테마 가능.
+- **dev 중 in-browser smoke 미실행** — 워크스테이션에 Node 부재. 정적 분석(괄호/임포트) 변경된 모든 49 JS 파일 PASS; 라운드/스테이지 빌더 시뮬레이션 4 스테이지 PASS. **라이브 URL 이 첫 진짜 실행.**
+- Area 2 미구축. area-cleared 오버레이는 의도된 종착.
+- 오디오 통합 v1.0 으로 연기(여전히 BGM/SFX 없음).
+- 패럴랙스: 모든 스테이지에 기존 숲 3-레이어 패럴랙스 사용(스테이지별 패럴랙스 변주 아직 없음; design 이 후속 패치에서 스테이지별 bg 모듈 ship 가능).
+
+### 이 quartile 의 PR
+
+- #26 `story(phase3): Area 1 expansion — 4 stages (forest/cave/water/ruin) + boss (EN+KO)`(테마는 #28 에서 정정)
+- #27 `design(phase3): shore + cave + dark-forest tilesets + Bracken Warden boss + moss-pulse (+ hero rebuild + theme remap absorbed)`
+- #28 `story(phase3-correction): theme remap — Stage 2 beach / Stage 3 cave / Stage 4 dark forest (EN+KO)`
+- #29 `dev(v0.75): Phase 3 — multi-stage Area 1 + Bracken Warden boss + hero anim wire`
+- next: `chore(release): v0.75 release notes`(이 PR 패밀리)
+- next: `release(v0.75): Phase 3 quartile merge`(develop→main 머지)
+
+### 트리뷰트 자세
+
+v0.75 의 모든 캐릭터·스프라이트·세계관·레벨 레이아웃·보스 디자인은 본 프로젝트 자체 제작 오리지널. Bracken Warden, moss-pulse, Stage 2/3/4 테마(자체 팔레트/실루엣 결정으로 실행), 어두운 숲 아레나 구성 모두 본 작업을 위해 창안. 일반적인 액션 플랫포머 컨벤션(멀티 스테이지 area, area 끝 보스 파이트, 카메라 락 아레나)은 보편적. 저작권 보호 자료의 재현 없음.
+
+---
+
 ## v0.50.2 — Phase 2 패치: jitter 픽스 + 슬로프 step-up + 새 애니 + 마일마커 시프트 + 죽음 FSM + 돌 stumble
 
 **릴리즈:** 2026-05-10 (예정)
