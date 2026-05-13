@@ -87,5 +87,10 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 47, row: 9, dir: 1 },      // right-facing synthesis beat
         { kind: 'hummerwing',  col: 20, row: 8, dir: -1 },
         { kind: 'hummerwing',  col: 58, row: 8, dir: -1 },
+        // v0.75.1 — amberfig on the plateau row 7 (cols 29-35 are flat row 7).
+        // Brief §15.2: "On the right-facing Mossplodder's plateau". The
+        // right-facing Mossplodder lives in valley #2 (row 9) but the only
+        // safe row-7 platform in this round is the crest at cols 29-35.
+        { kind: 'amberfig',    col: 30, row: 7 },
     ],
 });

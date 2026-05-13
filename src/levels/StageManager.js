@@ -17,6 +17,7 @@
 
 import { initEnemyP2 } from '../mechanics/Phase2EnemyAI.js';
 import { HUMMERWING, MOSSPLODDER, EGG } from '../config/PhaseTwoTunables.js';
+import { THREADSHADE }                  from '../config/PhaseThreeTunables.js';
 
 const TILE = 48;
 
@@ -231,8 +232,15 @@ export class StageManager {
             _phase1: true,
             _phase2: true,
         });
+        // v0.75.1 — hero scale 3 → 2. The 24x36 sprite at scale 3 (72x108 px)
+        // visually overflowed Reed's 30x66 hitbox + the world's 48px tile grid;
+        // dropping to scale 2 (48x72 px) brings the silhouette back in line
+        // with the hatchet-spawn position and the tile world. Anchor (12,35)
+        // at scale 2 → drawY = tf.y + 66 - 72 = tf.y - 6, so the sprite still
+        // renders with feet flush at tf.y + tf.h (the hitbox bottom). No
+        // anchor nudge needed.
         ecs.addComponent(player, 'sprite', {
-            name: 'hero', anim: 'idle', frame: 0, scale: 3, flip: false, color: '#4a7c3a',
+            name: 'hero', anim: 'idle', frame: 0, scale: 2, flip: false, color: '#4a7c3a',
         });
         this.lm.playerEntity = player;
     }
@@ -241,6 +249,12 @@ export class StageManager {
         if (e.kind === 'mossplodder') this._spawnMossplodder(ecs, e, level);
         else if (e.kind === 'hummerwing') this._spawnHummerwing(ecs, e, level);
         else if (e.kind === 'dawn-husk')  this._spawnDawnHusk(ecs, e, level);
+        // v0.75.1 — Threadshade (vertical-only spider).
+        else if (e.kind === 'threadshade') this._spawnThreadshade(ecs, e, level);
+        // v0.75.1 — fruit pickups (dewplum / amberfig).
+        else if (e.kind === 'dewplum' || e.kind === 'amberfig') {
+            this._spawnFruit(ecs, e, level);
+        }
     }
 
     _spawnMossplodder(ecs, def, level) {
@@ -286,6 +300,54 @@ export class StageManager {
         ecs.addComponent(id, 'pickup',    { type: 'dawn-husk', state: 'rest', stateTimer: 0 });
         ecs.addComponent(id, 'sprite',    {
             name: 'dawn-husk', anim: 'rest', frame: 0, scale: 3, flip: false, color: '#e8d4a0',
+        });
+    }
+
+    /**
+     * v0.75.1 — Threadshade spawn. Per story brief §16.6/§16.8: the entity
+     * hangs at a fixed x-column with sine vertical bob around baseY centered
+     * on the spec'd row. We anchor `baseY` at the spawn row's TOP edge so the
+     * 3-tile amplitude swings into (row-1.5 .. row+1.5) — Reed jumping below
+     * meets the bottom of the swing.
+     */
+    _spawnThreadshade(ecs, def, level) {
+        const w = THREADSHADE.hitboxW, h = THREADSHADE.hitboxH;
+        // baseY = the spec'd row's top edge; the body sine-bobs ±amplitude*TILE
+        // around it. (row + 1.5)*TILE would put the midline at row+1.5 — but
+        // story brief §16.2 says "yMin = row*TILE, yMax = (row+3)*TILE", so
+        // the midpoint is (row + 1.5)*TILE and our sine amplitude is 1.5 tiles.
+        const baseY = (def.row + 1.5) * TILE - h / 2;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y: baseY, w, h });
+        ecs.addComponent(id, 'velocity',  { vx: 0, vy: 0 });
+        // No `physics` component — Threadshades don't collide with terrain;
+        // their motion is hand-driven by Phase2EnemyAI._tickThreadshade.
+        ecs.addComponent(id, 'enemy',     initEnemyP2('threadshade', 0, baseY));
+        ecs.addComponent(id, 'sprite',    {
+            name: 'threadshade', anim: 'drift', frame: 0, scale: 2,
+            flip: false, color: '#5a4a6e',
+        });
+    }
+
+    /**
+     * v0.75.1 — fruit pickup spawn (dewplum / amberfig). The pickup component
+     * carries the fruit type so ItemSystem resolves the right vitality
+     * restoration on hero overlap. Sprite uses the matching cache name.
+     */
+    _spawnFruit(ecs, def, level) {
+        // Fruit hitbox sized slightly larger than the sprite so the player
+        // doesn't have to brush exact pixels to collect. dewplum is 14×14 art,
+        // amberfig is 18×18 art; we use a forgiving 24×24 hitbox for both.
+        const w = 24, h = 24;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const y = def.row * TILE - h;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y, w, h });
+        ecs.addComponent(id, 'pickup',    { type: def.kind, state: 'idle', stateTimer: 0 });
+        ecs.addComponent(id, 'sprite',    {
+            name: def.kind, anim: 'idle', frame: 0, scale: 2,
+            flip: false, color: (def.kind === 'amberfig') ? '#e8a040' : '#3a586a',
         });
     }
 }

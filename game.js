@@ -27,6 +27,8 @@ import { TriggerSystem }     from './src/mechanics/TriggerSystem.js';
 // v0.75 — new systems
 import { BossSystem }            from './src/mechanics/BossSystem.js';
 import { StageTransitionSystem } from './src/mechanics/StageTransitionSystem.js';
+// v0.75.1 — fruit pickup collection.
+import { ItemSystem }            from './src/mechanics/ItemSystem.js';
 
 // Phase 1 sprite modules (kept loaded for retro debug entry)
 import * as heroReedModule       from './assets/sprites/hero-reed.js';
@@ -48,6 +50,12 @@ import * as mossPulseModule      from './assets/sprites/projectile-moss-pulse.js
 import * as area1Stage2TilesModule from './assets/tiles/area1-stage2-shore.js';
 import * as area1Stage3TilesModule from './assets/tiles/area1-stage3-cave.js';
 import * as area1Stage4TilesModule from './assets/tiles/area1-stage4-darkforest.js';
+
+// v0.75.1 — fruit pickups + Threadshade enemy + shell-fragment particle.
+import * as dewplumModule        from './assets/sprites/item-dewplum.js';
+import * as amberfigModule       from './assets/sprites/item-amberfig.js';
+import * as threadshadeModule    from './assets/sprites/enemy-threadshade.js';
+import * as huskShellModule      from './assets/sprites/item-husk-shell.js';
 
 const CANVAS_W = 768;
 const CANVAS_H = 576;
@@ -99,6 +107,9 @@ const triggerSystem    = new TriggerSystem();
 const stageTransitionSystem = new StageTransitionSystem();
 const bossSystem            = new BossSystem();
 
+// v0.75.1 — fruit pickup system (dewplum / amberfig vitality restore).
+const itemSystem            = new ItemSystem();
+
 // Wire renderer references
 renderer.tileCache    = tileCache;
 renderer.parallax     = parallax;
@@ -138,6 +149,11 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
         if (!respawnLock) {
             hatchetSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.playerEntity);
             huskSystem.update(ecsArg, stateArg, levelManager.playerEntity);
+            // v0.75.1 — fruit pickup overlap check. Runs AFTER HuskSystem so a
+            // husk → hatchet spawn this frame still gets its hero-overlap pass
+            // via HatchetSystem next frame; fruits are independent entities so
+            // there's no ordering hazard.
+            itemSystem.update(ecsArg, stateArg, levelManager.playerEntity);
             phase2EnemyAI.update(ecsArg, levelManager.currentLevel);
             enemyAI.update(ecsArg, levelManager.currentLevel, levelManager.playerEntity, seeddartSystem);
             // v0.75 — TriggerSystem AFTER AI but BEFORE BossSystem so a
@@ -208,6 +224,11 @@ async function init() {
     // v0.75 boss + projectile
     await spriteCache.load('bracken-warden',  bossBrackenModule);
     await spriteCache.load('moss-pulse',      mossPulseModule);
+    // v0.75.1 — fruit + spider + shell-fragment sprites.
+    await spriteCache.load('dewplum',         dewplumModule);
+    await spriteCache.load('amberfig',        amberfigModule);
+    await spriteCache.load('threadshade',     threadshadeModule);
+    await spriteCache.load('husk-shell',      huskShellModule);
     renderer.spriteCache = spriteCache;
 
     // Tile cache — load all 4 tilesets up front, then activate stage 1.

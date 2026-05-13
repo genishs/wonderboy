@@ -21,17 +21,48 @@ export class ParallaxBackground {
     }
 
     /**
-     * Phase 2 — load Area 1 SVGs and switch to image-mode parallax.
+     * Phase 2 / v0.75.1 — load Area 1 SVGs for ALL 4 stages and switch to
+     * image-mode parallax. Stage 1 keeps the original forest set; Stages 2-4
+     * use the v0.75.1 shore / cave / dark-forest sets shipped by Design.
+     *
+     * `_layersByStage[stageIndex]` stores the per-stage array. `setStage`
+     * flips `_svgLayers` to the active set so `draw()` reads from the right
+     * layers without re-loading SVGs on every transition.
      */
     async loadArea(_areaIndex) {
-        const paths = [
-            { src: 'assets/bg/area1-sky.svg',       factor: 0.0 },
-            { src: 'assets/bg/area1-mountains.svg', factor: 0.3 },
-            { src: 'assets/bg/area1-trees.svg',     factor: 0.7 },
-        ];
-        const loaded = await Promise.all(paths.map(p => this._loadImage(p.src).then(img => ({ img, factor: p.factor }))));
-        // Filter out failed loads (image will be null)
-        this._svgLayers = loaded.filter(l => l.img);
+        const stageSpecs = {
+            1: [
+                { src: 'assets/bg/area1-sky.svg',                          factor: 0.0 },
+                { src: 'assets/bg/area1-mountains.svg',                    factor: 0.3 },
+                { src: 'assets/bg/area1-trees.svg',                        factor: 0.7 },
+            ],
+            2: [
+                { src: 'assets/bg/area1-stage2-shore-sky.svg',             factor: 0.0 },
+                { src: 'assets/bg/area1-stage2-shore-mid.svg',             factor: 0.3 },
+                { src: 'assets/bg/area1-stage2-shore-fg.svg',              factor: 0.7 },
+            ],
+            3: [
+                { src: 'assets/bg/area1-stage3-cave-sky.svg',              factor: 0.0 },
+                { src: 'assets/bg/area1-stage3-cave-mid.svg',              factor: 0.3 },
+                { src: 'assets/bg/area1-stage3-cave-fg.svg',               factor: 0.7 },
+            ],
+            4: [
+                { src: 'assets/bg/area1-stage4-darkforest-sky.svg',        factor: 0.0 },
+                { src: 'assets/bg/area1-stage4-darkforest-mid.svg',        factor: 0.3 },
+                { src: 'assets/bg/area1-stage4-darkforest-fg.svg',         factor: 0.7 },
+            ],
+        };
+
+        this._layersByStage = {};
+        for (const stageIndex of Object.keys(stageSpecs)) {
+            const paths = stageSpecs[stageIndex];
+            const loaded = await Promise.all(paths.map(p =>
+                this._loadImage(p.src).then(img => ({ img, factor: p.factor }))));
+            // Filter out failed loads (image will be null).
+            this._layersByStage[stageIndex] = loaded.filter(l => l.img);
+        }
+        // Start on Stage 1's SVG set (game opens at Stage 1 spawn).
+        this._svgLayers = this._layersByStage[1] || [];
     }
 
     draw(ctx, scrollX) {
@@ -50,12 +81,14 @@ export class ParallaxBackground {
     }
 
     /**
-     * v0.75 — switch parallax to a different stage of the current Area. For
-     * v0.75 ship all 4 stages reuse Stage 1's parallax SVGs (the shore, cave,
-     * and dark-forest backgrounds are out of scope for this PR; design ships
-     * them in a later patch). This method exists so AreaManager can call it
-     * unconditionally without a runtime branch; once SVG sets ship, swap the
-     * `_svgLayers` reference here per stageIndex.
+     * v0.75 / v0.75.1 — switch parallax to a different stage of the current
+     * Area. v0.75.1 ships per-stage SVG sets (shore / cave / dark-forest);
+     * `_layersByStage` is populated by `loadArea`, and `setStage` flips the
+     * active `_svgLayers` reference. The procedural fallback theme is also
+     * updated for the rare case where SVG loads failed.
+     *
+     * Wired in AreaManager._loadStage so it fires on every stage transition
+     * (including the initial Stage 1 load).
      */
     setStage(stageIndex) {
         // Map per-stage themes for the procedural fallback (used if SVG load
@@ -63,10 +96,15 @@ export class ParallaxBackground {
         // SVG art.
         const fallbackThemes = { 1: 'forest', 2: 'beach', 3: 'cave', 4: 'forest' };
         const t = fallbackThemes[stageIndex] ?? 'forest';
-        // Only switch the procedural fallback set; SVG layers (if loaded) stay
-        // in place — for v0.75 all stages use Stage 1's SVGs by design.
         this.theme   = t;
         this._layers = this._buildLayers(t);
+        // v0.75.1 — flip active SVG layer set. If the stage's set is missing
+        // (e.g., loadArea failed for that stage), keep the existing _svgLayers
+        // so the player at least sees the prior stage's parallax rather than
+        // a blank background.
+        if (this._layersByStage && this._layersByStage[stageIndex]) {
+            this._svgLayers = this._layersByStage[stageIndex];
+        }
     }
 
     // ── Phase 2: SVG draw ──────────────────────────────────────────────────

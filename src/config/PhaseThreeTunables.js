@@ -71,6 +71,32 @@ export const AREA_CLEARED = Object.freeze({
     textKo:          'Area 1 클리어 — 길은 이어진다.',
 });
 
+// v0.75.1 — Threadshade (vertical-only spider). Per story brief §16:
+// fixed x-column; sine vertical motion; 1-hit-kill on hero contact AND on
+// hatchet contact; ~3-tile vertical amplitude.
+export const THREADSHADE = Object.freeze({
+    amplitude:   1.5,          // tiles (peak above/below baseY → 3-tile total span)
+    frequency:   0.04,         // rad/frame (slower than Hummerwing's 0.06 — patient breath)
+    hitboxW:     22,           // narrower than sprite (18*2 = 36 display); fair hits
+    hitboxH:     28,
+    deathFrames: 36,           // total death anim beat before despawn
+    fps:          6,           // matches sprite META.fps
+});
+
+// v0.75.1 — dawn-husk burst phase + shell-fragment particles. Per story brief
+// §15 / item Changelog: extend the existing rest → break flow with a `burst`
+// state that plays the new 3-frame burst animation and spawns 2-4 shell
+// fragments before the hatchet pickup drops.
+export const EGG_BURST = Object.freeze({
+    burstFrames:    18,        // total bursting state hold (3 frames @ 8 fps = 22.5; we hold 18 for snap)
+    shellCount:      3,        // 2-4 acceptable; 3 reads as a "burst" without crowding
+    shellLifetime:  90,        // off-screen / gravity-fall cap
+    shellGravity:    0.45,
+    vxRangeAbs:      4.0,      // ±4 px/frame horizontal kick
+    vyMin:          -5,
+    vyMax:          -3,
+});
+
 export const AREA1_STAGES = Object.freeze({
     count: 4,
     stageNames: Object.freeze({

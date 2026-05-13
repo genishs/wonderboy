@@ -53,5 +53,11 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 28, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 18, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 31, row: 7, dir: -1 },
+        // v0.75.1 — Threadshade foreshadowing on the shore plateau (story brief
+        // §16.6: "1 Threadshade in a dune-grass cluster, Design's call"). Hangs
+        // above the rock-pin/Mossplodder cluster; sine bob amplitude 1.5 tiles
+        // so the body sweeps row 3..row 6 above Reed walking on the row 7
+        // plateau.
+        { kind: 'threadshade', col: 20, row: 3 },
     ],
 });

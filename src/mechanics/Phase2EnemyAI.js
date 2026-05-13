@@ -6,6 +6,7 @@
 // hero-gravity until ground contact, then despawns at the end of deathFrames.
 
 import { MOSSPLODDER, HUMMERWING } from '../config/PhaseTwoTunables.js';
+import { THREADSHADE }              from '../config/PhaseThreeTunables.js';
 import { CollisionSystem }         from '../physics/CollisionSystem.js';
 
 const TILE     = 48;
@@ -32,6 +33,18 @@ export const initEnemyP2 = (type, dir, baseY = null) => {
             baseY, deathFrames: 0, hurtFrames: 0,
         };
     }
+    // v0.75.1 — Threadshade. Hangs from a fixed x; baseY is the sine midpoint.
+    // `aiTimer` is randomized per-spawn so multiple Threadshades in the same
+    // stage don't bob in lockstep (story brief §16.8). dir is unused.
+    if (type === 'threadshade') {
+        return {
+            type, dir: 0, ai: 'swing',
+            hp: 1, hpMax: 1,
+            stateTimer: 0, cooldown: 0,
+            aiTimer: Math.floor(Math.random() * 100),
+            baseY, deathFrames: 0, hurtFrames: 0,
+        };
+    }
     return { type, dir, ai: 'walk', hp: 1, hpMax: 1, stateTimer: 0, cooldown: 0, aiTimer: 0, baseY, deathFrames: 0, hurtFrames: 0 };
 };
 
@@ -48,12 +61,13 @@ export class Phase2EnemyAI {
             const en = row.enemy;
             if (en.type === 'mossplodder') this._tickMossplodder(row, level);
             else if (en.type === 'hummerwing') this._tickHummerwing(row, level);
+            else if (en.type === 'threadshade') this._tickThreadshade(row, level);
         }
 
         // Death cleanup
         for (const row of ecs.query('enemy')) {
             const en = row.enemy;
-            if (en.type !== 'mossplodder' && en.type !== 'hummerwing') continue;
+            if (en.type !== 'mossplodder' && en.type !== 'hummerwing' && en.type !== 'threadshade') continue;
             if (en.ai === 'dead') {
                 en.deathFrames = Math.max(0, (en.deathFrames || 0) - 1);
                 if (en.deathFrames === 0) ecs.destroyEntity(row.id);
@@ -140,5 +154,38 @@ export class Phase2EnemyAI {
             en.ai = 'dead';
             en.deathFrames = 0;
         }
+    }
+
+    // ── Threadshade (v0.75.1) ────────────────────────────────────────────
+    // Vertical-only oscillator. Fixed x-column at spawn; sine bob around
+    // baseY with frequency 0.04 rad/frame and amplitude 1.5 tiles. Per story
+    // brief §16: "patient breath, not buzz." Body contact = 1-hit-kill on
+    // hero (CombatSystem._heroVsEnemyContact already handles this); hatchet
+    // hit = 1-hit-kill on Threadshade (CombatSystem._killEnemyP2 also handles
+    // this via the type-list extension below).
+    _tickThreadshade({ transform: tf, velocity: v, enemy: en }, level) {
+        if (en.ai === 'dead') {
+            // Death = thread snap + gravity drop. Body falls under gravity
+            // until it hits the floor row, then settles for the rest of the
+            // death anim. dyingFrames countdown is owned by the cleanup pass.
+            v.vx = 0;
+            v.vy = Math.min((v.vy || 0) + 0.45, MAX_FALL);
+            tf.y += v.vy;
+            const floorY = level.rows * TILE - 1;
+            if (tf.y + tf.h >= floorY) {
+                tf.y = floorY - tf.h;
+                v.vy = 0;
+            }
+            return;
+        }
+
+        en.aiTimer = (en.aiTimer || 0) + 1;
+        if (en.baseY == null) en.baseY = tf.y;
+        // Sine vertical motion. Amplitude in pixels = 1.5 tiles = 72 px.
+        const amplitudePx = THREADSHADE.amplitude * TILE;
+        const bob = Math.sin(en.aiTimer * THREADSHADE.frequency) * amplitudePx;
+        tf.y = en.baseY + bob;
+        v.vx = 0;
+        v.vy = 0;
     }
 }

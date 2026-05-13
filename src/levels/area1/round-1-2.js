@@ -65,8 +65,15 @@ export const ROUND = Object.freeze({
     entities: [
         { kind: 'dawn-husk',   col: 6,  row: 9 },
         { kind: 'mossplodder', col: 22, row: 8, dir: -1 },
-        { kind: 'mossplodder', col: 50, row: 9, dir: -1 },
+        // v0.75.1 fix — col 50 was inside the 3-tile gap (cols 50-52). Spawned
+        // Mossplodder fell straight through on frame 1 and was never visible
+        // to the player. Moved to col 55 on the post-gap flat (cols 53-63).
+        { kind: 'mossplodder', col: 55, row: 9, dir: -1 },
         { kind: 'hummerwing',  col: 30, row: 9, dir: -1 },
         { kind: 'hummerwing',  col: 44, row: 8, dir: -1 },
+        // v0.75.1 — dewplum on the row-7 crest (mid-round reward, off the
+        // optimal sprint line per story brief §15.2). cols 13-19 are flat
+        // row 7 between the upStp at col 12 and the dnGen at col 20.
+        { kind: 'dewplum',     col: 17, row: 7 },
     ],
 });
