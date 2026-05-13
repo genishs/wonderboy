@@ -6,6 +6,69 @@
 
 ---
 
+## v0.75.1 — Phase 3 패치: 히어로 스케일 + 과일 + Threadshade + husk burst + 스테이지 패럴랙스 + 보스 스폰 + Area 루프 + 터치 컨트롤
+
+**릴리즈:** 2026-05-14 (예정)
+**태그:** `main` 의 `v0.75.1`
+**Pages:** https://genishs.github.io/wonderboy/
+
+v0.75 브라우저 테스트 후 사용자 피드백 6 건 + 모바일 컨트롤 추가 요청. v0.75.1 은 4 PR 로 모두 처리.
+
+### 수정 내역 (사용자 피드백 항목별)
+
+1. **히어로가 "세계에 비해 너무 크게 보임".** v0.75 에서 24×36 으로 리빌드됐으나 히트박스와 도끼 스폰은 16×24 시절 그대로. 해결: StageManager 에서 `sprite.scale 3 → 2`. 동일 애니, 동일 히트박스, 그저 작게 렌더. anchor (12, 35) × scale 2 가 발을 히트박스 바닥에 정확히 맞춤 — anchor 조정 불필요.
+2. **과일 픽업 (dewplum + amberfig) 으로 vitality 회복.** 두 가지 오리지널 이름 과일, 회복량 다름:
+   - **dewplum** (14×14, 2-프레임 shimmer @ 4 fps) — 일반, vitality +20. 스테이지당 1개 표준.
+   - **amberfig** (18×18, 3-프레임 더 밝은 glow @ 4 fps, 피크에 보스-sigil `#fff2c0` 재사용) — 희귀, vitality +50. 스테이지당 1개 표준.
+   - 신규 `src/mechanics/ItemSystem.js` 가 픽업 접촉 처리. 배치는 스테이지별 라운드 파일에 명시. 스테이지 풀-콜렉트 시 ~+90 vitality 가능.
+3. **Dawn-husk burst 애니메이션 + shell-fragment 파티클.** 기존 dawn-husk 에 새 `burst` 애니메이션 추가(3 프레임 @ 8 fps; 알 절반이 amber flash 와 함께 폭발적으로 분리). burst 프레임에서 HuskSystem 이 3 개의 husk-shell 엔티티 스폰(8×8 tumbling 파편) — 랜덤 `vx ±4`, `vy −5~−3`, gravity 0.45, 90-프레임 라이프타임. 셸은 순수 시각 파티클 — 충돌·데미지 없음. 신규 `assets/sprites/item-husk-shell.js`.
+4. **스테이지별 patallax SVG 배경.** 9 신규 SVG (Stage 2 shore × 3, Stage 3 cave × 3, Stage 4 dark forest × 3). ParallaxBackground.setStage(n) 가 스테이지 전환 시 활성 레이어 스왑(AreaManager 에서 호출). Stage 1 은 기존 숲 패럴랙스 유지.
+5. **Threadshade 적** — 오리지널 이름 상하 전용 거미. 18×24 스프라이트(2 drift + 2 dead 프레임 @ 6 fps). 고정 x-칼럼, 사인 수직 움직임(amplitude 1.5 타일, frequency 0.04 rad/frame). 히어로 접촉 시 1-hit-kill / hatchet 1-hit kill. 스폰 배치: Stage 2 = 1(라운드 2-3), Stage 3 = 2(3-2, 3-4), Stage 4 = 2(4-2, 4-3). Area 1 총 5 마리.
+6. **Mossplodder 스폰 감사 + 버그 픽스.** 조사 결과 실제 버그 1 건 발견: round-1-2 의 col 50 mossplodder 가 3-타일 갭(col 50-52) 안에 있어 첫 프레임에 떨어짐 — 절대 안 보임. col 55 의 갭-이후 평면으로 이동. 다른 라운드는 정상 스폰 확인. 사용자의 "벌만 보임" 인식은 부분적으로 사실 — Mossplodder 가 작은 스프라이트에서 0.7 px/frame 으로 느리게 기는 반면 Hummerwing 은 가슴 높이에서 윙윙 — 가시성이 비대칭.
+7. **보스 스폰-Y 버그 픽스.** 기존 공식 `bossY = floorRow*TILE − h + TILE` 가 발을 아레나 바닥보다 정확히 한 타일 아래에 배치. 잉여 `+ TILE` 제거. 보스 발이 이제 `tf.y + tf.h = floorRow*TILE` 에 정확히 안착.
+8. **Area-Cleared 루프** — Bracken Warden 사망 + Area-Cleared 오버레이 후, 아무 방향/점프/공격/대시 입력으로 Area 1 Stage 1 로 리셋(lives=3, vitality=max, `pl.armed=false`). 신규 `state.dismissAreaCleared()` 가 `continueRun()` 미러링. Area 2 가 ship 될 때까지 게임은 Stage 1 로 신선하게 루프.
+9. **모바일 터치 컨트롤** (사용자 follow-up). 캔버스에 반투명 버튼 가시화:
+   - `←` (20, 460, 80×80), `→` (120, 460, 80×80), `Z` (568, 460, 80×80), `X` (668, 460, 80×80).
+   - 멀티터치 지원: 한 손가락으로 `→` 누른 채 다른 손가락으로 `Z` 탭하거나 `X` 함께 홀드 = 달리기 + 점프 + 대시 동시. 터치별 identifier 추적 + refcount 식 release.
+   - idle alpha 0.25; pressed alpha 0.5 + sigil-amber 채움. 키보드와 함께 작동(`_keys` 맵 공유).
+
+### 영향받은 파일 (v0.75.1 모든 PR 통합)
+
+- 신규 시스템: `src/mechanics/ItemSystem.js`
+- 수정: `src/levels/{AreaManager, StageManager}.js`(히어로 스케일, 과일 + Threadshade 스폰, 스테이지 패럴랙스 스왑, Area-Cleared 해제); `src/mechanics/{HuskSystem, Phase2EnemyAI, CombatSystem, BossSystem, HeroController}.js`; `src/graphics/{Renderer, ParallaxBackground}.js`; `src/core/{InputHandler, GameLoop, StateManager}.js`; `src/config/PhaseThreeTunables.js`; `game.js`; 모든 v0.75 라운드 파일의 스폰 배치.
+- 신규 design: `assets/sprites/{item-dewplum, item-amberfig, item-husk-shell, enemy-threadshade}.js` + `item-dawn-husk.js` 확장; 9 스테이지 패럴랙스 SVG.
+- 갱신 docs: README + README.ko(Controls + Mobile 섹션); phase3 brief Changelog; palette-v0.75.1 EN+KO; 6 신규 preview docs.
+
+### 변경되지 않은 것
+
+- 캐스트 정체성(Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, Bracken Warden, moss-pulse, Mossline Path 등).
+- v0.75 의 4-스테이지 area 구조, mile-marker 오버레이 시스템, stage-exit / cairn 트리거, 보스 FSM 토폴로지.
+- v0.50.x 의 모든 의미론(3 lives, dying FSM, sprint, 슬로프 step-up, rock stumble, GAME OVER continue).
+- CI 워크플로우, 이중언어 정책, 태그 스킴.
+
+### 알려진 제약 (v1.0 백로그)
+
+- Area 2 미구축(Area-Cleared 가 Stage 1 으로 루프).
+- 오디오 없음(v1.0 으로 연기).
+- dev 중 in-browser smoke 미실행(Node 부재); 정적 검사 PASS, 라이브 URL 이 첫 진짜 실행.
+- 모바일 터치 버튼 항상 그려짐(디바이스 감지 없음); 데스크톱에서 숨기는 폴리시 패치 가능.
+- Stage 4 오른쪽 벽 폴백 색 여전히 TILE_COLORS[6] brown(v0.75 에서 carry; design follow-up).
+
+### 이 패치의 PR
+
+- #32 `story(v0.75.1): brief Changelog — fruit items, spider enemy, boss spawn + loop (EN+KO)`
+- #33 `design(v0.75.1): dewplum + amberfig + Threadshade + husk-burst + 3 stage parallax (EN+KO)`
+- #34 `dev(v0.75.1): 7-item patch — hero scale, boss spawn-Y, fruits, Threadshade, husk burst, parallax, area loop`
+- #35 `dev(v0.75.1-touch): visible on-screen touch buttons for mobile (←/→/Z/X)`
+- next: `chore(release): v0.75.1 release notes` (이 PR)
+- next: `release(v0.75.1): patch quartile merge` (develop→main 머지)
+
+### 트리뷰트 자세
+
+v0.75.1 의 모든 추가 — dewplum, amberfig, Threadshade, husk-shell, 9 스테이지별 패럴랙스 SVG, 모바일 터치 UI — 모두 본 프로젝트 자체 제작 오리지널. 메카닉 카테고리(과일 픽업, 상하 전용 거미 적, 파티클 효과, 모바일 터치 컨트롤)는 보편적인 액션 플랫포머/모바일 게임 컨벤션이며 오리지널 아트와 오리지널 코드로 실행. 저작권 보호 자료의 재현 없음.
+
+---
+
 ## v0.75 — Phase 3: Area 1 = 4 스테이지 + Bracken Warden 보스 + 히어로 애니 리빌드
 
 **릴리즈:** 2026-05-13 (예정)
