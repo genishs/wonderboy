@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 2 (shore) mid-distance parallax layer (Phase 3, v0.75.1). Scroll factor 0.3.
+  Distant ocean / sea surface horizon strip with a faint amber dawn highlight where the
+  sun catches the wave-tops. Beneath, the open sea recedes into sea-deep blue. Tileable
+  horizontally — the ripple pattern repeats with a period of 96px.
+  Colors come from the Phase 3 shore tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Distant sea body: a soft blue-grey band that sits below the sky horizon.
+       Fills the middle ~45% of canvas height. -->
+  <rect x="0" y="290" width="768" height="180" fill="#3a586a"/>
+
+  <!-- Sea-deep darker band beneath, deepening the perspective. -->
+  <rect x="0" y="420" width="768" height="80" fill="#2a4258"/>
+
+  <!-- Dawn-amber reflection skim along the wave-tops — a thin band of brighter
+       amber-pale just below the horizon. -->
+  <rect x="0" y="290" width="768" height="3" fill="#e8a040" opacity="0.70"/>
+  <rect x="0" y="293" width="768" height="2" fill="#f8d878" opacity="0.55"/>
+
+  <!-- Repeating sparse ripple highlights — small horizontal ripple-pale slashes
+       distributed across the sea surface. Each ripple uses ripple-pale color. -->
+  <g fill="#6a90a8" opacity="0.65">
+    <rect x="20"  y="310" width="14" height="1"/>
+    <rect x="70"  y="320" width="16" height="1"/>
+    <rect x="120" y="335" width="12" height="1"/>
+    <rect x="180" y="318" width="18" height="1"/>
+    <rect x="240" y="340" width="14" height="1"/>
+    <rect x="290" y="325" width="20" height="1"/>
+    <rect x="360" y="345" width="14" height="1"/>
+    <rect x="420" y="320" width="18" height="1"/>
+    <rect x="480" y="335" width="14" height="1"/>
+    <rect x="540" y="312" width="16" height="1"/>
+    <rect x="600" y="340" width="18" height="1"/>
+    <rect x="660" y="328" width="14" height="1"/>
+    <rect x="720" y="345" width="16" height="1"/>
+  </g>
+
+  <!-- A few amber-tipped wave-tops near the horizon for the dawn reflection cue. -->
+  <g fill="#e8a040" opacity="0.75">
+    <rect x="80"  y="298" width="8" height="1"/>
+    <rect x="200" y="300" width="8" height="1"/>
+    <rect x="340" y="298" width="8" height="1"/>
+    <rect x="480" y="300" width="8" height="1"/>
+    <rect x="620" y="298" width="8" height="1"/>
+  </g>
+
+  <!-- Faint distant wet-shelf-stone landmasses — two small headlands receding
+       into the sea horizon, far enough that they blur into the sea-mist. -->
+  <g fill="#8a9a96" opacity="0.55">
+    <path d="M 0,350 L 30,338 L 70,344 L 100,340 L 130,348 L 150,355 L 150,400 L 0,400 Z"/>
+    <path d="M 660,348 L 685,340 L 720,344 L 760,342 L 768,346 L 768,400 L 660,400 Z"/>
+  </g>
+  <!-- A touch of shore-moss on the closer edge -->
+  <g fill="#6a8a4a" opacity="0.50">
+    <rect x="0"   y="348" width="148" height="2"/>
+    <rect x="660" y="346" width="108" height="2"/>
+  </g>
+</svg>

@@ -63,5 +63,13 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 14, row: 9, dir: -1 },
         { kind: 'mossplodder', col: 24, row: 9, dir: -1 },
         { kind: 'mossplodder', col: 32, row: 8, dir: -1 },
+        // v0.75.1 — dewplum in the moonlit slit zone (story brief §15.2:
+        // "the fruit catches the moonlight-silver rim"). cols 19-24 are flat
+        // row 9 between the gap and the upGen.
+        { kind: 'dewplum',     col: 21, row: 9 },
+        // v0.75.1 — Threadshade hangs in the moonlight slit zone (story brief
+        // §16.6: "the dark forest is where the Threadshade reads at its most
+        // native"). Sine bob 192..336 px ≈ rows 4..7 — passes above Reed.
+        { kind: 'threadshade', col: 16, row: 4 },
     ],
 });

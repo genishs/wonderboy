@@ -14,7 +14,7 @@
 
 import { CRAWLSPINE, GLASSMOTH, SAPLING } from '../config/PhaseOneTunables.js';
 import { MOSSPLODDER, HUMMERWING, FIRE }  from '../config/PhaseTwoTunables.js';
-import { BRACKEN_WARDEN }                 from '../config/PhaseThreeTunables.js';
+import { BRACKEN_WARDEN, THREADSHADE }    from '../config/PhaseThreeTunables.js';
 
 const TILE = 48;
 const DAMAGING_SAPLING_STATES = new Set(['windup', 'firing']);
@@ -83,7 +83,7 @@ export class CombatSystem {
                 if (!this._overlaps(proj.transform, e.transform)) continue;
 
                 const damage = proj.projectile.damage;
-                if (damage === 'kill' || (e.enemy.type === 'mossplodder' || e.enemy.type === 'hummerwing')) {
+                if (damage === 'kill' || (e.enemy.type === 'mossplodder' || e.enemy.type === 'hummerwing' || e.enemy.type === 'threadshade')) {
                     this._killEnemyP2(e, state);
                 } else {
                     this._damageEnemy(e, damage, state);
@@ -271,6 +271,7 @@ export class CombatSystem {
         const deathBy = {
             mossplodder: MOSSPLODDER.deathFrames,
             hummerwing:  HUMMERWING.deathFrames,
+            threadshade: THREADSHADE.deathFrames,
         };
         en.deathFrames = deathBy[en.type] ?? 30;
         state.addScore?.(100);
@@ -280,7 +281,7 @@ export class CombatSystem {
         const en = e.enemy;
         if (en.ai === 'dead') return;
         // Phase 2 enemies: damage 'kill' or any value → instant kill.
-        if (en.type === 'mossplodder' || en.type === 'hummerwing') {
+        if (en.type === 'mossplodder' || en.type === 'hummerwing' || en.type === 'threadshade') {
             this._killEnemyP2(e, state);
             return;
         }

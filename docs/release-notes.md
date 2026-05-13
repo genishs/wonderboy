@@ -6,6 +6,69 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v0.75.1 — Phase 3 patch: hero scale + fruits + Threadshade + husk burst + stage parallax + boss spawn + Area loop + touch controls
+
+**Released:** 2026-05-14 (planned)
+**Tag:** `v0.75.1` on `main`
+**Pages:** https://genishs.github.io/wonderboy/
+
+User feedback after browser-testing v0.75 surfaced 6 issues + a follow-up mobile-controls ask. v0.75.1 lands all of them across four PRs.
+
+### Fixes (per user feedback item)
+
+1. **Hero looked "too big for the world."** Reed was rebuilt at 24×36 in v0.75 but his hitbox + hatchet spawn stayed at the 16×24 footprint. Solution: `sprite.scale 3 → 2` in StageManager. Same hero anims, same hitbox, just rendered smaller. Anchor (12, 35) at scale 2 lands feet flush at the hitbox bottom; no anchor nudge needed.
+2. **Fruit pickups (dewplum + amberfig) restore vitality.** Two original-named fruits with distinct restore amounts:
+   - **dewplum** (14×14, 2-frame shimmer @ 4 fps) — common, +20 vitality. 1 per stage typical.
+   - **amberfig** (18×18, 3-frame brighter glow @ 4 fps, reuses boss-sigil `#fff2c0` for the peak) — rare, +50 vitality. 1 per stage typical.
+   - New `src/mechanics/ItemSystem.js` handles pickup contact. Placement specifies in stage-specific round files. ~+90 vitality possible per stage full-collect.
+3. **Dawn-husk burst animation + shell-fragment particles.** Existing dawn-husk gets a new `burst` animation (3 frames @ 8 fps; egg halves separate explosively with amber flash). At the burst frame, HuskSystem spawns 3 husk-shell entities (8×8 tumbling fragments) with random `vx ±4`, `vy −5 to −3`, gravity 0.45, 90-frame lifetime. Shells are pure visual particles — no collision, no damage. New `assets/sprites/item-husk-shell.js`.
+4. **Per-stage parallax SVG backgrounds.** 9 new SVGs ship (Stage 2 shore × 3, Stage 3 cave × 3, Stage 4 dark forest × 3). ParallaxBackground.setStage(n) swaps active layers on stage transition (called from AreaManager). Stage 1 keeps the original forest parallax.
+5. **Threadshade enemy** — original-named vertical-only spider. 18×24 sprite (2 drift + 2 dead frames @ 6 fps). Fixed x-column, sine vertical motion (amplitude 1.5 tiles, frequency 0.04 rad/frame). 1-hit-kill on hero contact / 1-hit kill from hatchet. Spawn placement: Stage 2 = 1 (round 2-3), Stage 3 = 2 (3-2, 3-4), Stage 4 = 2 (4-2, 4-3). Total 5 across Area 1.
+6. **Mossplodder spawn audit + bug fix.** Investigation found one real bug: round-1-2's mossplodder at col 50 sat inside the 3-tile gap (cols 50-52) and fell through on frame 1 — never visible. Moved to col 55 on post-gap flat. All other rounds verified spawning correctly. User's "only bees show" perception was partially true because Mossplodders crawl slowly at 0.7 px/frame on a small sprite while Hummerwings buzz at chest height — visibility is asymmetric.
+7. **Boss spawn-Y bug fix.** Old formula `bossY = floorRow*TILE − h + TILE` placed feet one full tile BELOW the arena floor. Fixed by dropping the spurious `+ TILE`. Boss feet now flush at `tf.y + tf.h = floorRow*TILE`.
+8. **Area-Cleared loop** — after Bracken Warden death + Area-Cleared overlay, any directional/jump/attack/sprint input now resets to Area 1 Stage 1 with lives=3, vitality=max, `pl.armed=false`. New `state.dismissAreaCleared()` mirrors `continueRun()`. Until Area 2 ships, the game loops fresh at Stage 1.
+9. **Mobile touch controls** (user follow-up). Visible semi-transparent buttons drawn on canvas:
+   - `←` at (20, 460, 80×80), `→` at (120, 460, 80×80), `Z` at (568, 460, 80×80), `X` at (668, 460, 80×80).
+   - Multi-touch supported: hold `→` with one finger and tap `Z` or hold `X` with another = run + jump + sprint together. Per-touch identifier tracking + refcount-style release.
+   - Idle alpha 0.25; pressed alpha 0.5 with sigil-amber fill. Works alongside keyboard (`_keys` map shared).
+
+### Files touched (across all v0.75.1 PRs)
+
+- New systems: `src/mechanics/ItemSystem.js`
+- Modified: `src/levels/{AreaManager, StageManager}.js` (hero scale, fruit + Threadshade spawns, stage parallax swap, Area-Cleared dismiss); `src/mechanics/{HuskSystem, Phase2EnemyAI, CombatSystem, BossSystem, HeroController}.js`; `src/graphics/{Renderer, ParallaxBackground}.js`; `src/core/{InputHandler, GameLoop, StateManager}.js`; `src/config/PhaseThreeTunables.js`; `game.js`; all v0.75 round files for spawn placements.
+- New design: `assets/sprites/{item-dewplum, item-amberfig, item-husk-shell, enemy-threadshade}.js` + `item-dawn-husk.js` extended; 9 stage parallax SVGs.
+- Updated docs: README + README.ko (Controls + Mobile section); phase3 brief Changelogs; palette-v0.75.1 EN+KO; 6 new preview docs.
+
+### What did NOT change
+
+- Cast identity (Reed Bramblestep, Mossplodder, Hummerwing, dawn-husk, Bracken Warden, moss-pulse, Mossline Path, etc.).
+- v0.75's 4-stage area structure, mile-marker overlay system, stage-exit / cairn triggers, boss FSM topology.
+- All v0.50.x semantics (3 lives, dying FSM, sprint, slope step-up, rock stumble, GAME OVER continue).
+- CI workflow, bilingual policy, tag scheme.
+
+### Known limitations carried to v1.0
+
+- Area 2 still not built (Area-Cleared loops back to Stage 1).
+- No audio (deferred to v1.0).
+- No in-browser smoke ran during dev (Node unavailable); static checks PASS, live URL is the first real run.
+- Mobile touch buttons always drawn (no device-type detection); could hide on desktop in a polish patch.
+- Stage 4 right-wall fallback color still TILE_COLORS[6] brown (carried from v0.75; design follow-up).
+
+### PRs in this patch
+
+- #32 `story(v0.75.1): brief Changelog — fruit items, spider enemy, boss spawn + loop (EN+KO)`
+- #33 `design(v0.75.1): dewplum + amberfig + Threadshade + husk-burst + 3 stage parallax (EN+KO)`
+- #34 `dev(v0.75.1): 7-item patch — hero scale, boss spawn-Y, fruits, Threadshade, husk burst, parallax, area loop`
+- #35 `dev(v0.75.1-touch): visible on-screen touch buttons for mobile (←/→/Z/X)`
+- next: `chore(release): v0.75.1 release notes` (this PR)
+- next: `release(v0.75.1): patch quartile merge` (the develop→main merge)
+
+### Tribute posture
+
+All v0.75.1 additions — dewplum, amberfig, Threadshade, husk-shell, the 9 stage-specific parallax SVGs, the mobile touch UI — are original to this project. The mechanic categories (fruit pickups, vertical-only spider enemy, particle effects, mobile touch controls) are universal action-platformer/mobile-game conventions executed with original art and original code. No reproduction of copyrighted material.
+
+---
+
 ## v0.75 — Phase 3: Area 1 = 4 stages + Bracken Warden boss + hero anim rebuild
 
 **Released:** 2026-05-13 (planned)

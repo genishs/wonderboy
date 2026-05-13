@@ -105,13 +105,20 @@ export class BossSystem {
         // boss_trigger tile sits at relCol=32 of round-4-4 → arenaCol0 = same
         // global col → so in-arena col index = 9 → boss at arenaCol0 + 9.
         const bossX = bossCol * TILE + (TILE - w);   // align right edge near col 11
-        const bossY = floorRow * TILE - h + TILE;    // feet at (floorRow+1)*TILE
-        // ^ Note: the boss anchor sits at y=47 in the sprite, and the renderer
-        //   computes drawY = floor(tf.y + tf.h - (anchor.y + 1) * scale). With
-        //   anchor.y=47, scale=3, tf.h=144 → drawY = tf.y + 144 - 144 = tf.y.
-        //   So tf.y is the top-of-sprite. Feet sit at tf.y + tf.h. To put feet
-        //   at row=floorRow's BOTTOM (= (floorRow+1)*TILE), we need
-        //   tf.y + tf.h = (floorRow + 1) * TILE → tf.y = (floorRow+1)*TILE - h.
+        // v0.75.1 — spawn-Y bug fix. Previous formula was `floorRow * TILE - h
+        // + TILE` (= (floorRow+1)*TILE - h), which placed the boss's feet at
+        // row 10's TOP edge — one full tile BELOW the arena floor surface
+        // (which is row 9's top edge at floorRow * TILE). User report: "boss
+        // spawns embedded in the ground." Correct formula: feet flush on the
+        // floor row's TOP edge → tf.y + tf.h = floorRow * TILE → tf.y =
+        // floorRow * TILE - h.
+        //
+        // Renderer math check: drawY = floor(tf.y + tf.h - (anchor.y + 1) *
+        // scale). With anchor.y=47, scale=3, tf.h=144 → drawY = tf.y + 144 -
+        // 144 = tf.y. The sprite's 144 px stretch from tf.y to tf.y + 144,
+        // putting its bottom row (anchor y=47 → sprite row 47, the floor row
+        // of the sprite cell-grid) exactly at the floorRow boundary.
+        const bossY = floorRow * TILE - h;
 
         const id = ecs.createEntity();
         ecs.addComponent(id, 'transform', { x: bossX, y: bossY, w, h });

@@ -111,3 +111,22 @@ late-morning underground, noon at the threshold of something older than the
 path. The boundary cairn of Phase 2 turns out, in retrospect, to have been a
 roadside marker — not a boundary — and the **real** boundary is the Old
 Threshold's dark-forest glade.
+
+## v0.75.1 addendum — wild fruit and the patient things in the canopy
+
+Two small additions to the world, both quiet:
+
+**Wild fruit on the path.** Dewplums and amberfigs grow at the edges of the
+Mossline Path and survive — sparsely — into the Sumphollow's dune-grass and the
+Old Threshold's moonlit understory. The Verdant Ruin's people once tended
+these; the trees that bore them still do, even without anyone to harvest.
+Amberfigs found on the Brinklane cave-floor have fallen from a surface cleft
+and rolled into the dark, still warm from the heat the ruin keeps in its veins.
+A boy passing through, hungry, finds them where the path forgets to be a path.
+
+**Threadshades in the canopy.** In the cave and the dark forest, a quieter
+fauna hangs from whatever the ceiling will give it: small dark cluster-bodies
+on hairline pale threads, breathing up and down on a slow vertical line. The
+Mossline-folk called them **Threadshades**. They do not chase, do not hunt; they
+have simply been here longer than the path, and a boy who walks under one
+without reading the shadow above his head will not walk farther.

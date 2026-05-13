@@ -72,3 +72,67 @@ Three beats: crack appears, halves separate with a flash, halves fade. Total
 like one event, long enough that the eye registers the warmth of the flash. The
 dawn-amber palette ties this beat to Reed's own warmth (cast brief §5.1) — the
 hero is *catching* something his own color, not picking up a foreign object.
+
+---
+
+## v0.75.1 extension — `burst` (3 frames, ~12 frames at 8 fps)
+
+The v0.75.1 patch refines the egg's climax. Player feedback from the v0.75
+in-browser playtest was that the existing `break` animation read as **gentle**
+when it should read as **dramatic** — Reed catching his weapon should feel
+like an event. The `burst` key adds three frames played *after* the existing
+`break` sequence completes (or as an alternative climax — dev-lead's call on
+the FSM stitching). This animation is paired with the new
+[`item-husk-shell.js`](./preview-item-husk-shell.md) shell-fragment particle:
+dev-lead spawns 2–4 husk-shell entities at `burst` frame 0, each with random
+outward velocity + gravity, so the egg visibly *fragments* rather than just
+*opens*.
+
+### `burst` (3 frames at 8 fps — faster than `break`'s 4 fps for the percussive read)
+
+- **`burst0`** — **cracking deeper**. The halves are still in-frame but the
+  dawn-amber bright cells widen into a 4-cell-wide flare at the center. A
+  cuff-cream halo has begun ringing the inner edges of both halves. This is
+  the moment dev-lead spawns the shell-fragment entities — the player should
+  read this frame as "the egg is committing to break apart, not just crack."
+- **`burst1`** — **halves opening explosively**. Each half drifts further
+  from center than in `break1`'s position; a 2-cell flash of cuff-cream
+  surrounds the dawn-amber flare core. The left half slides one cell left,
+  the right half slides one cell right. This is the climax frame — the
+  brightest single moment in the egg's life. The amber flare reads as living
+  warmth being released, not just light.
+- **`burst2`** — **halves about to leave the frame**. Only thin shell
+  remnants at the far left and far right edges of the sprite; the center is
+  filled with dawn-amber afterglow and cuff-cream sparkles arranged in a
+  symmetric ring. The hatchet pickup (rendered by dev-lead as a separate
+  sprite) is what the player sees after this frame disposes. The husk entity
+  despawns at the end of this frame; the shell fragments continue
+  independently.
+
+### Visual reading — why the burst is bigger than the break
+
+- The `break` sequence had the halves drift by ~1 cell; `burst` has them
+  drift by ~2 cells plus a wider amber flare core. Visually, `burst` reads
+  as "the egg threw itself open."
+- The cuff-cream halo on `burst1` is a NEW visual element not present in any
+  `break` frame — it's the bright shock-ring that signals "this is the loud
+  moment."
+- The shell fragments (separate sprite) are visible at the same time as
+  `burst0`, so the player sees pieces of the egg in flight while the egg
+  itself is still mid-burst. This is what makes the burst feel like an
+  *event* rather than an *animation*.
+
+### Why this is appended, not a replacement
+
+The existing `break` frames are preserved verbatim — the FSM stitching of
+"break ➜ burst" is dev-lead's call. The dev-lead may choose to:
+
+1. **Append:** Play `break0 → break1 → break2 → burst0 → burst1 → burst2`
+   for a total of 6 frames (~750 ms at the mixed fps); dramatic, slow.
+2. **Replace:** Skip `break2` entirely and jump directly from `break1` to
+   `burst0` for a total of 5 frames; tighter pacing.
+3. **Alternative:** Use only `burst` frames when the dev wants the loudest
+   egg-break (e.g., the very first one Reed encounters) and the older `break`
+   frames for any subsequent eggs, so the first one feels special.
+
+This preview doc does not prescribe; dev-lead picks per the in-game feel.

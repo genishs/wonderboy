@@ -98,12 +98,19 @@ export class HeroController {
         }
         if (state.gameState === 'AREA_CLEARED') {
             // v0.75 — Area-cleared overlay holds. Any of the gameplay action /
-            // direction inputs dismisses to TITLE (consistent with the v0.50.2
-            // continueRun path's input handling). Hero is frozen; let the
-            // existing physics handle the few frames before the overlay completes.
-            if ((input.jumpPressed || input.attack || input.sprintHeld ||
+            // direction inputs dismisses the overlay.
+            //
+            // v0.75.1 — instead of dropping to TITLE, the run LOOPS back to
+            // Stage 1 fresh (Area 2 isn't built yet). state.dismissAreaCleared
+            // reuses the GAME_OVER → continueRun full-Area reset path: lives
+            // refill to 3, vitality refills to max, pl.armed clears, and
+            // AreaManager.update sees RESPAWNING + _areaRestartPending on the
+            // next tick and rebuilds Area 1 Stage 1 from scratch.
+            if (pl._phase2 && state.dismissAreaCleared &&
+                (input.jumpPressed || input.attack || input.sprintHeld ||
                  input.left || input.right)) {
-                state.setGameState('TITLE');
+                state.dismissAreaCleared();
+                return;
             }
             pl.aiState = 'idle';
             v.vx = 0;

@@ -185,6 +185,26 @@ export class StateManager {
         this.setGameState(GAME_STATES.RESPAWNING);
     }
 
+    /**
+     * v0.75.1 — dismiss the AREA_CLEARED overlay and loop back to Stage 1
+     * (Area 2 isn't built yet). Re-uses the GAME_OVER → continueRun
+     * full-Area reset path so lives refill, vitality refills, pl.armed
+     * clears, and Stage 1 rebuilds from scratch via AreaManager.startArea.
+     * Per phase3-boss-cast.md Changelog: "the run loops back to Stage 1
+     * col 0 with state.lives refilled to 3, state.vitality refilled to max,
+     * and pl.armed cleared — i.e., the same world state as a fresh new-game
+     * launch from title, re-using the existing GAME OVER → Continue full-
+     * reset flow."
+     */
+    dismissAreaCleared() {
+        if (this.gameState !== GAME_STATES.AREA_CLEARED) return;
+        this.lives  = this.maxLives;
+        this.hunger = this.maxHunger;
+        this._stageRestartPending = true;
+        if (this._isPhase3) this._areaRestartPending = true;
+        this.setGameState(GAME_STATES.RESPAWNING);
+    }
+
     /** @deprecated v0.25.2 — use killHero() in Phase 1. Retained for legacy path only. */
     damageHero(amount = 1) {
         this.killHero();

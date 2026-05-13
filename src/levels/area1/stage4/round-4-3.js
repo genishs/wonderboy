@@ -52,5 +52,12 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 26, row: 7, dir: -1 },
         { kind: 'mossplodder', col: 28, row: 7, dir: -1 },
         { kind: 'mossplodder', col: 25, row: 7, dir: 1 },   // right-facing — collides with col-26
+        // v0.75.1 — amberfig on the inner-grove plateau row 7 (story brief
+        // §15.2: "the wood drops what it has been saving for him"). The
+        // brightest non-hostile beat of Stage 4.
+        { kind: 'amberfig',    col: 22, row: 7 },
+        // v0.75.1 — Threadshade above the Mossplodder-collision beat. Player
+        // attention is on the ground enemies; the spider is the surprise.
+        { kind: 'threadshade', col: 28, row: 3 },
     ],
 });
