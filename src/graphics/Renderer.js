@@ -719,6 +719,42 @@ export class Renderer {
         ctx.restore();
     }
 
+    // ── Mobile touch overlay (v0.75.1) ─────────────────────────────────────
+    /**
+     * Draws semi-transparent on-screen touch buttons in CANVAS-LOGICAL space
+     * (same coordinate system used by InputHandler's hit-test, so the visible
+     * rect and the hitbox are guaranteed to align).
+     *
+     * Idle alpha 0.25; pressed alpha 0.5 with sigil-amber fill (v0.75 boss
+     * accent `#f8d878`). Always-on: visible on desktop too as a hint that
+     * touch is supported. Cheap enough at ~4 rects/frame to not gate on a
+     * mobile-detect.
+     */
+    drawTouchControls(input) {
+        if (!input || !input.buttons) return;
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font         = 'bold 36px monospace';
+        ctx.lineWidth    = 2;
+
+        for (const b of input.buttons) {
+            const pressed = input.isDown(b.key);
+            ctx.globalAlpha = pressed ? 0.5 : 0.25;
+            ctx.fillStyle   = pressed ? '#f8d878' : '#000';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.globalAlpha = pressed ? 0.9 : 0.6;
+            ctx.strokeStyle = '#FFF';
+            ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+
+            ctx.globalAlpha = pressed ? 1 : 0.85;
+            ctx.fillStyle   = pressed ? '#1a1208' : '#FFF';
+            ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2 + 2);
+        }
+        ctx.restore();
+    }
+
     // ── Asset loading helper (legacy) ──────────────────────────────────────
     loadImage(name, src) {
         return new Promise(resolve => {

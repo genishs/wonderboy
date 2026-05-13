@@ -54,12 +54,16 @@ export class GameLoop {
     }
 
     _render() {
-        const { renderer, ecs, state, levelManager } = this.systems;
+        const { renderer, ecs, state, levelManager, input } = this.systems;
         renderer.clear();
         renderer.drawBackground(levelManager.scrollX);
         renderer.drawTiles(levelManager.currentLevel, levelManager.scrollX);
         renderer.drawEntities(ecs, levelManager.scrollX);
         renderer.drawHUD(state);
+        // v0.75.1 — visible on-screen touch buttons. Drawn LAST so they sit on
+        // top of HUD chrome and stay tappable even when overlays (PAUSED,
+        // STAGE_TRANSITION, AREA_CLEARED) dim the playfield underneath.
+        renderer.drawTouchControls(input);
     }
 
     pause()  { this.systems.state.setGameState('PAUSED');  }
