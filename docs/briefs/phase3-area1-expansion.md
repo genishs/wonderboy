@@ -917,6 +917,158 @@ Per `CLAUDE.md` v0.75 row: "Multi-area + hunger/weapon mechanics + parallax + au
 
 ## Changelog
 
+### 2026-05-13 — v0.75.1 (post-v0.75 browser-smoke pivot)
+
+After v0.75 shipped to Pages, the user playtested the build in-browser and surfaced six feedback items. Three are pure dev/design fixes that story-lead only acknowledges; three are new design content this brief now specs. Spec additions live in §15 (new fruit pickup) and §16 (new vertical-only enemy archetype) below, both append-only.
+
+1. **Hero scale read.** The 24 × 36 Reed rebuild made the on-screen silhouette visually larger than his hatchet-spawn and hitbox footprint, which were still tuned to the 16 × 24 era. release-master decided to drop `sprite.scale` from 3 to 2 on the dev side — animation frames are kept, render is smaller. No story-lead work needed; acknowledged only.
+
+2. **Vitality is the countdown clock — feed it.** Reed's vitality bar reads as a fatigue / hunger meter that ticks down across a run, and the user asked for **fruit pickups** along the path that restore it. Story-lead specs the fruit content in §15: two original fruit types (**dewplum** and **amberfig**), restore amounts, per-stage placement guidance, silhouette intent for Design, and animation cue. Dev-lead wires the `item` component handler (collected-on-contact, vitality += N, despawn).
+
+3. **Dawn-husk break is too quiet.** The egg currently disappears in a single frame when struck. release-master decided design-lead extends the break animation and adds shell-fragment entities that fly off + bounce briefly before fading. No story-lead work needed; acknowledged only. (Fiction-wise the dawn-husk is the morning-warmth that Reed cracks open to take the hatchet from; a louder break beat reads true.)
+
+4. **Per-stage parallax backgrounds.** All four v0.75 stages currently render the Stage 1 forest parallax with palette tweaks; the user wants distinct **shore / cave / dark-forest** backdrops to match the briefs' theme keywords (§5 / §6 / §7). release-master decided design-lead authors three new parallax SVGs and dev-lead wires per-stage swap. No story-lead work needed; the mood / palette keywords in §5.1, §6, §7 already prescribe the visual targets. Acknowledged.
+
+5. **Enemies feel monotonous — add a vertical-only spider.** Cave + dark-forest rounds especially read as "Hummerwings everywhere" in the in-browser playthrough. Two halves to this:
+   - **(a) Mossplodder spawn-table audit.** I re-read the per-round enemy tables in §5 / §6 / §7 of this brief: **every round of Stages 2-4 already ships at least one Mossplodder** (Stage 2: 1 / 2 / 3 / 5; Stage 3: 2 / 3 / 3 / 4; Stage 4: 2 / 3 / 5 / 2). No round needs added Mossplodder coverage. What the user is reading as "only bees" is most likely that the *cadence* between Mossplodders and Hummerwings is fine on paper but the **Hummerwings fly overhead while Mossplodders roll under**, so the eye catches the airborne enemy and forgets the ground one. Adding the new vertical-only archetype (item 5b) gives the cave and dark-forest sections a third silhouette to break the "two-creature monoculture" perception without re-tuning Mossplodder counts. No spawn-table edits are proposed in this Changelog.
+   - **(b) New enemy — vertical-only "spider".** Spec in §16: original name **Threadshade**, fixed x-column, sine-wave vertical motion, 1-hit-kill on hero contact, 1-hit kill from hatchet. Placement guidance: 1-2 per stage, weighted to Stages 3 and 4 where the enclosed spaces suit a hanging silhouette. Dev-lead executes; design-lead authors sprite.
+
+6. **Boss spawn-Y bug + post-boss loop direction.** Two halves:
+   - **(a) Spawn-Y bug.** The Bracken Warden currently spawns with its feet below the arena floor, reading as "boss embedded in ground." This is a dev-lead bug-fix on the y-coordinate; the arena spec in `phase3-boss-cast.md` §8 already specifies floor-aligned feet. Acknowledged.
+   - **(b) Post-boss loop.** Since Area 2 isn't built yet, release-master decided that on Bracken Warden defeat + the existing Area Cleared overlay, the run **loops back to Stage 1 col 0 with `state.lives` and `state.vitality` refilled to max and `pl.armed` cleared** (i.e., a fresh playthrough — same state as a new game from title). This re-uses the existing GAME OVER → Continue full-reset flow without a new code path. The Area Cleared overlay copy ("Area 1 cleared — the path continues / Area 1 클리어 — 길은 이어진다.") stays verbatim; in the v0.75.1 reading it now means "the path continues — back to Stage 1 again," which is honest. See `phase3-boss-cast.md` Changelog for the boss-side note. No copy change is needed for this patch.
+
+**Acknowledged items 1, 3, 4, 6a are out of story-lead's scope; items 2, 5b, and the audit in 5a are speced below.**
+
+---
+
+## 15. v0.75.1 addition — fruit pickups
+
+**Purpose.** Give Reed a way to push back against the vitality countdown without breaking the per-stage refill rule (§2). Vitality still refills to max on stage entry; fruit gives mid-stage breathing room so the player can linger to fight rather than rush to the next stage-transition.
+
+**Fiction.** Wild fruit grows along the edges of the Mossline Path and survives — sparsely — into the Sumphollow's dune-grass and the moonlit understory of the Old Threshold. The Verdant Ruin's people once tended these; the trees that bore them still do, even without anyone to harvest. Fruit on the cave floor of Brinklane is a touch stranger — those are **amberfig** that fell from a surface cleft and rolled into the dark, still amber-warm from the heat the ruin keeps in its cave veins. (See `docs/story/world.md` v0.75.1 addendum.)
+
+### 15.1 Two fruit types
+
+| Name        | Vitality restore | Frequency       | Silhouette intent (for Design) |
+|-------------|-----------------:|-----------------|---------------------------------|
+| **dewplum** | +20              | Common — 2 per stage typical | A small rounded plum-shape, deep river-blue body with a single pale-cyan dew-bead highlight on the upper-left curve. About one-third tile across. Subtle warm-amber rim along the bottom curve so the eye reads it as ripe, not raw. No leaf. |
+| **amberfig**| +50              | Rare — 1 per stage typical | A slightly larger teardrop fig-shape, warm dawn-amber body with a deep wet-bark-brown stem-knot at the top and a single curled leaf-tip that catches a moss-green tone. About half a tile across. The amberfig reads as the *warmest* small object on screen aside from Reed himself — a hand-warmer for the eye. |
+
+Vitality max is 100 (per existing brief / dev contract); a dewplum is a small breather, an amberfig is a meaningful save. Per-stage typical = "2 dewplums + 1 amberfig" ≈ +90 vitality available across the stage if every fruit is collected, which is a deliberate balance against the per-stage tick-down without trivializing the clock.
+
+### 15.2 Placement guideline
+
+Fruit placement should reward exploration — **off the optimal sprint line**, never *on* it. Suggested per-round markers (dev-lead may shift columns by ±2 for terrain fit):
+
+| Stage   | Round | Type    | Approx column | Placement note |
+|---------|-------|---------|--------------:|-----------------|
+| Stage 1 | 1-2   | dewplum | mid-round (~col 80) | Sitting on the small rock-pin ledge from v0.50 Round 1-3 — Reed has to climb on the rock to grab it. (Stage 1 already ships; this is an optional v0.75.1 addition — dev-lead may park it for later.) |
+| Stage 1 | 1-4   | amberfig | late (~col 200) | Tucked between the last two fire patches before the stage-transition tile — fiction: "the ruins keep their warmth, and a fig nearby kept some too." |
+| Stage 2 | 2-2   | dewplum | mid (~col 24) | On the second dune crest, just past the first tidal_edge — encourages the player to hold the crest rather than sprint through. |
+| Stage 2 | 2-4   | amberfig | mid (~col 30) | On the right-facing Mossplodder's plateau — the "catch-it-or-let-it-fall" beat now has a fruit reward for engaging. |
+| Stage 3 | 3-2   | dewplum | mid (~col 28) | On the third cave-shelf, between two cave-gap-pools. Riskier reach. |
+| Stage 3 | 3-3   | amberfig | mid (~col 24) | On the warm-pocket plateau — fits the fiction that amberfigs roll into cave veins. The brightest non-hostile moment in Stage 3. |
+| Stage 4 | 4-2   | dewplum | mid (~col 24) | In one of the silver moonlight slits — the fruit catches the moonlight-silver rim. |
+| Stage 4 | 4-3   | amberfig | mid (~col 22) | Where the two Mossplodders collide — fiction: "the wood drops what it has been saving for him." |
+
+Rule of thumb: **never** place a fruit *inside* a hazard (tidal_edge, amber_vein, fire patch, cave-gap-pool) — the player must always be able to reach it without taking damage. Place fruit *adjacent to* hazards to make the reach feel like a choice. Never place fruit inside the boss arena.
+
+### 15.3 Animation cue
+
+Both fruits use a **2-frame idle glimmer** at **4 fps**:
+- **frame 0:** base color, no highlight overlay.
+- **frame 1:** a single pale-cream highlight pixel-cluster on the upper-left curve (dewplum) or upper-right curve (amberfig).
+
+On collect: **3-frame collect anim** at 12 fps — frame 0 the fruit at base size, frame 1 a slight bloom (∼1 px outline glow + scale 1.1), frame 2 dispersed into 4-6 small pale-cream sparkles (re-use the existing hit-spark palette from Mossplodder kills). Total ∼250 ms; non-blocking on movement.
+
+No SFX spec'd here (audio out of scope for story-lead); design-lead may flag if they want a small clack-soft pickup cue.
+
+### 15.4 For Design
+
+- Sprites: two new entries — `fruit_dewplum` and `fruit_amberfig`. Each ∼16 × 16 logical (one-third to one-half tile). 2 idle frames + 3 collect frames.
+- Palette: re-use existing world palette anchors. dewplum: `river-blue` body + `dew-cool-cyan` highlight + a thin `dawn-amber` rim. amberfig: `dawn-amber` body + `wet-bark-brown` stem-knot + `moss-green` leaf-tip + `pale-cream` highlight.
+- Do not introduce a new ink color; use `velvet-shadow` for outlines, as elsewhere.
+
+### 15.5 For Dev
+
+- New item types in `assets/sprites/items.js` (or wherever current items live): `fruit_dewplum` (restore = 20), `fruit_amberfig` (restore = 50).
+- `item` component: existing `{ type, collected }` shape is sufficient; add handler in the collision step → `state.vitality = Math.min(state.vitalityMax, state.vitality + restore)` → set `item.collected = true` → play collect anim → despawn at anim end.
+- Spawn fruit at the columns above (story-lead names the columns as approximate; dev-lead may shift ±2 columns for terrain fit). Persist `item.collected` per round-respawn (do not re-spawn fruit Reed already ate, if he respawns at a mile-marker mid-stage). Reset on stage entry (per §2: vitality refills to max → fruit re-spawns are no-ops anyway).
+- No new HUD work; existing vitality bar reflects the restored value.
+
+---
+
+## 16. v0.75.1 addition — Threadshade (vertical-only enemy)
+
+**Purpose.** Break the "Hummerwing-and-Mossplodder duopoly" in the cave and dark-forest stages, without adding a new ground enemy that would interfere with the established Mossplodder rolling-cadence or a new flier that would re-skin a Hummerwing. The Threadshade occupies a new motion axis (vertical-only) and a new silhouette family (hanging, not airborne or rolling).
+
+### 16.1 Silhouette intent (for Design)
+
+A small dark cluster suspended on a thin pale thread. Read order: thread first (a hairline pale-cream / `moonlight-silver` vertical line a half-tile wide at most), then body (a compact rounded blob about 1 × 1 tile with four-to-six short leg-fingers radiating out from the lower half), then **two pinprick eye-glints** of warm `dawn-amber` low on the body — those eyes are the only warm note on the creature and they should *just* catch the player's attention before the silhouette does. The body palette skews into our existing `velvet-shadow` ink-family with a `understory-violet` belly-curve and a faint `moss-green` mottle along the back, so it reads as a **cousin of the moss-and-amber world**, not as a horror element. The Threadshade is **patient, not predatory** — it's a creature that grew where the canopy gave it a thread to hang from, and it's been here longer than the path. The pulse of its vertical oscillation should read closer to "breath" than to "attack."
+
+### 16.2 Movement spec
+
+- **Horizontal motion:** none. The Threadshade is pinned to a fixed x-column for its lifetime.
+- **Vertical motion:** sine-wave oscillation between `yMin = row × TILE` (upper bound) and `yMax = (row + 3) × TILE` (lower bound), spanning a 3-tile vertical range.
+- **Frequency:** ∼**0.04** radians/frame (slower than Hummerwing's 0.06 — the Threadshade should feel **patient**, like a slow inhale-exhale; Hummerwings buzz, Threadshades breathe).
+- **Speed:** 0 px/frame horizontal; up to ∼**1.5 px/frame** vertical at the midpoint of the sine cycle (peak velocity at the middle of travel, slowing to 0 at the apex and the nadir).
+- **State machine:** single state, `swing`. No aggro / no chase / no death-pattern other than the standard hatchet kill (below). The Threadshade does not react to Reed's position; it just breathes.
+
+### 16.3 Hit reaction / death
+
+- **Contact with hero:** 1-hit-kill on Reed (same rule as Hummerwing / Mossplodder body contact — Reed dies, vitality goes to 0, standard dying FSM, respawn at last mile-marker).
+- **Contact with hatchet:** 1-hit kill on the Threadshade (same rule as other enemies — single hatchet hit → death animation → despawn). Hatchet despawns on contact.
+- **Death animation:** ∼20-frame "thread snap" — frame 0 the body, frame 1-4 the thread severs at the top and the body drops with gravity (∼6 px/frame downward acceleration) toward the floor, frame 5-15 the body lies still on the floor, frame 16-20 dissolves into the same hit-spark sparkles as Mossplodder kills. If the Threadshade is killed below the floor line (i.e., already at the bottom of its swing over a gap), it drops straight off-screen — no spark, just gone. Edge case is rare; dev-lead picks the cleanest behavior.
+- **No projectile** from the Threadshade. Contact is the only threat.
+
+### 16.4 Color-mood keywords (for Design)
+
+- `thread-pale` (the hanging thread itself — pale-cream / moonlight-silver, hairline thin)
+- `understory-violet` (body belly-curve — re-use Stage 4's palette anchor)
+- `moss-mottle` (faint moss-green mottle along the back — ties the creature to the world's dominant green)
+- `amber-pinprick` (the two eye-glints — the only warm note, low on the body)
+- `patient-hush` (mood word: this creature is older than Reed's walk; the silhouette should feel **at rest**, not poised)
+
+### 16.5 Animation cue list
+
+Minimum **2 frames** of idle motion at **6 fps** (slower than Hummerwing's 8 fps wing-flap to match the patient pacing):
+
+- **frame 0 — `hang_a`:** body centered, four leg-fingers tucked close, thread fully visible above.
+- **frame 1 — `hang_b`:** body shifted ∼1 px (a near-imperceptible breath), two of the four leg-fingers extended ∼1 px outward (a "leg-shimmer"), thread shows a single shimmer-segment ∼1/3 down its length (a thread-pull pulse).
+
+Plus the **death anim** (∼20 frames total, broken into the phases in §16.3). Total Threadshade frame budget: **2 idle + ∼5 death key frames** (the death can re-use the existing hit-spark sparkle sheet for its tail-end).
+
+### 16.6 Recommended placement
+
+- **1-2 Threadshades per stage**, weighted toward Stages 3 (cave) and 4 (dark forest) where the enclosed spaces suit a hanging silhouette best. Stage 1 (Mossline Path) is held verbatim from Phase 2 — no Threadshades there. Stage 2 (Sumphollow, shore) may host **1** Threadshade in a dune-grass cluster as foreshadowing (Design's call whether the shore reads "thread on dune-grass" plausibly; if not, drop to 0 for Stage 2).
+
+| Stage   | Round | Count | Approx column / row | Notes |
+|---------|-------|------:|---------------------|-------|
+| Stage 2 | 2-3   | 1     | col ∼20, row ∼3 (hanging above the plateau) | Optional foreshadowing — Design may skip if the dune fiction feels stretched. |
+| Stage 3 | 3-2   | 1     | col ∼38, row ∼4 (over the third cave-shelf) | Cave is the Threadshade's natural home — pillars overhead, enclosed space. The player's first encounter. |
+| Stage 3 | 3-4   | 1     | col ∼28, row ∼3 (between the second and third cave-gap-pools) | Sits above a gap; the player must jump across **and** time the Threadshade's swing — small synthesis beat. |
+| Stage 4 | 4-2   | 1     | col ∼16, row ∼4 (between two zones) | Hangs from the canopy. The dark forest is where the Threadshade reads at its most native — the thread catches a moonlight-silver streak. |
+| Stage 4 | 4-3   | 1     | col ∼28, row ∼3 (over the grove plateau) | Just past the Mossplodder-collision beat. Player's eye is on the ground enemies; Threadshade is the surprise above. |
+
+**Do not** place a Threadshade in the boss arena (Round 4-4 col 32 onward) — the arena belongs to the Bracken Warden alone.
+
+### 16.7 For Design
+
+- Sprite: one new entry, `threadshade`. ∼48 × 48 logical (∼1 tile, with the thread extending up another ∼2 tiles as part of the rendered sprite or as a separate `thread` element — Design's call).
+- 2 idle frames at 6 fps + ∼5 death keyframes. Re-use existing hit-spark sparkles for the end-of-death dissolve.
+- Palette: see §16.4. **No new ink color** — `velvet-shadow` for outlines, as elsewhere.
+
+### 16.8 For Dev
+
+- New enemy type in `assets/sprites/enemies.js` (or wherever current enemies live): `threadshade`.
+- `enemy` component: existing `{ type, dir, ai, hp }` is sufficient — `dir` unused (set `null` or `0`), `ai = 'threadshade'`, `hp = 1`.
+- AI step: `y = baseY + Math.sin(phase) * (3 * TILE / 2); phase += 0.04;` where `baseY = (row + 1.5) * TILE` (the midpoint of the 3-tile vertical range). Initial `phase` may be randomized per-spawn so multiple Threadshades in the same stage don't all bob in lockstep.
+- Spawn at columns in §16.6. `phase` resets only on mid-stage respawn (the world reset takes care of it on death/Continue).
+- Collision: body hitbox ∼32 × 32 px (slightly inset from the 48 × 48 sprite); thread is **visual only** — no collision on the thread.
+- Hatchet hit → standard enemy death (`enemy.hp -= 1` → 0 → trigger death anim → despawn).
+
+---
+
 **v0.75 — theme remap** (post-PR-#26, this PR). Per user direction after the initial publication, the Stage 2-4 theme sequence was corrected. Stage 1 (forest) is unchanged. Stages 2-4 shift one biome along: Stage 2 becomes the **shore**, Stage 3 the **cave**, Stage 4 the **dark forest**. The per-round terrain rhythms, enemy spawn columns, mile-marker positions, and threat-curve totals are preserved; only the mood overlay (palette keywords, signature beats, hazard skin, decoration motif, tile-set / sprite-variant naming) changes. The boss arena's spatial spec, FSM, and attack pattern (`phase3-boss-cast.md`) are unchanged; only its visual setting moves from a ruin chamber to a dark-forest glade clearing — the moss-and-stone Bracken Warden reads at least as naturally against a moonlit canopy as it did against carved stone, see `phase3-boss-cast.md` Changelog for the boss-side rationale.
 
 Before / after (theme + signature beat + new hazard / decoration):
