@@ -54,5 +54,10 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 28, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 18, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 30, row: 7, dir: -1 },
+        // v0.75.1 — amberfig on the warm-pocket plateau row 7 (cols 11-33 are
+        // flat row 7). Brief §15.2: "the brightest non-hostile moment in
+        // Stage 3." Placed at col 24 — between two crystal_veins (cols 16
+        // and 26) so collecting it is a deliberate path choice.
+        { kind: 'amberfig',    col: 24, row: 7 },
     ],
 });

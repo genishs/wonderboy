@@ -210,6 +210,7 @@ export class Renderer {
             const max = (en.type === 'crawlspine' ? 30
                        : en.type === 'mossplodder' ? 30
                        : en.type === 'hummerwing'  ? 30
+                       : en.type === 'threadshade' ? 36
                        : 45);
             ctx.globalAlpha = Math.max(0, (en.deathFrames || 0) / max);
             restoreAlpha = true;
@@ -282,6 +283,7 @@ export class Renderer {
             if (en.ai === 'dead')   return 'dead';
             if (en.type === 'mossplodder') return 'walk';
             if (en.type === 'hummerwing')  return 'drift';
+            if (en.type === 'threadshade') return 'drift';
             if (en.ai === 'patrol' || en.ai === 'turn') return 'walk';
             if (en.type === 'glassmoth') {
                 if (en.ai === 'swoop')   return 'dive';

@@ -86,5 +86,9 @@ export const ROUND = Object.freeze({
         { kind: 'hummerwing',  col: 16, row: 8, dir: -1 },
         { kind: 'hummerwing',  col: 32, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 58, row: 9, dir: -1 },
+        // v0.75.1 — Threadshade between the cave-gap-pool zone and the post-
+        // pool shelf (story brief §16.6: "above a gap; player must jump AND
+        // time the Threadshade's swing"). col 28 is mid-shelf row 8.
+        { kind: 'threadshade', col: 28, row: 3 },
     ],
 });

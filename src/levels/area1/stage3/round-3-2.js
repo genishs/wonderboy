@@ -68,5 +68,12 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 32, row: 9, dir: -1 },
         { kind: 'hummerwing',  col: 14, row: 9, dir: -1 },
         { kind: 'hummerwing',  col: 46, row: 8, dir: -1 },
+        // v0.75.1 — dewplum on cave shelf row 9 (cols 28-33 are flat row 9).
+        // Brief §15.2: "third cave-shelf between two cave-gap-pools". Sits
+        // between the gaps at cols 25-27 and cols 45-47.
+        { kind: 'dewplum',     col: 28, row: 9 },
+        // v0.75.1 — Threadshade hangs above the crystal_vein crest (the cave
+        // is the Threadshade's natural home per story brief §16.6).
+        { kind: 'threadshade', col: 40, row: 4 },
     ],
 });

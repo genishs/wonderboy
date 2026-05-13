@@ -69,5 +69,8 @@ export const ROUND = Object.freeze({
         { kind: 'mossplodder', col: 30, row: 8, dir: -1 },
         { kind: 'hummerwing',  col: 22, row: 8, dir: -1 },
         { kind: 'hummerwing',  col: 44, row: 8, dir: -1 },
+        // v0.75.1 — dewplum on dune crest #2 row 8 (cols 26-32 are flat row 8;
+        // brief §15.2 suggests "second dune crest just past first tidal_edge").
+        { kind: 'dewplum',     col: 28, row: 8 },
     ],
 });

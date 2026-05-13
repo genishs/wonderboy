@@ -89,5 +89,10 @@ export const ROUND = Object.freeze({
         { kind: 'hummerwing',  col: 18, row: 8, dir: -1 },
         { kind: 'hummerwing',  col: 32, row: 7, dir: -1 },
         { kind: 'hummerwing',  col: 58, row: 8, dir: -1 },
+        // v0.75.1 — amberfig (rare +50) on crest #2 row 7 (cols 29-35 are flat
+        // row 7). Placed at col 30 — between the steep climb at col 28 and
+        // the fire at col 33, so the reach feels like a choice: jump up to
+        // the crest, grab the fruit, jump back down past the fire.
+        { kind: 'amberfig',    col: 30, row: 7 },
     ],
 });
