@@ -32,7 +32,7 @@
 | Z + X (hold)    | Higher jump                                   |
 | P / Esc         | Pause                                         |
 
-**Mobile** (touch): left third → move left; bottom-right third → jump; top-right third → attack.
+**Mobile** (touch): four semi-transparent buttons are drawn on the canvas — `←` / `→` (bottom-left) for movement, `Z` (bottom-right, leftmost) for jump, and `X` (bottom-right, rightmost) for attack / sprint. Multi-touch is supported, so you can hold `→` with one finger and tap `Z` or hold `X` with another to run, jump, and sprint freely.
 
 ---
 
