@@ -422,6 +422,20 @@ Per the area-expansion brief §13.6 + this brief:
 
 ## Changelog
 
+### 2026-05-13 — v0.75.1 (post-v0.75 browser-smoke pivot)
+
+After v0.75 shipped, the user playtested in-browser and surfaced two items that touch this brief. See the companion entry in `phase3-area1-expansion.md` Changelog for the full six-item list; only the boss-related items are mirrored here.
+
+1. **Boss spawn-Y bug.** The Bracken Warden currently spawns with its feet **below** the arena floor (sprite y-anchor mis-aligned against the floor row). This brief's §8 already specifies floor-aligned feet at arena entry; the bug is a dev-side y-coordinate fix (anchor / origin handling on the boss sprite). No story-lead spec change is needed; FSM, dimensions, hitbox, arena coordinates, and timings all remain as authored. Acknowledged.
+
+2. **Post-boss loop direction (until Area 2 ships).** Area 2 is not built in v0.75.1. release-master decided: on `bracken.hp == 0` + the existing Area Cleared overlay + the existing 60-frame celebratory pause + fade-to-black, the run **loops back to Stage 1 col 0 with `state.lives` refilled to 3, `state.vitality` refilled to max, and `pl.armed` cleared** — i.e., the same world state as a fresh new-game launch from title, re-using the existing GAME OVER → Continue full-reset flow. The Area Cleared overlay copy (`"Area 1 cleared — the path continues"` / `"Area 1 클리어 — 길은 이어진다."` — per the v0.75 publication of this brief, see §15 / §8) **stays verbatim**. In the v0.75.1 reading the line now means "the path continues — back to Stage 1, fresh"; the bilingual line is honest under both readings and does not need a new translation. When Area 2 ships, the destination of "the path continues" will become Area 2's first stage; the copy will not need to change at that time either.
+
+Open question §15.4 of this brief (whether to revise the Area Cleared copy to mention a future patch number) is **resolved by this entry as: do not change the copy.** The existing line is the right one for both v0.75.1's loop-to-Stage-1 reading and a future Area 2 destination.
+
+No tunable, FSM, geometric value, attack pattern, HP, or arena coordinate is moved in v0.75.1. Sections touched in this Changelog entry: none in the main body — this entry is the only addition.
+
+---
+
 **v0.75 — arena theme remap** (post-PR-#26, this PR). Per the area-expansion brief's theme remap (`phase3-area1-expansion.md` Changelog), the boss arena's *visual setting* moved from an ancient-ruin chamber (mosaic tile, carved channels, dome ceiling, pillar fragments) to a small **dark-forest glade clearing** (moss-on-earth floor, root-knots, near-closed canopy with a vertical moonlight column, far-edge wall of old standing stone half-swallowed by root and bracken). The Bracken Warden itself — silhouette, FSM, attack pattern (moss-pulse shockwave), HP (6), dimensions (~3 × 4 tiles), hitbox, tunable timings, animation cue counts, arena dimensions (12 × 11 tiles), camera-lock behavior, win/lose conditions — is **unchanged**. The moss-and-bracken silhouette reads at least as naturally against a dark canopy as it did against carved stone; if anything, the fern-fronded body is more native to a glade than to a chamber. The color-mood §6 was lightly retuned (the `pillar-shadow-violet` reference now points at `understory-violet`; `mosaic-cool` and `dawn-channel-amber` references in the shockwave's wave visuals are rephrased to the dark-forest palette family; a new `moonlight-rim silver` mood anchor is added for the Warden's upper silhouette). No tunable, FSM, or geometric value moved.
 
 Sections touched: §1 (intro), §2 (silhouette intent — "back wall" → "far edge of the glade"), §4 (wave visuals palette), §6 (mood keywords + cross-palette consistency notes if any), §8 (arena layout diagram and Specifics block — visual description only; dimensions, spawn coordinates, and camera-lock unchanged).
