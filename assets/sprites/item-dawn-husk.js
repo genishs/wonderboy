@@ -170,14 +170,112 @@ const break2 = [
   [0,0,0,0,0,0,0,0,0,0,0,0],
 ];
 
+// burst frame 0 — v0.75.1 extension. Fissure cracks deeper than `break2`: the
+// halves are still in-frame but the dawn-amber bright cells have widened into
+// a 4-cell-wide flare at the center, and the cuff-cream halo has begun ringing
+// the inner edges of both halves. Dev-lead spawns the husk-shell fragment
+// entities at this frame (anchored to the husk's center, with random outward
+// velocity per shell — see `assets/sprites/item-husk-shell.js`).
+// ............
+// ...o....o...
+// ..oL.RR.Lr..
+// ..oL.RR.Lr..
+// ..oL.RR.Lr..
+// .oLLcRRcLLr.
+// .oLLcRRcLLr.
+// .ollcRRcllr.
+// ..oll.RR.ll.
+// ..oo..RR..o.
+// .....rRRr...
+// ............
+const burst0 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,1,0,0,0,0,1,0,0,0],
+  [0,0,1,3,0,6,6,0,3,5,0,0],
+  [0,0,1,3,0,6,6,0,3,5,0,0],
+  [0,0,1,3,0,6,6,0,3,5,0,0],
+  [0,1,3,3,4,6,6,4,3,3,5,0],
+  [0,1,3,3,4,6,6,4,3,3,5,0],
+  [0,1,2,2,4,6,6,4,2,2,5,0],
+  [0,0,1,2,2,0,6,6,0,2,2,0],
+  [0,0,1,1,0,0,6,6,0,0,1,0],
+  [0,0,0,0,0,5,6,6,5,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+// burst frame 1 — halves opening explosively: each half drifts further from
+// center; a 2-cell flash of cuff-cream (palette 4) surrounds the dawn-amber
+// flare core. The left half slides one cell left, the right half slides one
+// cell right relative to `break2`'s position. Reads as the husk visibly
+// fragmenting at the apex of the burst.
+// ............
+// .o......o...
+// .oL....c.Lr.
+// .oL....c.Lr.
+// oL.cccRRccc.
+// oL.cccRRcccr
+// .lcccRRRccclr
+// ..l...RR...l
+// .o....RR....o
+// .o.....rR....
+// .....rR.....
+// ............
+const burst1 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,1,0,0,0,0,0,0,1,0,0,0],
+  [0,1,3,0,0,0,0,4,0,3,5,0],
+  [0,1,3,0,0,0,0,4,0,3,5,0],
+  [1,3,0,4,4,4,6,6,4,4,4,0],
+  [1,3,0,4,4,4,6,6,4,4,4,5],
+  [0,2,4,4,4,6,6,6,4,4,4,5],
+  [0,0,2,0,0,0,6,6,0,0,0,2],
+  [0,1,0,0,0,0,6,6,0,0,0,1],
+  [0,1,0,0,0,0,0,5,6,0,0,0],
+  [0,0,0,0,0,5,6,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+// burst frame 2 — halves about to leave the frame: only thin shell remnants
+// at the far left and far right edges of the sprite; the center is filled
+// with dawn-amber afterglow and cuff-cream sparkles. The hatchet pickup
+// (rendered by dev-lead as a separate sprite) is what the player sees after
+// this frame disposes. The husk entity despawns at the end of this frame.
+// ............
+// ............
+// o........5..
+// oL.cRRRRc.Lr
+// .o.cRRRRc.r.
+// ...cRRRRc...
+// ...cRRRRc...
+// .o.cRRRRc.r.
+// oL.cRRRRc.Lr
+// o........5..
+// ............
+// ............
+const burst2 = [
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [1,0,0,0,0,0,0,0,0,0,5,0],
+  [1,3,0,4,6,6,6,6,4,0,3,5],
+  [0,1,0,4,6,6,6,6,4,0,5,0],
+  [0,0,0,4,6,6,6,6,4,0,0,0],
+  [0,0,0,4,6,6,6,6,4,0,0,0],
+  [0,1,0,4,6,6,6,6,4,0,5,0],
+  [1,3,0,4,6,6,6,6,4,0,3,5],
+  [1,0,0,0,0,0,0,0,0,0,5,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
 export const FRAMES = {
   rest:  [rest0, rest1],
   break: [break0, break1, break2],
+  burst: [burst0, burst1, burst2], // v0.75.1 extension — dramatic separation; dev-lead spawns husk-shell fragments at burst0
 };
 
 export const META = {
   w: 12,
   h: 12,
   anchor: { x: 6, y: 11 }, // base center — egg sits flush on ground
-  fps: 4,                  // break plays ~12 frames at 4 fps over 3 frames; shimmer~ 2fps in Dev
+  fps: 4,                  // break plays ~12 frames at 4 fps over 3 frames; shimmer~ 2fps in Dev. `burst` plays at 8 fps (override in dev-lead's anim system).
 };
