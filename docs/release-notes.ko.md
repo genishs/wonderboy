@@ -6,6 +6,44 @@
 
 ---
 
+## v1.0 — Phase 4: Area 2 "the Cinder Reach" + Web Audio + game-over/title/credits 폴리시
+
+**날짜:** 2026-05-17. **태그:** `v1.0` (main). **Pages:** [genishs.github.io/wonderboy](https://genishs.github.io/wonderboy/).
+
+v1.0 은 최종 quartile 콘텐츠를 ship 합니다: 두 번째 플레이 가능 에어리어, 완전한 오디오 통합, 런을 마무리하는 title/game-over/credits 폴리시.
+
+### 하이라이트
+
+1. **Area 2 — the Cinder Reach.** Reed 는 the Old Threshold 캐노피 글레이드에서 낡은 산허리길을 따라 바람에 깎인 고지대로 올라갑니다. 4 stage (Switchback → Beacon Walk → Knifing → Reignward), 오리지널 타일셋·팔레트, 12 개 신규 패럴랙스 SVG.
+2. **3종 신규 적:** **Cinderwisp** (바람에 떠다니는 사인 표류체), **Quarrywight** (갑옷 두른 돌 보행자, 런 최초의 멀티히트 적 — 도끼 2 hit kill, 첫 hit 가 갑옷을 깸), **Skyhook** (절벽에 앉아있는 낙하자, perch/fall/walk FSM).
+3. **보스 — the Reignwarden.** 봉수대 좌대 위에 서 있는 standing humanoid colossus. HP 9, 3-잿불 볼리 공격이 아레나 바닥에 ~2 초 transient 잿불 구덩이 위험을 스폰. Bracken Warden 과 같은 Warden-모양 FSM; 의도적 인-프로젝트 평행.
+4. **2종 신규 픽업:** **Sunpear** (+50 vitality, 런 최고 음식), **Flintchip** (transient buff — 화면 도끼 cap 을 2 에서 3 으로 10 초 상승; stage 전환 시 클리어).
+5. **Web Audio 통합.** 5종 프로시저럴 BGM 트랙 (title Lydian / area1 unchanged / area2 Phrygian / boss-fight Dorian / game-over chromatic 하강) + multi-voice harmony, + C-major area-cleared 스팅거. 22 SFX 이벤트 wiring (HeroController, HatchetSystem, CombatSystem, HuskSystem, ItemSystem, Phase2EnemyAI, BossSystem, AreaManager, StateManager). state-driven BGM 디스패처 + per-state mix 전환 (BGM gain 이 title 에서 0.55, boss-fight 에서 0.40, game-over 에서 0.35 로 ramp).
+6. **CREDITS 상태 (NEW).** Reignwarden 처치 시 런이 스크롤 크레딧 화면을 거침. 오리지널 "in the spirit of 1986/87 platformers" 표현 — 어떤 저작권 작품도 명시하지 않음. 어떤 입력이든 fresh Area 1 런을 재시작.
+7. **타이틀 폴리시.** 화면 라벨이 이제 **"WONDER BOY TRIBUTE / The Mossline Path"** (repo README 와 일치; 더 명확한 트리뷰트 자세, 상표 재현 없음).
+8. **Game-over 폴리시.** Bilingual continue 프롬프트 그대로; 추가로 현재 Area-Stage (예: "Area 2 — Stage 2-3") 를 흐릿한 회색으로 표시 — 플레이어가 어디서 쓰러졌는지 읽음.
+
+### 변경 사항 (PR)
+
+- **#38** — story-lead: Phase 4 brief `phase4-area2-cast` + `phase4-audio` (EN+KO 페어, ~1,600 LoC 디자인 spec).
+- **#39** — design-lead: Area 2 자산 — 7 sprite + 4 tileset + 12 패럴랙스 SVG (+4,007 LoC 오리지널 아트 데이터).
+- **#40** — dev-lead: AudioManager 확장, Area 2 stage tree, area-aware AreaManager / TileCache / ParallaxBackground, Reignwarden 보스, 잿불 볼리 + ember-pit 위험, Sunpear + Flintchip ItemSystem, CREDITS 상태, title/game-over 폴리시 (+2,013 LoC 엔진 코드).
+- **#41** — release-master: `game.js` 의 Area 2 자산 wiring (sprite + tile import + cache load) + v1.0 릴리즈 노트.
+
+### Quartile 상태
+
+- v1.0 은 **전체 quartile 체크리스트** 를 ship: 풀 콘텐츠 (보스 포함 플레이 가능 에어리어 2개) + game-over/continue + polish + 검증된 모바일 컨트롤 (v0.75.1 부터 carry).
+- README 가 약속한 7 에어리어 중 6 개는 post-1.0 확장 예정. v1.0 의 게임 루프는 완전한 데모: Area 1 → Bracken Warden → Area 2 → Reignwarden → credits → restart.
+- 프로시저럴 Web Audio 는 **레포에 바이너리 오디오 자산 0개** 를 의미 — sprite 와 tile 에 사용한 같은 접근이 이제 모든 매체에서 uniform.
+
+### 알려진 한계
+
+- Area 2 stage 2-2, 2-3, 2-4 는 single-round stub 으로 ship (brief 의 4-round-per-stage spec 대비). Stage 2-1 만 풀 4 round. 향후 패치에서 inner round 확장 가능.
+- Cinderwisp 의 Stage 2-3 wind-modulation bump (brief 가 25% 속도/진폭 증가 spec) 미적용; base 값으로 ship.
+- 태그 전 in-browser smoke 미실행 (autonomous build 의 harness 에 `npx serve` 용 Node-on-PATH 없음). CI 의 `node --check` 가 변경된 모든 `.js` 문법 검증; 라이브 URL 이 첫 실제 런타임 게이트.
+
+---
+
 ## v0.75.1 — Phase 3 패치: 히어로 스케일 + 과일 + Threadshade + husk burst + 스테이지 패럴랙스 + 보스 스폰 + Area 루프 + 터치 컨트롤
 
 **릴리즈:** 2026-05-14 (예정)

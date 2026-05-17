@@ -9,6 +9,14 @@ import { HATCHET, EGG } from '../config/PhaseTwoTunables.js';
 
 const TILE = 48;
 
+// v1.0 — small helper for the audio singleton fire-and-forget. Avoids a per-
+// call typeof check and keeps the SFX wiring readable inline.
+const _sfx = (name) => {
+    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+        globalThis.audio.playSFX(name);
+    }
+};
+
 export class HatchetSystem {
     constructor() {
         // No internal state.
@@ -21,7 +29,13 @@ export class HatchetSystem {
     tryThrow(ecs, heroTf, pl) {
         if (!pl || pl.armed !== true) return false;
         const live = ecs.query('projectile').filter(r => r.projectile.type === 'hatchet');
-        if (live.length >= HATCHET.maxOnScreen) return false;
+        // v1.0 — Flintchip buff lifts the on-screen cap from 2 to 3 while
+        // pl.flintchipFrames > 0 (ItemSystem ticks the timer; AreaManager._loadStage
+        // clears it on stage transition).
+        const cap = ((pl.flintchipFrames | 0) > 0)
+            ? Math.max(HATCHET.maxOnScreen, 3)
+            : HATCHET.maxOnScreen;
+        if (live.length >= cap) return false;
 
         const facing = pl.facingRight ? 1 : -1;
         const w = 24, h = 24;     // 12*2 = 24 (sprite scale=2)
@@ -44,6 +58,8 @@ export class HatchetSystem {
             name: 'hatchet', anim: 'fly', frame: 0, scale: 2,
             flip: !pl.facingRight, color: '#b0a090',
         });
+        // v1.0 — axe-throw SFX.
+        _sfx('axe');
         return true;
     }
 
@@ -84,6 +100,8 @@ export class HatchetSystem {
             ecs.destroyEntity(row.id);
             // Award a small score so pickup feels like progress.
             state?.addScore?.(50);
+            // v1.0 — hatchet pickup SFX (rising tri-tone chime).
+            _sfx('collect');
         }
     }
 
@@ -103,11 +121,11 @@ export class HatchetSystem {
         const rowMid  = Math.floor((tf.y + tf.h / 2) / ts);
         if (v.vx > 0) {
             const tile = level.getTile(cxRight, rowMid);
-            if (tile?.solid && !tile.slopeProfile) { ecs.destroyEntity(id); return; }
+            if (tile?.solid && !tile.slopeProfile) { _sfx('axe_hit_wall'); ecs.destroyEntity(id); return; }
         }
         if (v.vx < 0) {
             const tile = level.getTile(cxLeft, rowMid);
-            if (tile?.solid && !tile.slopeProfile) { ecs.destroyEntity(id); return; }
+            if (tile?.solid && !tile.slopeProfile) { _sfx('axe_hit_wall'); ecs.destroyEntity(id); return; }
         }
 
         // Ground: any solid below at foot Y = despawn.
@@ -116,6 +134,7 @@ export class HatchetSystem {
         for (let c = Math.floor(tf.x / ts); c <= Math.floor((tf.x + tf.w - 1) / ts); c++) {
             const t = level.getTile(c, fr);
             if (t?.solid && !t.slopeProfile && v.vy >= 0) {
+                _sfx('axe_hit_wall');
                 ecs.destroyEntity(id);
                 return;
             }

@@ -57,6 +57,19 @@ import * as amberfigModule       from './assets/sprites/item-amberfig.js';
 import * as threadshadeModule    from './assets/sprites/enemy-threadshade.js';
 import * as huskShellModule      from './assets/sprites/item-husk-shell.js';
 
+// v1.0 — Area 2 sprite + tile modules (the Cinder Reach).
+import * as cinderwispModule     from './assets/sprites/enemy-cinderwisp.js';
+import * as quarrywightModule    from './assets/sprites/enemy-quarrywight.js';
+import * as skyhookModule        from './assets/sprites/enemy-skyhook.js';
+import * as bossReignwardenModule from './assets/sprites/boss-reignwarden.js';
+import * as cinderModule         from './assets/sprites/projectile-cinder.js';
+import * as sunpearModule        from './assets/sprites/item-sunpear.js';
+import * as flintchipModule      from './assets/sprites/item-flintchip.js';
+import * as area2Stage1TilesModule from './assets/tiles/area2-stage1-switchback.js';
+import * as area2Stage2TilesModule from './assets/tiles/area2-stage2-beaconwalk.js';
+import * as area2Stage3TilesModule from './assets/tiles/area2-stage3-knifing.js';
+import * as area2Stage4TilesModule from './assets/tiles/area2-stage4-reignward.js';
+
 const CANVAS_W = 768;
 const CANVAS_H = 576;
 
@@ -138,12 +151,14 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
         stageTransitionSystem.update(ecsArg, levelManager, stateArg);
 
         // Skip combat + AI during respawn / stage-clear / game-over /
-        // stage-transition / area-cleared / boss-fight-with-no-fight-yet.
+        // stage-transition / area-cleared / credits.
         const respawnLock = (stateArg.gameState === 'RESPAWNING'
                           || stateArg.gameState === 'STAGE_CLEAR'
                           || stateArg.gameState === 'GAME_OVER'
                           || stateArg.gameState === 'STAGE_TRANSITION'
-                          || stateArg.gameState === 'AREA_CLEARED');
+                          || stateArg.gameState === 'AREA_CLEARED'
+                          || stateArg.gameState === 'CREDITS'
+                          || stateArg.gameState === 'TITLE');
 
         heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, null, hatchetSystem);
         if (!respawnLock) {
@@ -201,15 +216,52 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
 const gameLoop = new GameLoop({ ecs, state, input, physics, renderer, levelManager, mechanics, audio });
 
 // ── Init ────────────────────────────────────────────────────────────────────
-let _initFired = false;
-async function init() {
-    if (_initFired) return;
-    _initFired = true;
-    document.removeEventListener('click',      init);
-    document.removeEventListener('keydown',    init);
-    document.removeEventListener('touchstart', init);
+//
+// v1.0 — two-phase init. First user-gesture (click / key / touchstart) unlocks
+// AudioContext and starts the `title` BGM (no gameplay yet — Renderer.drawTitle
+// is still on screen). Second user-input dismisses the title and starts the
+// game proper (loading sprites + tiles + bgs, then gameLoop.start()).
+let _audioReady   = false;
+let _gameLaunched = false;
 
-    await audio.init();
+async function _firstGesture() {
+    if (_audioReady) return;
+    _audioReady = true;
+    try {
+        await audio.init();
+        audio.playBGM('title');
+    } catch (_e) { /* AudioContext failed; the game still runs silently */ }
+}
+
+async function _launchGame() {
+    if (_gameLaunched) return;
+    _gameLaunched = true;
+    document.removeEventListener('click',      _onUserInput);
+    document.removeEventListener('keydown',    _onUserInput);
+    document.removeEventListener('touchstart', _onUserInput);
+    // Title-confirm SFX before BGM swap (so the title chime is still audible
+    // over the title track during the brief overlap).
+    audio.playSFX('title_confirm');
+    audio.playBGM('area1');
+    await init();
+}
+
+function _onUserInput(_ev) {
+    if (!_audioReady) {
+        // First gesture: unlock audio + start title BGM. The second gesture
+        // (next click / keypress) starts the game.
+        _firstGesture();
+        return;
+    }
+    if (!_gameLaunched) _launchGame();
+}
+
+async function init() {
+    document.removeEventListener('click',      _onUserInput);
+    document.removeEventListener('keydown',    _onUserInput);
+    document.removeEventListener('touchstart', _onUserInput);
+
+    if (!audio.initialized) await audio.init();
 
     // Sprite cache — Phase 1 + Phase 2 + Phase 3 modules
     await spriteCache.load('hero',            heroReedModule);
@@ -229,15 +281,36 @@ async function init() {
     await spriteCache.load('amberfig',        amberfigModule);
     await spriteCache.load('threadshade',     threadshadeModule);
     await spriteCache.load('husk-shell',      huskShellModule);
+    // v1.0 — Area 2 sprites (Cinder Reach cast + boss + projectile + 2 pickups).
+    await spriteCache.load('cinderwisp',      cinderwispModule);
+    await spriteCache.load('quarrywight',     quarrywightModule);
+    await spriteCache.load('skyhook',         skyhookModule);
+    await spriteCache.load('reignwarden',     bossReignwardenModule);
+    await spriteCache.load('cinder',          cinderModule);
+    await spriteCache.load('sunpear',         sunpearModule);
+    await spriteCache.load('flintchip',       flintchipModule);
     renderer.spriteCache = spriteCache;
 
-    // Tile cache — load all 4 tilesets up front, then activate stage 1.
-    await tileCache.loadStageSet(1, area1TilesModule);
-    await tileCache.loadStageSet(2, area1Stage2TilesModule);
-    await tileCache.loadStageSet(3, area1Stage3TilesModule);
-    await tileCache.loadStageSet(4, area1Stage4TilesModule);
-    tileCache.setActiveStage(1);
+    // Tile cache — load all 4 Area 1 tilesets up front.
+    await tileCache.loadStageSet(1, area1TilesModule, 1);
+    await tileCache.loadStageSet(2, area1Stage2TilesModule, 1);
+    await tileCache.loadStageSet(3, area1Stage3TilesModule, 1);
+    await tileCache.loadStageSet(4, area1Stage4TilesModule, 1);
+    // v1.0 — Area 2 tile modules (the Cinder Reach: switchback / beacon walk /
+    // knifing / reignward). All four registered up-front so stage transitions
+    // can swap them via TileCache.setActiveStage(stage, area).
+    await tileCache.loadStageSet(1, area2Stage1TilesModule, 2);
+    await tileCache.loadStageSet(2, area2Stage2TilesModule, 2);
+    await tileCache.loadStageSet(3, area2Stage3TilesModule, 2);
+    await tileCache.loadStageSet(4, area2Stage4TilesModule, 2);
+    tileCache.setActiveStage(1, 1);
     await parallax.loadArea(1);
+    // v1.0 — Area 2 parallax (silently tolerant of missing files).
+    try {
+        await parallax.loadArea2();
+    } catch (e) {
+        console.error('[game] parallax.loadArea2 failed:', e);
+    }
 
     // Phase 3 entry: Area 1, starting at Stage 1.
     levelManager.loadAreaRound(1, 1, ecs, state, { tileCache, parallax });
@@ -248,11 +321,43 @@ async function init() {
     // Wire BossSystem into AreaManager so stage swaps can call resetForStageLoad.
     if (levelManager.areaManager) levelManager.areaManager.bossSystem = bossSystem;
 
+    // v1.0 — set state to PLAYING here (formerly done in GameLoop.start). The
+    // state listener below drives BGM switches per state-change.
+    state.setGameState('PLAYING');
     gameLoop.start();
 }
-document.addEventListener('click',      init, { once: true });
-document.addEventListener('keydown',    init, { once: true });
-document.addEventListener('touchstart', init, { once: true });
+
+// v1.0 — state-driven BGM dispatcher. Bridges StateManager state changes to
+// AudioManager.playBGM. Mapping per docs/briefs/phase4-audio.md §4.1.
+//   PLAYING        → area1 (Area 1) or area2 (Area 2)
+//   BOSS_FIGHT     → boss-fight
+//   GAME_OVER      → game-over (one-shot)
+//   AREA_CLEARED   → area-cleared (one-shot stinger; main BGM continues
+//                    underneath, so we don't switch the main loop here;
+//                    instead BossSystem fires boss_defeat and AreaManager
+//                    fires area_cleared SFX/stinger directly).
+state.on('stateChange', ({ next }) => {
+    if (!audio.initialized) return;
+    if (next === 'PLAYING' || next === 'STAGE_TRANSITION') {
+        const areaIdx = levelManager.areaManager?.areaIndex || 1;
+        const bgm = (areaIdx === 2) ? 'area2' : 'area1';
+        audio.playBGM(bgm);
+    } else if (next === 'BOSS_FIGHT') {
+        audio.playBGM('boss-fight');
+    } else if (next === 'GAME_OVER') {
+        audio.playBGM('game-over');
+    } else if (next === 'TITLE' || next === 'CREDITS') {
+        // CREDITS uses the title BGM (warm and welcoming closes the run);
+        // an explicit dismiss back to TITLE keeps the same track.
+        audio.playBGM('title');
+    }
+    // RESPAWNING / AREA_CLEARED / PAUSED / STAGE_CLEAR don't switch main BGM
+    // — they leave the current track playing.
+});
+
+document.addEventListener('click',      _onUserInput);
+document.addEventListener('keydown',    _onUserInput);
+document.addEventListener('touchstart', _onUserInput);
 
 renderer.drawTitle();
 
@@ -264,3 +369,7 @@ window.gameLoop     = gameLoop;
 window.renderer     = renderer;
 window.bossSystem   = bossSystem;
 window.tileCache    = tileCache;
+// v1.0 — audio is a singleton accessed from gameplay systems via window.audio.
+// Cleaner than threading the ref through every System.update() signature for a
+// per-event side-effect; matches the existing pattern for `window.ecs` etc.
+window.audio        = audio;

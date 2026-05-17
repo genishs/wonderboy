@@ -55,19 +55,23 @@ export class Renderer {
     }
 
     // ── Title / start screen ───────────────────────────────────────────────
+    // v1.0 — tribute-tone title per cast brief §7.6.
+    //   line 1: "WONDER BOY TRIBUTE"   (matches the repo README)
+    //   line 2: "The Mossline Path"    (Area 1's bilingual name)
+    // The earlier "LEGACY REBIRTH" subtitle is replaced; the start prompt is kept.
     drawTitle() {
         const ctx = this.ctx;
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, this.width, this.height);
 
         ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 52px monospace';
+        ctx.font = 'bold 44px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('WONDER BOY', this.width / 2, this.height / 2 - 50);
+        ctx.fillText('WONDER BOY TRIBUTE', this.width / 2, this.height / 2 - 50);
 
         ctx.fillStyle = '#FF8C00';
-        ctx.font = '22px monospace';
-        ctx.fillText('LEGACY REBIRTH', this.width / 2, this.height / 2);
+        ctx.font = '20px monospace';
+        ctx.fillText('The Mossline Path', this.width / 2, this.height / 2);
 
         ctx.fillStyle = '#FFF';
         ctx.font = '16px monospace';
@@ -383,19 +387,27 @@ export class Renderer {
             ctx.fillStyle = '#FF2222';
             ctx.font = '48px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 20);
-            // v0.50.2 — Phase 2 has unlimited continues; v0.25.x Phase 1 stays
-            // terminal (no continueRun method on the v0.25.x path, only set in
-            // v0.50.2 StateManager). The bilingual prompt nudges the player to
-            // press any of the gameplay action keys; HeroController watches.
+            ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 30);
+
+            // v1.0 — show current Area and Stage so the player knows where
+            // they died. The line is dim gray so it doesn't compete with the
+            // primary "Press any key to continue" prompt.
+            const am = this.areaManager;
+            if (am) {
+                ctx.fillStyle = '#888';
+                ctx.font = '14px monospace';
+                ctx.fillText(`Area ${am.areaIndex} — Stage ${am.areaIndex}-${am.currentStageIndex}`,
+                             this.width / 2, this.height / 2 + 4);
+            }
+
             ctx.fillStyle = '#FFF';
             ctx.font = '18px monospace';
             if (typeof state.continueRun === 'function') {
-                ctx.fillText('Press any key to continue', this.width / 2, this.height / 2 + 26);
+                ctx.fillText('Press any key to continue', this.width / 2, this.height / 2 + 36);
                 ctx.font = '14px monospace';
-                ctx.fillText('아무 키나 눌러 계속', this.width / 2, this.height / 2 + 50);
+                ctx.fillText('아무 키나 눌러 계속', this.width / 2, this.height / 2 + 58);
             } else {
-                ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 30);
+                ctx.fillText('REFRESH TO RETRY', this.width / 2, this.height / 2 + 36);
             }
         }
 
@@ -425,6 +437,15 @@ export class Renderer {
         // v0.75 — Area-cleared overlay (terminal closure after boss death).
         if (state.gameState === 'AREA_CLEARED') {
             this._drawAreaCleared();
+        }
+
+        // v1.0 — Credits roll. Scrolls upward over ~12 sec; any input dismisses
+        // to TITLE. The Credits frame counter lives on the renderer (so it
+        // continues to advance even if state.update is paused).
+        if (state.gameState === 'CREDITS') {
+            this._drawCredits();
+        } else {
+            this._creditsFrame = 0;
         }
 
         // v0.50.1 — Mile-marker overlay (Round 1-X bilingual title). Driven by
@@ -633,12 +654,13 @@ export class Renderer {
         // visual cue.)
         const am = this.areaManager;
         const ecs = (typeof window !== 'undefined') ? window.ecs : null;
-        let hp = 6, maxHp = 6;
+        let hp = 6, maxHp = 6, bossArea = 1;
         if (ecs) {
             const bosses = ecs.query('boss');
             if (bosses.length) {
-                hp    = bosses[0].boss.hp | 0;
-                maxHp = bosses[0].boss.maxHp | 0;
+                hp       = bosses[0].boss.hp | 0;
+                maxHp    = bosses[0].boss.maxHp | 0;
+                bossArea = bosses[0].boss.area | 0;
             }
         }
         if (maxHp <= 0) return;
@@ -653,7 +675,9 @@ export class Renderer {
         ctx.font      = '12px monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFD878';
-        ctx.fillText('BRACKEN WARDEN', this.width / 2, y - 4);
+        // v1.0 — area-aware boss name.
+        const bossName = (bossArea === 2) ? 'REIGNWARDEN' : 'BRACKEN WARDEN';
+        ctx.fillText(bossName, this.width / 2, y - 4);
         for (let i = 0; i < maxHp; i++) {
             const x = startX + i * (pipW + gap);
             const filled = i < hp;
@@ -706,7 +730,10 @@ export class Renderer {
         ctx.textAlign   = 'center';
         ctx.fillStyle   = '#f8d878';
         ctx.font        = 'bold 28px monospace';
-        ctx.fillText('AREA 1 — CLEARED', this.width / 2, this.height / 2 - 36);
+        // v1.0 — area-aware header. The payload carries `areaIndex`; falls
+        // back to `am.areaIndex` if missing for back-compat.
+        const ai = (p && typeof p.areaIndex === 'number') ? p.areaIndex : (am.areaIndex || 1);
+        ctx.fillText(`AREA ${ai} — CLEARED`, this.width / 2, this.height / 2 - 36);
         ctx.fillStyle   = '#FFF';
         ctx.font        = '16px monospace';
         if (p) {
@@ -716,6 +743,61 @@ export class Renderer {
         ctx.font = '12px monospace';
         ctx.fillStyle = '#aaa';
         ctx.fillText('Press any key', this.width / 2, this.height / 2 + 64);
+        ctx.restore();
+    }
+
+    /**
+     * v1.0 — Credits roll. Triggered after Area 2 is cleared. ~12 sec scroll;
+     * any input dismisses to TITLE (the dismiss path lives in HeroController
+     * along with the AREA_CLEARED dismiss). Per cast brief §8: NO specific
+     * copyrighted title is referenced; we credit "the spirit of 1986/87
+     * platformers" in a generic, non-trademark phrasing.
+     */
+    _drawCredits() {
+        const ctx = this.ctx;
+        // Backing — full black.
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        this._creditsFrame = (this._creditsFrame || 0) + 1;
+        const totalFrames = 720;            // 12 sec @ 60 fps
+        const t = Math.min(this._creditsFrame, totalFrames);
+        const lines = [
+            { text: 'WONDER BOY TRIBUTE',                    size: 32, color: '#FFD700', gap: 56 },
+            { text: 'A v1.0 release',                         size: 18, color: '#FF8C00', gap: 28 },
+            { text: '',                                       size: 16, color: '#FFF',    gap: 22 },
+            { text: '— Cast —',                               size: 20, color: '#f8d878', gap: 36 },
+            { text: 'Reed Bramblestep',                       size: 16, color: '#FFF',    gap: 22 },
+            { text: 'Crawlspine · Glassmoth · Sapling',       size: 16, color: '#FFF',    gap: 22 },
+            { text: 'Mossplodder · Hummerwing · Threadshade', size: 16, color: '#FFF',    gap: 22 },
+            { text: 'Cinderwisp · Quarrywight · Skyhook',     size: 16, color: '#FFF',    gap: 22 },
+            { text: 'Bracken Warden · Reignwarden',           size: 16, color: '#FFF',    gap: 22 },
+            { text: '',                                       size: 16, color: '#FFF',    gap: 36 },
+            { text: '— World —',                              size: 20, color: '#f8d878', gap: 36 },
+            { text: 'The Mossline Path · The Cinder Reach',   size: 16, color: '#FFF',    gap: 22 },
+            { text: '',                                       size: 16, color: '#FFF',    gap: 36 },
+            { text: '— Build —',                              size: 20, color: '#f8d878', gap: 36 },
+            { text: 'Vanilla JS · HTML5 Canvas · Web Audio',  size: 16, color: '#FFF',    gap: 22 },
+            { text: '',                                       size: 16, color: '#FFF',    gap: 36 },
+            { text: 'In the spirit of 1986/87 platformers.',  size: 16, color: '#888',    gap: 22 },
+            { text: '',                                       size: 16, color: '#FFF',    gap: 36 },
+            { text: 'Press any key to return to title',       size: 14, color: '#666',    gap: 22 },
+        ];
+        const totalContentH = lines.reduce((acc, ln) => acc + ln.gap, 0);
+        // Scroll from canvas-bottom to canvas-top: scrollY starts at +H, ends
+        // around -totalContentH (so the last line clears the top by the end).
+        const scrollY = this.height - (t / totalFrames) * (this.height + totalContentH);
+        ctx.save();
+        ctx.textAlign = 'center';
+        let y = scrollY;
+        for (const ln of lines) {
+            if (y > -ln.gap && y < this.height + ln.gap) {
+                ctx.fillStyle = ln.color;
+                ctx.font = `${ln.size}px monospace`;
+                ctx.fillText(ln.text, this.width / 2, y);
+            }
+            y += ln.gap;
+        }
         ctx.restore();
     }
 

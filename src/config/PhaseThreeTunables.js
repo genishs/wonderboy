@@ -106,3 +106,94 @@ export const AREA1_STAGES = Object.freeze({
         4: Object.freeze({ en: 'Stage 4 — The Old Threshold', ko: '스테이지 4 — The Old Threshold' }),
     }),
 });
+
+// v1.0 — Area 2 stage names (bilingual). Used by Renderer for the inter-stage
+// overlay during Area 2 transitions.
+export const AREA2_STAGES = Object.freeze({
+    count: 4,
+    stageNames: Object.freeze({
+        1: Object.freeze({ en: 'Stage 2-1 — The Switchback',  ko: '스테이지 2-1 — 산허리길' }),
+        2: Object.freeze({ en: 'Stage 2-2 — The Beacon Walk', ko: '스테이지 2-2 — 봉수대 옛길' }),
+        3: Object.freeze({ en: 'Stage 2-3 — The Knifing',     ko: '스테이지 2-3 — 협곡' }),
+        4: Object.freeze({ en: 'Stage 2-4 — The Reignward',   ko: '스테이지 2-4 — 봉수대 마루' }),
+    }),
+});
+
+// v1.0 — Cinderwisp tunables. Per docs/briefs/phase4-area2-cast.md §2.1 / §9.
+export const CINDERWISP = Object.freeze({
+    driftXPerFrame:    1.4,
+    driftXKnifing:     1.75,
+    bobAmpPx:          8,
+    bobAmpKnifing:    10,
+    bobPeriodFrames:  60,
+    hitboxW:          18,
+    hitboxH:          16,
+    deathFrames:      18,
+});
+
+// v1.0 — Quarrywight tunables. Per cast brief §2.2 / §9.
+export const QUARRYWIGHT = Object.freeze({
+    walkXPerFrame:     1.2,
+    armorHits:         1,    // first hatchet hit strips armor
+    totalHp:           2,    // 2 hatchet hits to kill
+    hitboxW:          28,
+    hitboxH:          44,
+    hurtFrames:        8,
+    deathFrames:      30,
+});
+
+// v1.0 — Skyhook tunables. Per cast brief §2.3 / §9.
+export const SKYHOOK = Object.freeze({
+    triggerDistanceTiles:  6,
+    windupFrames:         20,
+    fallYPerFrame:         4,
+    landedFrames:         15,
+    walkXPerFrame:         1.6,
+    hitboxW:              24,
+    hitboxH:              28,
+    deathFrames:          24,
+});
+
+// v1.0 — Reignwarden (Area 2 boss). Per cast brief §3 / §9. Mirrors the
+// Bracken Warden shape so BossSystem can dispatch on `boss.area`.
+export const REIGNWARDEN = Object.freeze({
+    hpMax:              9,
+    idleFrames:        60,
+    windupFrames:      45,
+    attackFrames:      18,
+    attackSpawnFrame:  12,
+    recoverFrames:     90,
+    hurtFrames:        10,
+    deathFrames:       60,
+    celebrationFrames: 60,
+    bodyWidthPx:      144,    // 3 tiles wide × 48 (display tile size)
+    bodyHeightPx:     240,    // 5 tiles tall (incl. 2-tile pedestal)
+    hitboxOffsetX:     40,
+    hitboxOffsetY:     90,
+    hitboxWidth:       64,
+    hitboxHeight:      60,
+});
+
+// v1.0 — Cinder volley projectile (Reignwarden attack). 3 cinders fan out at
+// distinct angles + speeds; on floor-contact, spawn an ember-pit hazard tile.
+export const CINDER_VOLLEY = Object.freeze({
+    // [vx, vy] for each of the 3 cinders. Cinder 1 leftward-down, Cinder 2
+    // straight-down, Cinder 3 leftward-flatter. Speeds + angles per brief §3.4.
+    cinder1Vx:         -4.0,   // ~205° angle, |v|=4.5 (cos*4.5 ≈ -4.08)
+    cinder1Vy:         -1.9,   // upward initial kick (gravity will arc it down)
+    cinder2Vx:         -0.5,   // straight-down at ~270°, |v|=4.0
+    cinder2Vy:         -3.0,
+    cinder3Vx:         -4.6,   // ~190°, |v|=5.0 (mostly horizontal-left)
+    cinder3Vy:         -1.0,
+    gravity:            0.18,
+    widthPx:           20,
+    heightPx:          20,
+    spawnOffsetX:     -10,     // palm position relative to boss tf
+    spawnOffsetY:      40,
+    lifetimeFrames:   180,
+});
+
+// v1.0 — Ember-pit hazard tile (transient). Per cast brief §3.4.
+export const EMBER_PIT = Object.freeze({
+    ttlFrames:        120,    // ~2 sec @ 60 fps
+});

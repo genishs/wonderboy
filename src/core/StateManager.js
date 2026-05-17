@@ -15,10 +15,14 @@ export const GAME_STATES = Object.freeze({
     //   BOSS_FIGHT       : camera locked, boss FSM active. PLAYING-like input/physics
     //                      semantics; only CombatSystem + BossSystem fire boss-specific paths.
     //   AREA_CLEARED     : terminal closure overlay after Bracken Warden death. Holds
-    //                      AREA_CLEARED.fadeOutFrames + holdFrames; any input dismisses to TITLE.
+    //                      AREA_CLEARED.fadeOutFrames + holdFrames; any input dismisses to
+    //                      Area 2 (v1.0) or CREDITS (after Area 2 boss clears).
     STAGE_TRANSITION:  'STAGE_TRANSITION',
     BOSS_FIGHT:        'BOSS_FIGHT',
     AREA_CLEARED:      'AREA_CLEARED',
+    // v1.0 — Credits roll. Triggered after Area 2 Area-Cleared overlay dismisses.
+    // Scrolling text (~12 sec); any input dismisses to TITLE.
+    CREDITS:           'CREDITS',
 });
 
 export class StateManager {
@@ -182,27 +186,49 @@ export class StateManager {
         this.hunger = this.maxHunger;
         this._stageRestartPending = true;
         if (this._isPhase3) this._areaRestartPending = true;
+        // v1.0 — continue SFX (rising 4-tone chime). Fired before the state
+        // transition so the player hears it as the GAME_OVER overlay dismisses.
+        if (typeof globalThis !== 'undefined' && globalThis.audio) {
+            globalThis.audio.playSFX('continue');
+        }
         this.setGameState(GAME_STATES.RESPAWNING);
     }
 
     /**
-     * v0.75.1 — dismiss the AREA_CLEARED overlay and loop back to Stage 1
-     * (Area 2 isn't built yet). Re-uses the GAME_OVER → continueRun
-     * full-Area reset path so lives refill, vitality refills, pl.armed
-     * clears, and Stage 1 rebuilds from scratch via AreaManager.startArea.
-     * Per phase3-boss-cast.md Changelog: "the run loops back to Stage 1
-     * col 0 with state.lives refilled to 3, state.vitality refilled to max,
-     * and pl.armed cleared — i.e., the same world state as a fresh new-game
-     * launch from title, re-using the existing GAME OVER → Continue full-
-     * reset flow."
+     * v0.75.1 — dismiss the AREA_CLEARED overlay and loop back to Stage 1.
+     *
+     * v1.0 — when the area being cleared is Area 1, advance to Area 2 (true
+     * Area 1 → Area 2 transition); when the area being cleared is Area 2, hand
+     * off to the CREDITS state. Routing is via a new `_nextAreaPending` flag
+     * AreaManager observes (alongside the legacy `_areaRestartPending`).
+     *
+     * The lives + vitality + armed reset semantics are preserved (the
+     * transition feels like a fresh start of the next area).
      */
     dismissAreaCleared() {
         if (this.gameState !== GAME_STATES.AREA_CLEARED) return;
         this.lives  = this.maxLives;
         this.hunger = this.maxHunger;
         this._stageRestartPending = true;
-        if (this._isPhase3) this._areaRestartPending = true;
-        this.setGameState(GAME_STATES.RESPAWNING);
+        // v1.0 — read currentArea to decide the next destination. AreaManager
+        // sets state.currentArea when startArea(N) runs, so this is reliable.
+        const fromArea = this.currentArea || 1;
+        if (fromArea === 1) {
+            // Advance to Area 2.
+            this._nextAreaPending = 2;
+            if (this._isPhase3) this._areaRestartPending = true;
+            this.setGameState(GAME_STATES.RESPAWNING);
+        } else if (fromArea === 2) {
+            // Area 2 cleared → credits roll. AreaManager observes _creditsPending
+            // and StateManager just transitions; CREDITS state has no gameplay,
+            // so we skip RESPAWNING.
+            this._creditsPending = true;
+            this.setGameState(GAME_STATES.CREDITS);
+        } else {
+            // Fallback — full restart of the cleared area (legacy v0.75.1 loop).
+            if (this._isPhase3) this._areaRestartPending = true;
+            this.setGameState(GAME_STATES.RESPAWNING);
+        }
     }
 
     /** @deprecated v0.25.2 — use killHero() in Phase 1. Retained for legacy path only. */

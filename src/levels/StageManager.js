@@ -17,7 +17,8 @@
 
 import { initEnemyP2 } from '../mechanics/Phase2EnemyAI.js';
 import { HUMMERWING, MOSSPLODDER, EGG } from '../config/PhaseTwoTunables.js';
-import { THREADSHADE }                  from '../config/PhaseThreeTunables.js';
+import { THREADSHADE, CINDERWISP, QUARRYWIGHT, SKYHOOK }
+    from '../config/PhaseThreeTunables.js';
 
 const TILE = 48;
 
@@ -255,6 +256,12 @@ export class StageManager {
         else if (e.kind === 'dewplum' || e.kind === 'amberfig') {
             this._spawnFruit(ecs, e, level);
         }
+        // v1.0 — Area 2 enemies + new pickups.
+        else if (e.kind === 'cinderwisp')  this._spawnCinderwisp(ecs, e, level);
+        else if (e.kind === 'quarrywight') this._spawnQuarrywight(ecs, e, level);
+        else if (e.kind === 'skyhook')     this._spawnSkyhook(ecs, e, level);
+        else if (e.kind === 'sunpear')     this._spawnFruit(ecs, e, level);
+        else if (e.kind === 'flintchip')   this._spawnFlintchip(ecs, e, level);
     }
 
     _spawnMossplodder(ecs, def, level) {
@@ -331,23 +338,94 @@ export class StageManager {
     }
 
     /**
-     * v0.75.1 — fruit pickup spawn (dewplum / amberfig). The pickup component
-     * carries the fruit type so ItemSystem resolves the right vitality
-     * restoration on hero overlap. Sprite uses the matching cache name.
+     * v0.75.1 — fruit pickup spawn (dewplum / amberfig).
+     * v1.0 — extended to handle Area 2's sunpear (same shape as amberfig).
      */
     _spawnFruit(ecs, def, level) {
-        // Fruit hitbox sized slightly larger than the sprite so the player
-        // doesn't have to brush exact pixels to collect. dewplum is 14×14 art,
-        // amberfig is 18×18 art; we use a forgiving 24×24 hitbox for both.
         const w = 24, h = 24;
         const x = def.col * TILE + (TILE - w) / 2;
         const y = def.row * TILE - h;
         const id = ecs.createEntity();
         ecs.addComponent(id, 'transform', { x, y, w, h });
         ecs.addComponent(id, 'pickup',    { type: def.kind, state: 'idle', stateTimer: 0 });
+        const color = (def.kind === 'amberfig') ? '#e8a040'
+                    : (def.kind === 'sunpear')  ? '#f8d878'
+                    : '#3a586a';
         ecs.addComponent(id, 'sprite',    {
             name: def.kind, anim: 'idle', frame: 0, scale: 2,
-            flip: false, color: (def.kind === 'amberfig') ? '#e8a040' : '#3a586a',
+            flip: false, color,
+        });
+    }
+
+    /**
+     * v1.0 — Flintchip pickup. Transient buff (10 sec, 3-hatchet on-screen cap).
+     * Visual hitbox slightly taller than wide (matches the 24×36 sprite spec).
+     */
+    _spawnFlintchip(ecs, def, level) {
+        const w = 24, h = 36;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const y = def.row * TILE - h;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y, w, h });
+        ecs.addComponent(id, 'pickup',    { type: 'flintchip', state: 'idle', stateTimer: 0 });
+        ecs.addComponent(id, 'sprite',    {
+            name: 'flintchip', anim: 'idle', frame: 0, scale: 2,
+            flip: false, color: '#f8d878',
+        });
+    }
+
+    /**
+     * v1.0 — Cinderwisp spawn (Area 2 windborne drifter). Drift midline is at
+     * the spec'd row. The bob amplitude swings ±8 px around baseY.
+     */
+    _spawnCinderwisp(ecs, def, level) {
+        const w = CINDERWISP.hitboxW, h = CINDERWISP.hitboxH;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const baseY = def.row * TILE + (TILE - h) / 2;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y: baseY, w, h });
+        ecs.addComponent(id, 'velocity',  { vx: 0, vy: 0 });
+        // No `physics` — Cinderwisps don't collide; pure hand-driven motion.
+        ecs.addComponent(id, 'enemy',     initEnemyP2('cinderwisp', def.dir ?? -1, baseY));
+        ecs.addComponent(id, 'sprite',    {
+            name: 'cinderwisp', anim: 'drift', frame: 0, scale: 2,
+            flip: false, color: '#f49494',
+        });
+    }
+
+    /**
+     * v1.0 — Quarrywight spawn (Area 2 armored walker).
+     */
+    _spawnQuarrywight(ecs, def, level) {
+        const w = QUARRYWIGHT.hitboxW, h = QUARRYWIGHT.hitboxH;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const y = def.row * TILE - h;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y, w, h });
+        ecs.addComponent(id, 'velocity',  { vx: 0, vy: 0 });
+        ecs.addComponent(id, 'physics',   { onGround: false, onIce: false, jumpHoldLeft: 0 });
+        ecs.addComponent(id, 'enemy',     initEnemyP2('quarrywight', def.dir ?? -1));
+        ecs.addComponent(id, 'sprite',    {
+            name: 'quarrywight', anim: 'walk_armored', frame: 0, scale: 2,
+            flip: (def.dir ?? -1) > 0, color: '#bdb7a7',
+        });
+    }
+
+    /**
+     * v1.0 — Skyhook spawn (Area 2 cliff dropper). Starts in 'perched' FSM state.
+     */
+    _spawnSkyhook(ecs, def, level) {
+        const w = SKYHOOK.hitboxW, h = SKYHOOK.hitboxH;
+        const x = def.col * TILE + (TILE - w) / 2;
+        const y = def.row * TILE - h;
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x, y, w, h });
+        ecs.addComponent(id, 'velocity',  { vx: 0, vy: 0 });
+        ecs.addComponent(id, 'physics',   { onGround: false, onIce: false, jumpHoldLeft: 0 });
+        ecs.addComponent(id, 'enemy',     initEnemyP2('skyhook', def.dir ?? -1));
+        ecs.addComponent(id, 'sprite',    {
+            name: 'skyhook', anim: 'perched', frame: 0, scale: 2,
+            flip: false, color: '#e6e1d8',
         });
     }
 }

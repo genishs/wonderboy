@@ -12,8 +12,11 @@ export class GameLoop {
     start() {
         this.running  = true;
         this.lastTime = performance.now();
-        this.systems.state.setGameState('PLAYING');
-        this.systems.audio.playBGM('area1');
+        // v1.0 — state-driven BGM. game.js now drives playBGM('area1') from
+        // a stateChange listener (TITLE → PLAYING) so the title-screen BGM
+        // and gameplay BGM are scoped to their respective states.
+        // GameLoop just kicks the rAF; the initial state is set in game.js
+        // before start() is called.
         requestAnimationFrame(ts => this._tick(ts));
     }
 

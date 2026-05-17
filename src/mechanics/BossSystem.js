@@ -16,9 +16,20 @@ import {
     BRACKEN_WARDEN,
     MOSS_PULSE,
     BOSS_ARENA,
+    REIGNWARDEN,
+    CINDER_VOLLEY,
+    EMBER_PIT,
 } from '../config/PhaseThreeTunables.js';
+import { TILE_TYPES } from '../levels/TileMap.js';
 
 const TILE = 48;
+
+// v1.0 — audio singleton fire-and-forget helper.
+const _sfx = (name) => {
+    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+        globalThis.audio.playSFX(name);
+    }
+};
 
 export class BossSystem {
     constructor() {
@@ -26,26 +37,34 @@ export class BossSystem {
         this._bossEntityId  = null;
         this._arenaLeftPx   = 0;            // updated in beginFight; despawn boundary for moss-pulse
         this._areaManager   = null;
+        this._areaIndex     = 0;            // v1.0 — which area's boss (1 = Bracken, 2 = Reignwarden)
     }
 
     /**
      * Called once when Reed crosses Stage 4's BOSS_TRIGGER tile. Sets state to
-     * BOSS_FIGHT, locks the camera, and spawns the Bracken Warden in idle
-     * (pre-fight hold).
+     * BOSS_FIGHT, locks the camera, and spawns the boss in idle.
+     *
+     * v1.0 — area-aware. AreaManager.areaIndex===2 spawns the Reignwarden
+     * (Area 2 boss) instead of the Bracken Warden.
      */
     beginFight(ecs, level, areaManager, state) {
         if (this._active) return;
         if (!level || !areaManager) return;
         const arenaCol0 = level.bossArenaCol0;
-        if (typeof arenaCol0 !== 'number') return;   // not Stage 4
+        if (typeof arenaCol0 !== 'number') return;
         this._active      = true;
         this._areaManager = areaManager;
         this._arenaLeftPx = arenaCol0 * TILE;
+        this._areaIndex   = areaManager.areaIndex || 1;
 
         // Camera lock: viewport left edge aligned to arena col 0.
         areaManager.lockCamera(this._arenaLeftPx);
         state.setGameState('BOSS_FIGHT');
-        this._spawnBoss(ecs, level);
+        if (this._areaIndex === 2) {
+            this._spawnReignwarden(ecs, level);
+        } else {
+            this._spawnBoss(ecs, level);
+        }
     }
 
     /**
@@ -59,6 +78,7 @@ export class BossSystem {
         this._bossEntityId = null;
         this._arenaLeftPx  = 0;
         this._areaManager  = null;
+        this._areaIndex    = 0;
     }
 
     /**
@@ -72,16 +92,20 @@ export class BossSystem {
         }
         if (!this._active) return;
         // v0.75 — per boss brief §9: camera unlocks immediately when Reed's
-        // dyingFrames begin. Check the hero entity and unlock here so the
-        // death anim plays in normal-scroll context.
+        // dyingFrames begin.
         const heroes = ecs.query('player');
         if (heroes.length && (heroes[0].player.dyingFrames | 0) > 0) {
             if (areaManager && areaManager.cameraLocked) areaManager.unlockCamera();
         }
         if (state.gameState === 'AREA_CLEARED') return;
 
-        this._tickBoss(ecs, state);
+        this._tickBoss(ecs, state, level);
         this._tickMossPulse(ecs);
+        // v1.0 — Reignwarden cinder volley + ember-pit tile TTL tick.
+        if (this._areaIndex === 2) {
+            this._tickCinderProjectiles(ecs, level);
+            this._tickEmberPits(level);
+        }
     }
 
     // ── Internals ───────────────────────────────────────────────────────────
@@ -142,34 +166,33 @@ export class BossSystem {
         this._bossEntityId = id;
     }
 
-    _tickBoss(ecs, state) {
+    _tickBoss(ecs, state, level) {
         const bosses = ecs.query('transform', 'boss', 'sprite');
         if (!bosses.length) return;
         const b = bosses[0];
         const boss = b.boss;
         const sp   = b.sprite;
+        // v1.0 — boss config dispatched by area. Reignwarden = Area 2, else
+        // Bracken Warden = Area 1. Both share the same FSM beat names + timers.
+        const cfg = (boss.area === 2) ? REIGNWARDEN : BRACKEN_WARDEN;
 
-        // Hurt overlay pauses every other timer.
         if (boss.pauseTimer > 0) {
             boss.pauseTimer--;
             if (boss.pauseTimer === 0) {
                 if (boss.hp <= 0) {
-                    this._enterState(boss, sp, 'dead');
+                    this._enterState(boss, sp, 'dead', true, cfg);
                 } else {
-                    // Resume the prior FSM state WITHOUT resetting its timer —
-                    // hurt is a pause, not a state reset. Per plan §6 pseudocode.
-                    this._enterState(boss, sp, boss.prevAi || 'idle', /*resetTimer=*/false);
+                    this._enterState(boss, sp, boss.prevAi || 'idle', /*resetTimer=*/false, cfg);
                 }
             }
             return;
         }
 
-        // Dead state — tick deathFrames then celebrationFrames then fire AREA_CLEARED.
         if (boss.ai === 'dead') {
             if (boss.timer > 0) {
                 boss.timer--;
                 if (boss.timer === 0 && boss.celebrationTimer === 0) {
-                    boss.celebrationTimer = BRACKEN_WARDEN.celebrationFrames;
+                    boss.celebrationTimer = cfg.celebrationFrames;
                 }
             } else if (boss.celebrationTimer > 0) {
                 boss.celebrationTimer--;
@@ -181,16 +204,23 @@ export class BossSystem {
             return;
         }
 
-        // Attack sub-frame tracking — moss-pulse spawns on attackSpawnFrame.
+        // Attack sub-frame tracking — pulse / volley spawns on the configured frame.
         if (boss.ai === 'attack') {
             boss._attackSubFrame++;
-            if (boss._attackSubFrame === BRACKEN_WARDEN.attackSpawnFrame) {
+            if (boss._attackSubFrame === cfg.attackSpawnFrame) {
                 const bossTf = b.transform;
-                this._spawnMossPulse(
-                    ecs,
-                    bossTf.x + MOSS_PULSE.spawnOffsetX,
-                    bossTf.y + bossTf.h + MOSS_PULSE.spawnOffsetY,
-                );
+                if (boss.area === 2) {
+                    // Reignwarden: spawn the 3-cinder volley.
+                    this._spawnCinderVolley(ecs, bossTf, level);
+                } else {
+                    // Bracken Warden: spawn moss-pulse.
+                    this._spawnMossPulse(
+                        ecs,
+                        bossTf.x + MOSS_PULSE.spawnOffsetX,
+                        bossTf.y + bossTf.h + MOSS_PULSE.spawnOffsetY,
+                    );
+                }
+                _sfx('boss_attack_thud');
             }
         }
 
@@ -198,31 +228,31 @@ export class BossSystem {
         if (boss.timer > 0) return;
 
         switch (boss.ai) {
-            case 'idle':    this._enterState(boss, sp, 'windup');  return;
-            case 'windup':  this._enterState(boss, sp, 'attack');  return;
-            case 'attack':  this._enterState(boss, sp, 'recover'); return;
-            case 'recover': this._enterState(boss, sp, 'idle');    return;
-            default:        this._enterState(boss, sp, 'idle');
+            case 'idle':    this._enterState(boss, sp, 'windup', true, cfg);  return;
+            case 'windup':  this._enterState(boss, sp, 'attack', true, cfg);  return;
+            case 'attack':  this._enterState(boss, sp, 'recover', true, cfg); return;
+            case 'recover': this._enterState(boss, sp, 'idle',    true, cfg); return;
+            default:        this._enterState(boss, sp, 'idle',    true, cfg);
         }
     }
 
-    _enterState(boss, sp, next, resetTimer = true) {
+    _enterState(boss, sp, next, resetTimer = true, cfg = BRACKEN_WARDEN) {
         boss.ai = next;
         sp.anim = next;
-        sp._lastAnim = null;   // force renderer anim restart
+        sp._lastAnim = null;
         if (resetTimer) {
             boss._attackSubFrame = 0;
             const timerMap = {
-                idle:    BRACKEN_WARDEN.idleFrames,
-                windup:  BRACKEN_WARDEN.windupFrames,
-                attack:  BRACKEN_WARDEN.attackFrames,
-                recover: BRACKEN_WARDEN.recoverFrames,
-                dead:    BRACKEN_WARDEN.deathFrames,
+                idle:    cfg.idleFrames,
+                windup:  cfg.windupFrames,
+                attack:  cfg.attackFrames,
+                recover: cfg.recoverFrames,
+                dead:    cfg.deathFrames,
             };
             boss.timer = timerMap[next] || 0;
+            if (next === 'windup') _sfx('boss_windup');
+            else if (next === 'dead') _sfx('boss_defeat');
         }
-        // For hurt-resume (resetTimer=false), boss.timer + _attackSubFrame keep
-        // their pre-hurt values so the FSM beat stays predictable.
     }
 
     _spawnMossPulse(ecs, x, y) {
@@ -258,16 +288,30 @@ export class BossSystem {
     }
 
     _resetForRetry(ecs, areaManager) {
-        // Reed died inside the arena. Wipe boss + moss-pulse projectiles, unlock
-        // the camera so the death anim plays in normal scroll context. The
-        // BOSS_TRIGGER tile is reset by StageManager._handleRespawn so re-crossing
-        // it on respawn re-spawns the boss.
+        // Reed died inside the arena. Wipe boss + projectiles, unlock camera.
         if (this._bossEntityId != null) {
             ecs.destroyEntity(this._bossEntityId);
             this._bossEntityId = null;
         }
         for (const p of ecs.query('transform', 'velocity', 'projectile')) {
-            if (p.projectile.type === 'moss-pulse') ecs.destroyEntity(p.id);
+            const t = p.projectile.type;
+            if (t === 'moss-pulse' || t === 'cinder') ecs.destroyEntity(p.id);
+        }
+        // v1.0 — clean up any active ember-pit hazards in the level grid so the
+        // respawning hero doesn't walk into a leftover pit. The pit tiles are
+        // stamped FIRE_LOW with `_emberPitTtl` on them; we sweep one row above
+        // the boss arena floor and clear any tile with that marker.
+        if (areaManager && this._areaIndex === 2) {
+            const level = areaManager.lm?.currentLevel;
+            if (level) {
+                const floorRow = (level.bossArenaFloorRow ?? 8) - 1;
+                for (let c = 0; c < level.cols; c++) {
+                    const t = level.getTile(c, floorRow);
+                    if (t && typeof t._emberPitTtl === 'number') {
+                        level.setTile(c, floorRow, TILE_TYPES.EMPTY);
+                    }
+                }
+            }
         }
         if (areaManager) areaManager.unlockCamera();
         this._active = false;
@@ -284,5 +328,126 @@ export class BossSystem {
             w: BRACKEN_WARDEN.hitboxWidth,
             h: BRACKEN_WARDEN.hitboxHeight,
         };
+    }
+
+    // ── Area 2 — Reignwarden + cinder volley + ember pits ──────────────────
+
+    _spawnReignwarden(ecs, level) {
+        const arenaCol0 = level.bossArenaCol0;
+        const floorRow  = level.bossArenaFloorRow ?? 8;
+        const w = REIGNWARDEN.bodyWidthPx;
+        const h = REIGNWARDEN.bodyHeightPx;
+        // Reignwarden stands on a 2-tile pedestal at the right side of the
+        // arena. arenaCol1 = arenaCol0 + 11 (right wall). Pedestal sits at
+        // arenaCol1 - 2 (so the boss body is 3 tiles wide and clears the wall).
+        const bossCol = (level.bossArenaCol1 ?? (arenaCol0 + 11)) - 3;
+        const bossX = bossCol * TILE;
+        // Body height includes pedestal (5 tiles). bossY puts the pedestal's
+        // base on the arena floor row.
+        const bossY = floorRow * TILE - h;
+
+        const id = ecs.createEntity();
+        ecs.addComponent(id, 'transform', { x: bossX, y: bossY, w, h });
+        ecs.addComponent(id, 'velocity',  { vx: 0, vy: 0 });
+        ecs.addComponent(id, 'boss', {
+            area:        2,
+            ai:          'idle',
+            hp:          REIGNWARDEN.hpMax,
+            maxHp:       REIGNWARDEN.hpMax,
+            timer:       REIGNWARDEN.idleFrames,
+            pauseTimer:  0,
+            prevAi:      'idle',
+            facingLeft:  true,
+            celebrationTimer: 0,
+            _attackSubFrame: 0,
+        });
+        ecs.addComponent(id, 'sprite', {
+            name: 'reignwarden', anim: 'idle', frame: 0, scale: 1, flip: false,
+        });
+        this._bossEntityId = id;
+    }
+
+    _spawnCinderVolley(ecs, bossTf, level) {
+        // 3 cinders at the palm-position (CINDER_VOLLEY.spawnOffsetX/Y from
+        // boss tf top-left). Each has a distinct [vx, vy] so the volley fans out.
+        const palmX = bossTf.x + CINDER_VOLLEY.spawnOffsetX;
+        const palmY = bossTf.y + CINDER_VOLLEY.spawnOffsetY;
+        const w = CINDER_VOLLEY.widthPx;
+        const h = CINDER_VOLLEY.heightPx;
+        const volleys = [
+            { vx: CINDER_VOLLEY.cinder1Vx, vy: CINDER_VOLLEY.cinder1Vy },
+            { vx: CINDER_VOLLEY.cinder2Vx, vy: CINDER_VOLLEY.cinder2Vy },
+            { vx: CINDER_VOLLEY.cinder3Vx, vy: CINDER_VOLLEY.cinder3Vy },
+        ];
+        for (const vk of volleys) {
+            const id = ecs.createEntity();
+            ecs.addComponent(id, 'transform', { x: palmX, y: palmY, w, h });
+            ecs.addComponent(id, 'velocity',  { vx: vk.vx, vy: vk.vy });
+            ecs.addComponent(id, 'projectile', {
+                type:       'cinder',
+                ownerKind:  'boss',
+                framesLeft: CINDER_VOLLEY.lifetimeFrames,
+                damage:     'kill',
+            });
+            ecs.addComponent(id, 'sprite', {
+                name: 'cinder', anim: 'flight', frame: 0, scale: 2,
+                flip: false, color: '#cc6464',
+            });
+        }
+        void level;
+    }
+
+    _tickCinderProjectiles(ecs, level) {
+        const arenaLeft  = this._arenaLeftPx;
+        const arenaRight = arenaLeft + (12 * TILE);
+        const floorPx    = (level.bossArenaFloorRow ?? 8) * TILE;
+        for (const p of ecs.query('transform', 'velocity', 'projectile')) {
+            if (p.projectile.type !== 'cinder') continue;
+            // Ballistic motion: vy gets pulled down by gravity each frame.
+            p.velocity.vy += CINDER_VOLLEY.gravity;
+            p.transform.x += p.velocity.vx;
+            p.transform.y += p.velocity.vy;
+            p.projectile.framesLeft--;
+            if (p.projectile.framesLeft <= 0) { ecs.destroyEntity(p.id); continue; }
+            if (p.transform.x + p.transform.w < arenaLeft
+                || p.transform.x > arenaRight) {
+                ecs.destroyEntity(p.id);
+                continue;
+            }
+            // Floor contact: spawn ember-pit hazard tile at the cinder's column,
+            // then despawn the projectile.
+            if (p.transform.y + p.transform.h >= floorPx) {
+                const col = Math.floor((p.transform.x + p.transform.w / 2) / TILE);
+                const row = Math.floor(floorPx / TILE) - 1;   // one row above floor
+                this._spawnEmberPit(level, col, row);
+                ecs.destroyEntity(p.id);
+            }
+        }
+    }
+
+    _spawnEmberPit(level, col, row) {
+        if (!level || col < 0 || col >= level.cols || row < 0 || row >= level.rows) return;
+        // Use FIRE_LOW as the underlying tile-type (isFatal=true is what kills hero).
+        // Stamp a TTL on the tile object so _tickEmberPits can remove it after expiry.
+        level.setTile(col, row, TILE_TYPES.FIRE_LOW);
+        const tile = level.getTile(col, row);
+        if (tile) tile._emberPitTtl = EMBER_PIT.ttlFrames;
+        _sfx('ember_pit_form');
+    }
+
+    _tickEmberPits(level) {
+        if (!level) return;
+        // Walk the recently-modified tiles. We don't store them in a list, so
+        // we scan a small window around the arena. Cheap because the arena is
+        // only 12 cols × 1 row of ember-pits at a time.
+        const floorRow = (level.bossArenaFloorRow ?? 8) - 1;
+        for (let c = 0; c < level.cols; c++) {
+            const t = level.getTile(c, floorRow);
+            if (!t || typeof t._emberPitTtl !== 'number') continue;
+            t._emberPitTtl--;
+            if (t._emberPitTtl <= 0) {
+                level.setTile(c, floorRow, TILE_TYPES.EMPTY);
+            }
+        }
     }
 }

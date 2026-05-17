@@ -239,6 +239,11 @@ export class LevelManager {
                 ecs.destroyEntity(id);
                 pv.vy = -5;
                 state.addScore(100);
+                // v1.0 — legacy-path stomp SFX. (Phase 2 doesn't stomp; CombatSystem
+                // just treats any contact as a hurt.)
+                if (typeof globalThis !== 'undefined' && globalThis.audio) {
+                    globalThis.audio.playSFX('stomp');
+                }
             } else {
                 state.takeDamage();
             }
