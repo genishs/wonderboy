@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 2 (the Beacon Walk) sky parallax layer — far: distant mountains
+  (scroll 0.0). Phase 4, v1.0. Wide-open ridge sky: clear-air gradient, with
+  silhouetted distant mountains at the horizon. NO canopy here — we are above
+  the tree line. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="beaconWalkSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#bdb7a7"/>
+      <stop offset="0.40" stop-color="#e6e1d8"/>
+      <stop offset="0.80" stop-color="#f8d878"/>
+      <stop offset="1.00" stop-color="#e4b25c"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#beaconWalkSky)"/>
+
+  <!-- Sun catch on the right — late-morning warm wash. -->
+  <circle cx="540" cy="120" r="38" fill="#fff2c0" opacity="0.85"/>
+  <circle cx="530" cy="112" r="14" fill="#ffffff" opacity="0.50"/>
+
+  <!-- Distant mountain silhouettes (cold-violet) — far away, low contrast. -->
+  <g fill="#5a586a" opacity="0.60">
+    <path d="M 0,360 L 40,320 L 90,360 L 150,295 L 230,340 L 290,300 L 360,355 L 430,310 L 510,345 L 590,290 L 670,340 L 740,310 L 768,330 L 768,400 L 0,400 Z"/>
+  </g>
+  <!-- Closer mountain band (warmer stone-bone) -->
+  <g fill="#8e8878" opacity="0.55">
+    <path d="M 0,420 L 60,395 L 130,425 L 200,395 L 280,425 L 360,395 L 440,425 L 520,395 L 600,425 L 680,395 L 768,420 L 768,470 L 0,470 Z"/>
+  </g>
+
+  <!-- A few drifting embers in the sky (the wind that visits Stage 2-2 and
+       gets fiercer in Stage 2-3). Subtle here. -->
+  <g fill="#e4b25c" opacity="0.70">
+    <circle cx="120" cy="200" r="1.5"/>
+    <circle cx="320" cy="250" r="1.5"/>
+    <circle cx="640" cy="220" r="1.5"/>
+    <circle cx="720" cy="280" r="1.5"/>
+  </g>
+</svg>
