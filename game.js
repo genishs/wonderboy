@@ -57,6 +57,19 @@ import * as amberfigModule       from './assets/sprites/item-amberfig.js';
 import * as threadshadeModule    from './assets/sprites/enemy-threadshade.js';
 import * as huskShellModule      from './assets/sprites/item-husk-shell.js';
 
+// v1.0 — Area 2 sprite + tile modules (the Cinder Reach).
+import * as cinderwispModule     from './assets/sprites/enemy-cinderwisp.js';
+import * as quarrywightModule    from './assets/sprites/enemy-quarrywight.js';
+import * as skyhookModule        from './assets/sprites/enemy-skyhook.js';
+import * as bossReignwardenModule from './assets/sprites/boss-reignwarden.js';
+import * as cinderModule         from './assets/sprites/projectile-cinder.js';
+import * as sunpearModule        from './assets/sprites/item-sunpear.js';
+import * as flintchipModule      from './assets/sprites/item-flintchip.js';
+import * as area2Stage1TilesModule from './assets/tiles/area2-stage1-switchback.js';
+import * as area2Stage2TilesModule from './assets/tiles/area2-stage2-beaconwalk.js';
+import * as area2Stage3TilesModule from './assets/tiles/area2-stage3-knifing.js';
+import * as area2Stage4TilesModule from './assets/tiles/area2-stage4-reignward.js';
+
 const CANVAS_W = 768;
 const CANVAS_H = 576;
 
@@ -268,6 +281,14 @@ async function init() {
     await spriteCache.load('amberfig',        amberfigModule);
     await spriteCache.load('threadshade',     threadshadeModule);
     await spriteCache.load('husk-shell',      huskShellModule);
+    // v1.0 — Area 2 sprites (Cinder Reach cast + boss + projectile + 2 pickups).
+    await spriteCache.load('cinderwisp',      cinderwispModule);
+    await spriteCache.load('quarrywight',     quarrywightModule);
+    await spriteCache.load('skyhook',         skyhookModule);
+    await spriteCache.load('reignwarden',     bossReignwardenModule);
+    await spriteCache.load('cinder',          cinderModule);
+    await spriteCache.load('sunpear',         sunpearModule);
+    await spriteCache.load('flintchip',       flintchipModule);
     renderer.spriteCache = spriteCache;
 
     // Tile cache — load all 4 Area 1 tilesets up front.
@@ -275,14 +296,13 @@ async function init() {
     await tileCache.loadStageSet(2, area1Stage2TilesModule, 1);
     await tileCache.loadStageSet(3, area1Stage3TilesModule, 1);
     await tileCache.loadStageSet(4, area1Stage4TilesModule, 1);
-    // v1.0 — Area 2 tile modules (placeholder — design ships them in a parallel
-    // PR). When the modules don't exist, tileCache renders rectangle fallbacks
-    // (which Renderer.drawTiles already handles via the TILE_COLORS table).
-    // Uncomment once design merges the Area 2 tile assets:
-    //   await tileCache.loadStageSet(1, area2Stage1TilesModule, 2);
-    //   await tileCache.loadStageSet(2, area2Stage2TilesModule, 2);
-    //   await tileCache.loadStageSet(3, area2Stage3TilesModule, 2);
-    //   await tileCache.loadStageSet(4, area2Stage4TilesModule, 2);
+    // v1.0 — Area 2 tile modules (the Cinder Reach: switchback / beacon walk /
+    // knifing / reignward). All four registered up-front so stage transitions
+    // can swap them via TileCache.setActiveStage(stage, area).
+    await tileCache.loadStageSet(1, area2Stage1TilesModule, 2);
+    await tileCache.loadStageSet(2, area2Stage2TilesModule, 2);
+    await tileCache.loadStageSet(3, area2Stage3TilesModule, 2);
+    await tileCache.loadStageSet(4, area2Stage4TilesModule, 2);
     tileCache.setActiveStage(1, 1);
     await parallax.loadArea(1);
     // v1.0 — Area 2 parallax (silently tolerant of missing files).

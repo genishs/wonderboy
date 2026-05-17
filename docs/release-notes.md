@@ -6,6 +6,44 @@ Owned by `release-master`. One section per quartile tag, newest on top.
 
 ---
 
+## v1.0 — Phase 4: Area 2 "the Cinder Reach" + Web Audio + game-over/title/credits polish
+
+**Date:** 2026-05-17. **Tag:** `v1.0` on `main`. **Pages:** [genishs.github.io/wonderboy](https://genishs.github.io/wonderboy/).
+
+v1.0 ships the final-quartile content: a second playable area, full audio integration, and the title/game-over/credits polish that closes the run.
+
+### Highlights
+
+1. **Area 2 — the Cinder Reach.** Reed climbs out of the Old Threshold canopy glade up an old switchback path onto a wind-scoured upland. Four stages (Switchback → Beacon Walk → Knifing → Reignward) with original tilesets, palettes, and 12 new parallax SVGs.
+2. **Three new enemies:** **Cinderwisp** (windborne sine-drifter), **Quarrywight** (armored stone walker, first multi-hit enemy in the run — 2 hatchets to kill, first hit chips armor), **Skyhook** (cliff-perched dropper with perch/fall/walk FSM).
+3. **Boss — the Reignwarden.** Standing humanoid colossus posted on a beacon-tower pedestal. HP 9, three-cinder volley attack that spawns transient ember-pit hazards on the arena floor for ~2 sec each. Same Warden-shape FSM as the Bracken Warden; a deliberate intra-project parallel.
+4. **Two new pickups:** **Sunpear** (+50 vitality, brightest food in the run), **Flintchip** (transient buff — raises the on-screen hatchet cap from 2 to 3 for 10 sec; clears on stage transition).
+5. **Web Audio integration.** Five procedural BGM tracks (title Lydian / area1 unchanged / area2 Phrygian / boss-fight Dorian / game-over chromatic descent) with multi-voice harmony, plus a C-major area-cleared stinger. 22 SFX events wired across HeroController, HatchetSystem, CombatSystem, HuskSystem, ItemSystem, Phase2EnemyAI, BossSystem, AreaManager, StateManager. State-driven BGM dispatcher and per-state mix transitions (BGM gain ramps to 0.55 on title / 0.40 on boss-fight / 0.35 on game-over).
+6. **CREDITS state (new).** Defeating the Reignwarden routes the run through a scrolling credits screen with original "in the spirit of 1986/87 platformers" text — no copyrighted titles referenced. Any input restarts a fresh Area 1 run.
+7. **Title polish.** On-screen label now reads **"WONDER BOY TRIBUTE / The Mossline Path"** (matches repo README; clearer tribute posture, no trademark reproduction).
+8. **Game-over polish.** Bilingual continue prompt unchanged; now also shows the current Area-Stage (e.g., "Area 2 — Stage 2-3") in dim gray so the player can read where they fell.
+
+### What changed (PRs)
+
+- **#38** — story-lead: Phase 4 briefs `phase4-area2-cast` + `phase4-audio` (EN+KO each, ~1,600 LoC of design spec).
+- **#39** — design-lead: Area 2 assets — 7 sprites + 4 tilesets + 12 parallax SVGs (+4,007 LoC of original art data).
+- **#40** — dev-lead: AudioManager extension, Area 2 stage tree, area-aware AreaManager / TileCache / ParallaxBackground, Reignwarden boss, cinder volley + ember-pit hazards, Sunpear + Flintchip ItemSystem, CREDITS state, title/game-over polish (+2,013 LoC of engine code).
+- **#41** — release-master: Area 2 asset wiring in `game.js` (sprite + tile imports + cache loads) and v1.0 release notes.
+
+### Quartile state
+
+- v1.0 ships the **full quartile checklist**: full content (2 playable areas with bosses) + game-over/continue + polish + verified mobile controls (carried from v0.75.1).
+- Six of the seven README-promised areas are left for post-1.0 expansion. The v1.0 game loop is a complete demo: Area 1 → Bracken Warden → Area 2 → Reignwarden → credits → restart.
+- Procedural Web Audio means **zero binary audio assets** in the repo; the same approach we used for sprites and tiles is now uniform across all media.
+
+### Known limitations
+
+- Area 2 stages 2-2, 2-3, 2-4 ship as single-round stubs (vs. brief's full 4-round-per-stage spec). Stage 2-1 has the full 4 rounds. Future patches can extend the inner rounds.
+- Cinderwisp's Stage 2-3 wind-modulation bump (brief spec'd a 25 % speed/amplitude increase) is not yet applied; ships with base values.
+- No in-browser smoke run was performed before tag (the harness running the autonomous build does not have a Node-on-PATH for `npx serve`). CI's `node --check` validated syntax across all changed `.js`; live URL is the first real-runtime gate.
+
+---
+
 ## v0.75.1 — Phase 3 patch: hero scale + fruits + Threadshade + husk burst + stage parallax + boss spawn + Area loop + touch controls
 
 **Released:** 2026-05-14 (planned)
