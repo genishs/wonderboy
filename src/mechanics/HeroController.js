@@ -96,6 +96,25 @@ export class HeroController {
             pl.dyingFrames = 0;
             return;
         }
+        // v1.0 — CREDITS dismiss. Any input → trigger a fresh run from Area 1
+        // (the user has finished the game and chosen to start again). Re-uses
+        // the dismissAreaCleared-style "advance to Area" pending flag — we set
+        // _nextAreaPending = 1 and flip to RESPAWNING so AreaManager rebuilds.
+        if (state.gameState === 'CREDITS') {
+            if (input.jumpPressed || input.attack || input.sprintHeld ||
+                input.left || input.right) {
+                state.lives  = state.maxLives;
+                state.hunger = state.maxHunger;
+                state._nextAreaPending     = 1;
+                state._areaRestartPending  = true;
+                state._stageRestartPending = false;
+                state._creditsPending      = false;
+                state.setGameState('RESPAWNING');
+            }
+            pl.aiState = 'idle';
+            v.vx = 0;
+            return;
+        }
         if (state.gameState === 'AREA_CLEARED') {
             // v0.75 — Area-cleared overlay holds. Any of the gameplay action /
             // direction inputs dismisses the overlay.
@@ -215,6 +234,11 @@ export class HeroController {
             ph.onGround  = false;
             pl.jumpBuffer = 0;
             pl.coyoteTimer = 0;
+            // v1.0 — jump SFX. Fired here (not on input.jumpPressed) so the
+            // sound matches the actual takeoff, not the buffered intent.
+            if (typeof globalThis !== 'undefined' && globalThis.audio) {
+                globalThis.audio.playSFX('jump');
+            }
         }
 
         // Jump-cut

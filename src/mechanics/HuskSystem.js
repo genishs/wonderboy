@@ -56,6 +56,10 @@ export class HuskSystem {
                     pu.state = 'burst';
                     pu.stateTimer = EGG_BURST.burstFrames;
                     this._spawnShellFragments(ecs, row.transform);
+                    // v1.0 — husk-burst SFX (noise pop + bright chime).
+                    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+                        globalThis.audio.playSFX('husk_burst');
+                    }
                 }
             } else if (pu.state === 'burst') {
                 pu.stateTimer--;

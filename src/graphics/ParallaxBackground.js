@@ -53,16 +53,61 @@ export class ParallaxBackground {
             ],
         };
 
-        this._layersByStage = {};
+        this._layersByStage = this._layersByStage || {};
         for (const stageIndex of Object.keys(stageSpecs)) {
             const paths = stageSpecs[stageIndex];
             const loaded = await Promise.all(paths.map(p =>
                 this._loadImage(p.src).then(img => ({ img, factor: p.factor }))));
             // Filter out failed loads (image will be null).
-            this._layersByStage[stageIndex] = loaded.filter(l => l.img);
+            // v1.0 — store under both the legacy numeric key (for setStage
+            // back-compat) AND the composite "1:stageIndex" key.
+            const filtered = loaded.filter(l => l.img);
+            this._layersByStage[stageIndex]         = filtered;
+            this._layersByStage[`1:${stageIndex}`]  = filtered;
         }
         // Start on Stage 1's SVG set (game opens at Stage 1 spawn).
         this._svgLayers = this._layersByStage[1] || [];
+    }
+
+    /**
+     * v1.0 — loadArea2 loads Area 2's parallax SVGs (4 stages, 3 layers each).
+     * Each load is silently tolerant of missing files; design ships them in a
+     * parallel PR. Per-stage SVGs are stored under "2:stageIndex".
+     */
+    async loadArea2() {
+        const stageSpecs = {
+            1: [
+                { src: 'assets/bg/area2-stage1-switchback-sky.svg',          factor: 0.0 },
+                { src: 'assets/bg/area2-stage1-switchback-mid.svg',          factor: 0.3 },
+                { src: 'assets/bg/area2-stage1-switchback-fg.svg',           factor: 0.7 },
+            ],
+            2: [
+                { src: 'assets/bg/area2-stage2-beaconwalk-sky.svg',          factor: 0.0 },
+                { src: 'assets/bg/area2-stage2-beaconwalk-mid.svg',          factor: 0.3 },
+                { src: 'assets/bg/area2-stage2-beaconwalk-fg.svg',           factor: 0.7 },
+            ],
+            3: [
+                { src: 'assets/bg/area2-stage3-knifing-sky.svg',             factor: 0.0 },
+                { src: 'assets/bg/area2-stage3-knifing-mid.svg',             factor: 0.3 },
+                { src: 'assets/bg/area2-stage3-knifing-fg.svg',              factor: 0.7 },
+            ],
+            4: [
+                { src: 'assets/bg/area2-stage4-reignward-sky.svg',           factor: 0.0 },
+                { src: 'assets/bg/area2-stage4-reignward-mid.svg',           factor: 0.3 },
+                { src: 'assets/bg/area2-stage4-reignward-fg.svg',            factor: 0.7 },
+            ],
+        };
+        this._layersByStage = this._layersByStage || {};
+        for (const stageIndex of Object.keys(stageSpecs)) {
+            const paths = stageSpecs[stageIndex];
+            const loaded = await Promise.all(paths.map(p =>
+                this._loadImage(p.src).then(img => ({ img, factor: p.factor }))));
+            const filtered = loaded.filter(l => l.img);
+            this._layersByStage[`2:${stageIndex}`] = filtered;
+            if (filtered.length === 0) {
+                console.error(`[ParallaxBackground] Area 2 Stage ${stageIndex}: 0 SVGs loaded (asset shipping pending).`);
+            }
+        }
     }
 
     draw(ctx, scrollX) {
@@ -90,20 +135,31 @@ export class ParallaxBackground {
      * Wired in AreaManager._loadStage so it fires on every stage transition
      * (including the initial Stage 1 load).
      */
-    setStage(stageIndex) {
+    setStage(stageIndex, areaIndex = 1) {
         // Map per-stage themes for the procedural fallback (used if SVG load
         // failed). This gives the player a hue cue across stages even without
         // SVG art.
-        const fallbackThemes = { 1: 'forest', 2: 'beach', 3: 'cave', 4: 'forest' };
+        // v1.0 — Area 2 stages use stone/sky/wind hues.
+        const fallbackThemes = (areaIndex === 2)
+            ? { 1: 'beach', 2: 'forest', 3: 'cave', 4: 'forest' }  // stone-ish hues
+            : { 1: 'forest', 2: 'beach', 3: 'cave', 4: 'forest' };
         const t = fallbackThemes[stageIndex] ?? 'forest';
         this.theme   = t;
         this._layers = this._buildLayers(t);
-        // v0.75.1 — flip active SVG layer set. If the stage's set is missing
-        // (e.g., loadArea failed for that stage), keep the existing _svgLayers
-        // so the player at least sees the prior stage's parallax rather than
-        // a blank background.
-        if (this._layersByStage && this._layersByStage[stageIndex]) {
-            this._svgLayers = this._layersByStage[stageIndex];
+        // v1.0 — flip active SVG layer set. Per-area composite key
+        // ("a:s") mirrors TileCache's pattern. If the per-area set is missing,
+        // fall back to area-1 stage set; if THAT is missing too, keep the
+        // existing _svgLayers so the player sees something rather than blank.
+        if (this._layersByStage) {
+            const compositeKey = `${areaIndex}:${stageIndex}`;
+            const legacyKey    = String(stageIndex);
+            if (this._layersByStage[compositeKey]) {
+                this._svgLayers = this._layersByStage[compositeKey];
+            } else if (areaIndex === 1 && this._layersByStage[legacyKey]) {
+                this._svgLayers = this._layersByStage[legacyKey];
+            }
+            // If neither is present, leave _svgLayers unchanged so the
+            // procedural fallback above carries the visual.
         }
     }
 

@@ -12,12 +12,28 @@
 // (mile-marker overlay, checkpoint, respawn-pending RESPAWNING handler).
 
 import { StageManager } from './StageManager.js';
-import { buildStage } from './area1/index.js';
+import { buildStage as buildArea1Stage } from './area1/index.js';
 import {
     AREA1_STAGES,
+    AREA2_STAGES,
     STAGE_TRANSITION,
     AREA_CLEARED,
 } from '../config/PhaseThreeTunables.js';
+// v1.0 — Area 2 stage builder. Falls through to Area 1 if Area 2 isn't loaded
+// (e.g. legacy Area 1-only smoke). buildArea2Stage is the area-2 dispatcher.
+import { buildStage as buildArea2Stage } from './area2/index.js';
+
+// v1.0 — audio singleton fire-and-forget helper.
+const _sfx = (name) => {
+    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+        globalThis.audio.playSFX(name);
+    }
+};
+const _bgm = (name) => {
+    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+        globalThis.audio.playBGM(name);
+    }
+};
 
 export class AreaManager {
     /**
@@ -79,6 +95,7 @@ export class AreaManager {
 
         state.lives  = state.maxLives;
         state.hunger = state.maxHunger;
+        state.currentArea = area;   // v1.0 — mirror to state so dismissAreaCleared can route.
         state._stageRestartPending = false;
         state._areaRestartPending  = false;
         state._isPhase2 = true;
@@ -101,6 +118,10 @@ export class AreaManager {
             frames: STAGE_TRANSITION.inputSuspendLead,
             nextStage: nextStageIndex,
         };
+        // v1.0 — stage-cleared flourish SFX. Fired at the start of the
+        // input-suspend lead so the player hears the cue right after crossing
+        // the stage_exit tile, before the fade-out begins.
+        _sfx('stage_cleared');
     }
 
     /**
@@ -110,7 +131,12 @@ export class AreaManager {
      */
     swapToNextStage(ecs, state) {
         const nextStage = this.transition.nextStage | 0;
-        if (nextStage < 1 || nextStage > AREA1_STAGES.count) return;
+        // v1.0 — area-aware stage bounds. Area 1 and Area 2 both have 4 stages
+        // (AREA1_STAGES.count === AREA2_STAGES.count === 4), but the check
+        // pulls the count from the active area's table for safety.
+        const stagesTable = (this.areaIndex === 2) ? AREA2_STAGES : AREA1_STAGES;
+        if (nextStage < 1 || nextStage > stagesTable.count) return;
+
         // Carry pl.armed forward across the stage boundary.
         let armed = false;
         const players = ecs.query('transform', 'velocity', 'player');
@@ -120,9 +146,8 @@ export class AreaManager {
         state.hunger = state.maxHunger;   // vitality refill on stage entry
         this.currentStageIndex = nextStage;
 
-        // Fire the bilingual stage-name overlay (consumed by Renderer during
-        // the fade-in phase).
-        const names = AREA1_STAGES.stageNames[nextStage];
+        // Fire the bilingual stage-name overlay.
+        const names = stagesTable.stageNames[nextStage];
         if (names) {
             this.overlay = {
                 active: true,
@@ -141,13 +166,23 @@ export class AreaManager {
             phase:  'fade_out',
             frames: AREA_CLEARED.fadeOutFrames + AREA_CLEARED.holdFrames,
         };
-        // Overlay payload doubles via this.overlay for renderer back-compat.
+        // v1.0 — area-specific bilingual text. Area 1 keeps the v0.75 closure
+        // string ("the path continues"); Area 2 announces the end of the run.
+        const isArea2 = (this.areaIndex === 2);
+        const en = isArea2
+            ? 'Area 2 cleared — the path is yours.'
+            : AREA_CLEARED.textEn;
+        const ko = isArea2
+            ? 'Area 2 클리어 — 길은 너의 것이다.'
+            : AREA_CLEARED.textKo;
         this.overlay = {
             active: true,
             kind:   'area_cleared',
             frames: AREA_CLEARED.fadeOutFrames + AREA_CLEARED.holdFrames,
-            payload: { en: AREA_CLEARED.textEn, ko: AREA_CLEARED.textKo },
+            payload: { en, ko, areaIndex: this.areaIndex || 1 },
         };
+        // v1.0 — area-cleared stinger (one-shot) plays over the current BGM.
+        _bgm('area-cleared');
     }
 
     lockCamera(px) {
@@ -163,6 +198,18 @@ export class AreaManager {
      * so RESPAWNING + _areaRestartPending is observed first (full-area reset on Continue).
      */
     update(dt, ecs, state) {
+        // v1.0 — Area advance pending (set by state.dismissAreaCleared when
+        // an area was cleared and we want to advance to the next one). This
+        // takes precedence over `_areaRestartPending` (which is the Continue /
+        // restart-same-area path).
+        if (state.gameState === 'RESPAWNING' && state._nextAreaPending) {
+            const nextArea = state._nextAreaPending | 0;
+            state._nextAreaPending     = 0;
+            state._areaRestartPending  = false;
+            state._stageRestartPending = false;
+            this.startArea(nextArea, ecs, state);
+            return;
+        }
         // v0.75 — full-Area reset on Continue (state._areaRestartPending is set
         // by state.continueRun() when _isPhase3 was true at the time of GAME_OVER).
         if (state.gameState === 'RESPAWNING' && state._areaRestartPending) {
@@ -192,8 +239,18 @@ export class AreaManager {
     // ── Internal ────────────────────────────────────────────────────────────
 
     _loadStage(stageIndex, ecs, state, armed) {
-        // Build the new TileMap.
-        const level = buildStage(stageIndex);
+        // v1.0 — dispatch by areaIndex. Area 2 has its own buildStage table; the
+        // Area 1 path is untouched. Fall back to Area 1 if Area 2 buildStage
+        // throws for a missing stage (e.g. only Stage 2-1 is shipped at v1.0).
+        let level;
+        try {
+            level = (this.areaIndex === 2)
+                ? buildArea2Stage(stageIndex)
+                : buildArea1Stage(stageIndex);
+        } catch (e) {
+            console.error(`[AreaManager] buildStage(area=${this.areaIndex}, stage=${stageIndex}) failed:`, e);
+            level = buildArea1Stage(1);
+        }
         // Reset trigger _consumed flags (TileMap creates them false; double-safety).
         for (let r = 0; r < level.rows; r++) {
             for (let c = 0; c < level.cols; c++) {
@@ -207,11 +264,13 @@ export class AreaManager {
         for (const row of allRows) ecs.destroyEntity(row.id);
 
         // Activate the matching tileset (if loaded). game.js wires all 4 at init.
+        // v1.0 — pass areaIndex so a per-area tile slot can be picked when both
+        // Area 1 and Area 2 tilesets are loaded into the same TileCache.
         if (this.tileCache && typeof this.tileCache.setActiveStage === 'function') {
-            this.tileCache.setActiveStage(stageIndex);
+            this.tileCache.setActiveStage(stageIndex, this.areaIndex);
         }
         if (this.parallax && typeof this.parallax.setStage === 'function') {
-            this.parallax.setStage(stageIndex);
+            this.parallax.setStage(stageIndex, this.areaIndex);
         }
 
         this.lm.currentLevel = level;
@@ -221,8 +280,19 @@ export class AreaManager {
 
         // (Re-)instantiate the per-stage StageManager. It owns the round-overlay
         // + checkpoint + RESPAWNING handler for this stage only.
+        // v1.0 — pass areaIndex through so the stage knows which area it's in
+        // (matters for entity spawning and round-overlay headings).
         this.currentStage = new StageManager(this.lm);
+        this.currentStage.areaIndex = this.areaIndex || 1;
         this.currentStage.attachToStage(stageIndex, level, ecs, state, !!armed);
+
+        // v1.0 — clear Flintchip buff on stage transition. Per cast brief §4.2:
+        // "The buff clears on stage transition — Flintchip-buff does NOT carry
+        // into the boss fight if picked up in Stage 2-3."
+        const playerRows = ecs.query('player');
+        for (const pr of playerRows) {
+            if (pr.player) pr.player.flintchipFrames = 0;
+        }
 
         // Boss system reset (if any) — Stage 4 entry resets the boss FSM; other
         // stages disarm the boss-active flag so a stale arena doesn't trigger.
