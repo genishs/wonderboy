@@ -14,10 +14,19 @@
 
 import { CRAWLSPINE, GLASSMOTH, SAPLING } from '../config/PhaseOneTunables.js';
 import { MOSSPLODDER, HUMMERWING, FIRE }  from '../config/PhaseTwoTunables.js';
-import { BRACKEN_WARDEN, THREADSHADE }    from '../config/PhaseThreeTunables.js';
+import { BRACKEN_WARDEN, THREADSHADE, CINDERWISP, QUARRYWIGHT, SKYHOOK,
+         REIGNWARDEN }
+    from '../config/PhaseThreeTunables.js';
 
 const TILE = 48;
 const DAMAGING_SAPLING_STATES = new Set(['windup', 'firing']);
+
+// v1.0 — audio singleton fire-and-forget helper. See HatchetSystem.js.
+const _sfx = (name) => {
+    if (typeof globalThis !== 'undefined' && globalThis.audio) {
+        globalThis.audio.playSFX(name);
+    }
+};
 
 export class CombatSystem {
     update(ecs, state, level = null) {
@@ -82,15 +91,53 @@ export class CombatSystem {
                 if (e.enemy.ai === 'dead') continue;
                 if (!this._overlaps(proj.transform, e.transform)) continue;
 
+                // v1.0 — Quarrywight is multi-hit: first hatchet strips armor,
+                // second kills. All other Area 2 enemies are 1-hit-kill.
+                if (e.enemy.type === 'quarrywight') {
+                    this._hitQuarrywight(ecs, e, state);
+                    ecs.destroyEntity(proj.id);
+                    _sfx('axe_hit_enemy');
+                    break;
+                }
+
                 const damage = proj.projectile.damage;
-                if (damage === 'kill' || (e.enemy.type === 'mossplodder' || e.enemy.type === 'hummerwing' || e.enemy.type === 'threadshade')) {
+                const oneShotTypes = new Set([
+                    'mossplodder', 'hummerwing', 'threadshade',
+                    'cinderwisp',  'skyhook',
+                ]);
+                if (damage === 'kill' || oneShotTypes.has(e.enemy.type)) {
                     this._killEnemyP2(e, state);
                 } else {
                     this._damageEnemy(e, damage, state);
                 }
                 ecs.destroyEntity(proj.id);
+                _sfx('axe_hit_enemy');
                 break;
             }
+        }
+    }
+
+    /**
+     * v1.0 — Quarrywight 2-hit kill path. First hatchet strips `enemy.armored`
+     * (visual crack overlay via sprite anim swap); second hatchet kills.
+     */
+    _hitQuarrywight(ecs, e, state) {
+        const en = e.enemy;
+        if (en.armored) {
+            en.armored = false;
+            en.hp = Math.max(0, en.hp - 1);
+            en.hurtFrames = QUARRYWIGHT.hurtFrames;
+            // Sprite anim swap so the renderer shows the cracked variant.
+            const sp = ecs.getComponent(e.id, 'sprite');
+            if (sp) {
+                sp.anim = 'walk_cracked';
+                sp._lastAnim = null;
+            }
+        } else {
+            // Already cracked → kill.
+            en.ai = 'dead';
+            en.deathFrames = QUARRYWIGHT.deathFrames;
+            state.addScore?.(100);
         }
     }
 
@@ -185,24 +232,33 @@ export class CombatSystem {
         const boss = b.boss;
         if (boss.ai === 'dead') return;
 
+        // v1.0 — area-aware hitbox + hurtFrames. Area 1 = Bracken, Area 2 = Reignwarden.
+        const cfg = (boss.area === 2)
+            ? { hbX: REIGNWARDEN.hitboxOffsetX, hbY: REIGNWARDEN.hitboxOffsetY,
+                hbW: REIGNWARDEN.hitboxWidth,   hbH: REIGNWARDEN.hitboxHeight,
+                hurtFrames: REIGNWARDEN.hurtFrames }
+            : { hbX: BRACKEN_WARDEN.hitboxOffsetX, hbY: BRACKEN_WARDEN.hitboxOffsetY,
+                hbW: BRACKEN_WARDEN.hitboxWidth,   hbH: BRACKEN_WARDEN.hitboxHeight,
+                hurtFrames: BRACKEN_WARDEN.hurtFrames };
+
         const hitbox = {
-            x: b.transform.x + BRACKEN_WARDEN.hitboxOffsetX,
-            y: b.transform.y + BRACKEN_WARDEN.hitboxOffsetY,
-            w: BRACKEN_WARDEN.hitboxWidth,
-            h: BRACKEN_WARDEN.hitboxHeight,
+            x: b.transform.x + cfg.hbX,
+            y: b.transform.y + cfg.hbY,
+            w: cfg.hbW,
+            h: cfg.hbH,
         };
         const hatchets = ecs.query('transform', 'projectile').filter(r =>
             r.projectile.type === 'hatchet' && r.projectile.ownerKind === 'hero');
         for (const h of hatchets) {
             if (!this._overlaps(h.transform, hitbox)) continue;
             boss.hp = Math.max(0, boss.hp - 1);
-            // Preserve the underlying state so the timer resumes on the same beat.
             if (boss.ai !== 'hurt') boss.prevAi = boss.ai;
-            boss.pauseTimer = BRACKEN_WARDEN.hurtFrames;
+            boss.pauseTimer = cfg.hurtFrames;
             b.sprite.anim = 'hurt';
             b.sprite._lastAnim = null;
             ecs.destroyEntity(h.id);
             state.addScore?.(200);
+            _sfx('boss_hit');
             return;
         }
     }
@@ -225,6 +281,8 @@ export class CombatSystem {
                 if (this._overlaps(h.transform, p.transform)) {
                     ecs.destroyEntity(h.id);
                     ecs.destroyEntity(p.id);
+                    // v1.0 — mutual-despawn SFX (square+noise blend).
+                    _sfx('axe_vs_wave');
                     return;
                 }
             }
@@ -258,12 +316,16 @@ export class CombatSystem {
         v.vx = 0;
         v.vy = 0;
         pl.aiState = 'dead';
+        // v1.0 — hero-hurt SFX. Plays on the kill-instant (right before the
+        // dying FSM begins), so the player gets the cue even during BOSS_FIGHT
+        // where state-change BGM swaps would mask a death-stinger otherwise.
+        _sfx('hurt');
         // v0.50.1 — pass player so killHero can branch into Phase 2 loseLife flow.
         // v0.50.2 — Phase 2 routes through beginDying via state.killHero.
         state.killHero(player);
     }
 
-    /** Phase 2 — instant kill for mossplodder/hummerwing. */
+    /** Phase 2 / v1.0 — instant kill for 1-hit enemies. */
     _killEnemyP2(e, state) {
         const en = e.enemy;
         if (en.ai === 'dead') return;
@@ -272,6 +334,9 @@ export class CombatSystem {
             mossplodder: MOSSPLODDER.deathFrames,
             hummerwing:  HUMMERWING.deathFrames,
             threadshade: THREADSHADE.deathFrames,
+            cinderwisp:  CINDERWISP.deathFrames,
+            quarrywight: QUARRYWIGHT.deathFrames,
+            skyhook:     SKYHOOK.deathFrames,
         };
         en.deathFrames = deathBy[en.type] ?? 30;
         state.addScore?.(100);
@@ -280,8 +345,13 @@ export class CombatSystem {
     _damageEnemy(e, dmg, state) {
         const en = e.enemy;
         if (en.ai === 'dead') return;
-        // Phase 2 enemies: damage 'kill' or any value → instant kill.
-        if (en.type === 'mossplodder' || en.type === 'hummerwing' || en.type === 'threadshade') {
+        // Phase 2 / v1.0 enemies: any damage → instant kill (except Quarrywight,
+        // which is routed through _hitQuarrywight earlier in the projectile path).
+        const oneShotTypes = new Set([
+            'mossplodder', 'hummerwing', 'threadshade',
+            'cinderwisp',  'skyhook',
+        ]);
+        if (oneShotTypes.has(en.type)) {
             this._killEnemyP2(e, state);
             return;
         }
