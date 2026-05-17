@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 3 (the Knifing) foreground parallax layer — rock-wall near
+  tighter (scroll 0.7). Phase 4, v1.0. Near rock-wall columns flanking the
+  player's path: vertical columns of stone-bone-deep with deep shadow rifts.
+  More aggressive ember drift in the foreground band. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Near rock-wall columns sticking up from the lower foreground. -->
+  <g fill="#5a544a" opacity="0.90">
+    <rect x="-10" y="430" width="60" height="120"/>
+    <rect x="170" y="445" width="50" height="105"/>
+    <rect x="350" y="430" width="60" height="120"/>
+    <rect x="530" y="445" width="50" height="105"/>
+    <rect x="700" y="430" width="80" height="120"/>
+  </g>
+
+  <!-- Pale catch on the windward face of each near column. -->
+  <g fill="#8e8878" opacity="0.65">
+    <rect x="-10" y="430" width="8" height="120"/>
+    <rect x="170" y="445" width="6" height="105"/>
+    <rect x="350" y="430" width="8" height="120"/>
+    <rect x="530" y="445" width="6" height="105"/>
+    <rect x="700" y="430" width="10" height="120"/>
+  </g>
+
+  <!-- Deep crack lines on the near columns. -->
+  <g stroke="#3a384a" stroke-width="2" fill="none" opacity="0.75">
+    <path d="M 20,432 L 22,540"/>
+    <path d="M 192,448 L 190,538"/>
+    <path d="M 380,432 L 382,540"/>
+    <path d="M 552,448 L 550,538"/>
+    <path d="M 728,432 L 730,540"/>
+  </g>
+
+  <!-- Aggressive ember drift through the foreground — denser cluster of
+       embers in motion, larger than Stage 2-2. -->
+  <g fill="#e4b25c">
+    <circle cx="100" cy="380" r="2.5"/>
+    <circle cx="260" cy="400" r="2.5"/>
+    <circle cx="280" cy="460" r="2.5"/>
+    <circle cx="450" cy="400" r="2.5"/>
+    <circle cx="470" cy="470" r="2.5"/>
+    <circle cx="620" cy="400" r="2.5"/>
+    <circle cx="640" cy="465" r="2.5"/>
+  </g>
+  <g fill="#f8d878" opacity="0.85">
+    <circle cx="100" cy="378" r="1"/>
+    <circle cx="450" cy="398" r="1"/>
+    <circle cx="620" cy="398" r="1"/>
+  </g>
+  <g fill="#cc6464" opacity="0.70">
+    <circle cx="160" cy="430" r="1.5"/>
+    <circle cx="320" cy="490" r="1.5"/>
+    <circle cx="510" cy="430" r="1.5"/>
+    <circle cx="690" cy="490" r="1.5"/>
+  </g>
+
+  <!-- Lower-rocks-floor band at the very base (decorative shadow that anchors
+       the foreground). -->
+  <rect x="0" y="540" width="768" height="36" fill="#2a282e" opacity="0.85"/>
+</svg>
