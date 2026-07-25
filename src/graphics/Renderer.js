@@ -81,8 +81,10 @@ export class Renderer {
     }
 
     // ── Entities ───────────────────────────────────────────────────────────
-    drawEntities(ecs, scrollX = 0) {
+    drawEntities(ecs, scrollX = 0, invincibleTimer = 0) {
+        const blinkHide = invincibleTimer > 0 && Math.floor(invincibleTimer / 4) % 2 === 0;
         for (const e of ecs.query('transform', 'sprite')) {
+            if (blinkHide && e.player) continue;
             this._drawEntity(e, scrollX);
         }
     }
@@ -147,6 +149,16 @@ export class Renderer {
         if (state.hasSkateboard) {
             ctx.fillStyle = '#FFD700';
             ctx.fillText('[SKATEBOARD]', PAD + 80, this.height - 10);
+        }
+
+        // STAGE_CLEAR overlay
+        if (state.gameState === 'STAGE_CLEAR') {
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, this.width, this.height);
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 48px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('STAGE CLEAR!', this.width / 2, this.height / 2);
         }
 
         // Pause / Game Over overlays
