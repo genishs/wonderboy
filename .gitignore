@@ -4,3 +4,10 @@ Thumbs.db
 *.log
 .env
 dist/
+
+# Claude Code per-user permissions — not shared
+.claude/settings.local.json
+
+# Draft directories agents stage work in before review
+docs/**/_drafts/
+assets/**/_drafts/

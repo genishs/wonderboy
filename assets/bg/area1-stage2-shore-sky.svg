@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 2 (shore) sky parallax layer (Phase 3, v0.75.1). Scroll factor 0.0.
+  Sun-warmed dawn over open sea: pale gold-amber strip at the top, soft sea-mist
+  cool below, soft horizontal cloud bands. Far on the horizon, a small lighthouse
+  silhouette (per story brief Stage 2 signature beat — `phase3-area1-expansion.md`).
+  Tileable horizontally (left/right edges resolve to the same gradient stop).
+  Colors come from the Phase 3 shore tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="shoreDawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#f8d878"/>
+      <stop offset="0.18" stop-color="#e8a040"/>
+      <stop offset="0.42" stop-color="#c89a98"/>
+      <stop offset="0.70" stop-color="#8a9aa8"/>
+      <stop offset="1.00" stop-color="#6a90a8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#shoreDawn)"/>
+
+  <!-- Cloud bands — low-frequency morning haze over open water. Each band ends
+       at zero opacity at the screen edges so the layer tiles seamlessly. -->
+  <g opacity="0.50">
+    <ellipse cx="160" cy="90"  rx="240" ry="13" fill="#fff4e8"/>
+    <ellipse cx="620" cy="90"  rx="240" ry="13" fill="#fff4e8"/>
+    <ellipse cx="380" cy="150" rx="340" ry="9"  fill="#f8e4d0"/>
+    <ellipse cx="200" cy="210" rx="280" ry="8"  fill="#f0d4c0"/>
+    <ellipse cx="580" cy="210" rx="280" ry="8"  fill="#f0d4c0"/>
+  </g>
+
+  <!-- Horizon line: a soft amber-cream catch where sky meets sea, with a faint
+       reflection band just below. -->
+  <rect x="0" y="386" width="768" height="2" fill="#f8d878" opacity="0.85"/>
+  <rect x="0" y="388" width="768" height="4" fill="#e8a040" opacity="0.45"/>
+
+  <!-- Small lighthouse silhouette far on the horizon at right-of-center (story
+       brief signature). Drawn as a stack of three rectangles: base + tower +
+       lantern, all in violet ink so the silhouette reads as a far-off
+       landmark, not a near object. -->
+  <g transform="translate(548, 360)">
+    <rect x="0"  y="22" width="14" height="4"  fill="#3a2e4a"/>
+    <rect x="2"  y="10" width="10" height="12" fill="#3a2e4a"/>
+    <rect x="3"  y="4"  width="8"  height="6"  fill="#3a2e4a"/>
+    <rect x="4"  y="2"  width="6"  height="2"  fill="#e8a040"/>
+    <rect x="4"  y="0"  width="6"  height="2"  fill="#3a2e4a"/>
+    <!-- a faint glow around the lantern -->
+    <rect x="1"  y="2"  width="2"  height="4"  fill="#f8d878" opacity="0.50"/>
+    <rect x="11" y="2"  width="2"  height="4"  fill="#f8d878" opacity="0.50"/>
+  </g>
+
+  <!-- Faint cool wash at the very bottom of the sky so the lower parallax
+       reads as receiving a touch of sky-fade above the sea horizon. -->
+  <rect x="0" y="440" width="768" height="136" fill="#6a90a8" opacity="0.18"/>
+</svg>

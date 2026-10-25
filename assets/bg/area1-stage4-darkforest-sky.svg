@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 4 (dark forest) sky parallax layer (Phase 3, v0.75.1). Scroll factor 0.0.
+  Deep night canopy + moon glow + a few firefly points. Mood: the coolest sky
+  in Area 1 — violet-black canopy ceiling pierced by a single moonlight column,
+  fireflies sparse so the eye doesn't read "fairy tale" but "old wood at night."
+  Tileable horizontally (gradient stops align at left/right edges).
+  Colors come from the Phase 3 dark-forest tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="darkForestNight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#1e2032"/>
+      <stop offset="0.40" stop-color="#2a3a3a"/>
+      <stop offset="0.75" stop-color="#3e5a52"/>
+      <stop offset="1.00" stop-color="#684e6e"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.50" cy="0.18" r="0.30">
+      <stop offset="0.00" stop-color="#cfd8dc" stop-opacity="0.85"/>
+      <stop offset="0.40" stop-color="#cfd8dc" stop-opacity="0.30"/>
+      <stop offset="1.00" stop-color="#cfd8dc" stop-opacity="0.00"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#darkForestNight)"/>
+
+  <!-- Moonlight column / moon glow at top-center (per arena spec — the canopy
+       parts overhead and a single moonlight column descends). The column is
+       a soft radial glow plus a faint vertical band continuing downward. -->
+  <rect x="0" y="0" width="768" height="576" fill="url(#moonGlow)"/>
+  <rect x="372" y="80" width="24" height="450" fill="#cfd8dc" opacity="0.10"/>
+  <rect x="380" y="80" width="8"  height="450" fill="#cfd8dc" opacity="0.15"/>
+
+  <!-- The moon itself: a small pale disc at the top-center -->
+  <circle cx="384" cy="100" r="22" fill="#cfd8dc"/>
+  <circle cx="378" cy="94"  r="6"  fill="#fff4e8" opacity="0.65"/>
+
+  <!-- Firefly points — sparse, low-contrast against the dark sky. Warm amber
+       so they read as living things, not stars. -->
+  <g fill="#e8a040">
+    <circle cx="80"  cy="180" r="1.5"/>
+    <circle cx="160" cy="240" r="1.5"/>
+    <circle cx="240" cy="200" r="1.5"/>
+    <circle cx="540" cy="220" r="1.5"/>
+    <circle cx="640" cy="180" r="1.5"/>
+    <circle cx="700" cy="260" r="1.5"/>
+  </g>
+  <!-- A few brighter peaks for the closest fireflies -->
+  <g fill="#f8d878" opacity="0.85">
+    <circle cx="80"  cy="180" r="0.8"/>
+    <circle cx="240" cy="200" r="0.8"/>
+    <circle cx="640" cy="180" r="0.8"/>
+  </g>
+
+  <!-- A faint canopy band at the bottom of the sky layer — the upper edge of
+       the next parallax layer's canopy silhouette, hinting at it from here. -->
+  <rect x="0" y="490" width="768" height="86" fill="#1e2032" opacity="0.55"/>
+</svg>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 near-foliage parallax layer (Phase 2, v0.50). Scroll factor 0.6 (per
+  CLAUDE.md guidance on three-layer parallax; phase2-areas.md §9.2 logs 0.7,
+  with the difference deferred to dev-lead's tuning). Sits between the player
+  and the tile foreground — slightly violet undertone for depth.
+  Drooping leaves and grass tufts framing the bottom edge; tileable horizontally.
+  Per phase2-areas.md §9.2: ~20% of canvas height, "slightly violet-cool" so the
+  warm Hummerwing reads as a spark against this layer.
+  All colors come from the Phase 2 palette family (palette-phase2.md).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Drooping leaf cluster — left, mid, right; positioned along the upper edge
+       of this layer (~y=460) so they drape into the lower 20% of canvas. -->
+  <g fill="#3e6a3a" opacity="0.85">
+    <!-- Left cluster -->
+    <path d="M -10,460 Q 30,470 50,490 Q 65,510 60,540 L 50,540 Q 45,505 30,490 Q 10,475 -10,478 Z"/>
+    <path d="M 80,455 Q 110,468 130,495 Q 145,520 138,548 L 128,548 Q 130,510 115,495 Q 100,478 80,478 Z"/>
+    <!-- Mid cluster -->
+    <path d="M 250,460 Q 280,470 300,495 Q 312,520 305,548 L 295,548 Q 298,508 285,495 Q 268,478 250,478 Z"/>
+    <path d="M 360,455 Q 390,470 408,495 Q 420,520 413,548 L 403,548 Q 405,508 390,495 Q 375,478 360,478 Z"/>
+    <!-- Right cluster -->
+    <path d="M 540,460 Q 575,470 595,495 Q 608,520 600,548 L 590,548 Q 593,508 578,495 Q 560,478 540,478 Z"/>
+    <path d="M 660,460 Q 690,470 710,495 Q 722,520 715,548 L 705,548 Q 708,508 695,495 Q 678,478 660,478 Z"/>
+    <path d="M 740,455 Q 770,470 778,490 L 778,540 L 768,548 Q 770,508 755,492 Q 745,478 740,478 Z"/>
+  </g>
+
+  <!-- Violet under-shadow strokes — a layer pulled cool/violet so the nearest
+       foliage doesn't compete with hero warmth. Per world.md: "Shadows are
+       violet-grey, never black." -->
+  <g fill="#5a4a6e" opacity="0.45">
+    <path d="M 30,500 Q 50,520 50,548 L 35,548 Q 25,520 30,500 Z"/>
+    <path d="M 110,500 Q 130,520 130,548 L 115,548 Q 105,520 110,500 Z"/>
+    <path d="M 280,500 Q 300,520 300,548 L 285,548 Q 275,520 280,500 Z"/>
+    <path d="M 390,500 Q 410,520 410,548 L 395,548 Q 385,520 390,500 Z"/>
+    <path d="M 575,500 Q 595,520 595,548 L 580,548 Q 570,520 575,500 Z"/>
+    <path d="M 685,500 Q 705,520 705,548 L 690,548 Q 680,520 685,500 Z"/>
+  </g>
+
+  <!-- Tall grass tufts along the lowest visible row of the layer.
+       Cool-green base + dawn-amber tip catches morning light. -->
+  <g stroke="#4a7c3a" stroke-width="2" fill="none">
+    <path d="M 20,548 Q 20,535 22,520"/>
+    <path d="M 36,548 Q 36,538 34,525"/>
+    <path d="M 70,548 Q 70,535 72,518"/>
+    <path d="M 92,548 Q 92,538 90,524"/>
+    <path d="M 160,548 Q 160,535 162,520"/>
+    <path d="M 180,548 Q 180,538 178,525"/>
+    <path d="M 222,548 Q 222,535 224,520"/>
+    <path d="M 320,548 Q 320,538 322,525"/>
+    <path d="M 446,548 Q 446,535 444,522"/>
+    <path d="M 462,548 Q 462,538 464,524"/>
+    <path d="M 510,548 Q 510,535 508,520"/>
+    <path d="M 622,548 Q 622,538 620,524"/>
+    <path d="M 642,548 Q 642,535 644,522"/>
+    <path d="M 720,548 Q 720,538 722,525"/>
+  </g>
+  <g fill="#e8a040">
+    <circle cx="22" cy="520" r="2"/>
+    <circle cx="72" cy="518" r="2"/>
+    <circle cx="162" cy="520" r="2"/>
+    <circle cx="224" cy="520" r="2"/>
+    <circle cx="444" cy="522" r="2"/>
+    <circle cx="508" cy="520" r="2"/>
+    <circle cx="620" cy="524" r="2"/>
+    <circle cx="722" cy="525" r="2"/>
+  </g>
+</svg>

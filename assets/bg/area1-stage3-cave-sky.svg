@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 3 (cave) sky parallax layer (Phase 3, v0.75.1). Scroll factor 0.0.
+  Enclosed cave ceiling — deep blue-green darkness. Very subtle distant
+  stalactite/stalagmite silhouettes hint at the cave's overhead; a faint amber-
+  vein glow far back gives the read of "underground, with warmth somewhere
+  deeper." Tileable horizontally (left/right edges resolve to the same gradient).
+  Colors come from the Phase 3 cave tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="caveDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#284844"/>
+      <stop offset="0.40" stop-color="#3a4248"/>
+      <stop offset="0.75" stop-color="#3a5e58"/>
+      <stop offset="1.00" stop-color="#4a5860"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#caveDark)"/>
+
+  <!-- Distant amber-vein glow far back — a single soft amber wash near the
+       middle horizon, deep enough that it reads as "warmth far away" rather
+       than direct sunlight. -->
+  <ellipse cx="384" cy="320" rx="280" ry="80" fill="#e8a040" opacity="0.10"/>
+  <ellipse cx="384" cy="320" rx="160" ry="40" fill="#e8a040" opacity="0.15"/>
+
+  <!-- Stalactites hanging from the cave ceiling — small downward triangles at
+       the top of the layer. All in violet ink and cave-stone shadow so they
+       read as distant silhouettes, not close detail. -->
+  <g fill="#3a2e4a">
+    <path d="M 40,0   L 50,28  L 60,0  Z"/>
+    <path d="M 110,0  L 118,40 L 126,0 Z"/>
+    <path d="M 180,0  L 186,20 L 192,0 Z"/>
+    <path d="M 250,0  L 260,50 L 270,0 Z"/>
+    <path d="M 320,0  L 326,24 L 332,0 Z"/>
+    <path d="M 410,0  L 420,44 L 430,0 Z"/>
+    <path d="M 480,0  L 486,18 L 492,0 Z"/>
+    <path d="M 550,0  L 558,36 L 566,0 Z"/>
+    <path d="M 620,0  L 628,52 L 636,0 Z"/>
+    <path d="M 690,0  L 696,22 L 702,0 Z"/>
+  </g>
+
+  <!-- A few stalactite shadows for depth — a paler cave-stone-shadow band
+       behind the front-most stalactites. -->
+  <g fill="#4a5860" opacity="0.65">
+    <path d="M 80,0  L 88,34 L 96,0 Z"/>
+    <path d="M 160,0 L 166,26 L 172,0 Z"/>
+    <path d="M 240,0 L 246,30 L 252,0 Z"/>
+    <path d="M 360,0 L 368,38 L 376,0 Z"/>
+    <path d="M 460,0 L 466,28 L 472,0 Z"/>
+    <path d="M 530,0 L 538,32 L 546,0 Z"/>
+    <path d="M 660,0 L 666,28 L 672,0 Z"/>
+  </g>
+
+  <!-- Stalagmites rising from the cave floor far in the distance — small
+       upward triangles along the lower horizon. -->
+  <g fill="#3a2e4a" opacity="0.65">
+    <path d="M 90,480  L 100,440 L 110,480 Z"/>
+    <path d="M 220,485 L 230,448 L 240,485 Z"/>
+    <path d="M 380,480 L 390,438 L 400,480 Z"/>
+    <path d="M 540,485 L 550,448 L 560,485 Z"/>
+    <path d="M 670,480 L 680,442 L 690,480 Z"/>
+  </g>
+</svg>

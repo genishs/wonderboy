@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 sky parallax layer (Phase 2, v0.50). Static (scroll factor 0.0).
+  "Kettle-warm dawn" — soft amber-warm strip at the top, cool morning haze beneath,
+  subtle horizontal cloud bands. No sun disc (story-fiction is dawn). Tileable
+  horizontally (left/right edges resolve to the same gradient stop).
+  All colors come from the Phase 2 palette family (palette-phase2.md).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="dawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#f8d068"/>
+      <stop offset="0.20" stop-color="#f8b878"/>
+      <stop offset="0.45" stop-color="#e8a888"/>
+      <stop offset="0.70" stop-color="#c89a98"/>
+      <stop offset="1.00" stop-color="#8a8aa8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#dawn)"/>
+
+  <!-- Soft horizontal cloud bands — low-frequency morning haze, all cool/warm
+       members of the Phase 2 sky palette. Left and right edges of each band end
+       at zero opacity so the layer tiles seamlessly horizontally. -->
+  <g opacity="0.55">
+    <ellipse cx="120" cy="80"  rx="220" ry="14" fill="#fff4e8"/>
+    <ellipse cx="640" cy="80"  rx="220" ry="14" fill="#fff4e8"/>
+    <ellipse cx="380" cy="140" rx="320" ry="10" fill="#f8e4d0"/>
+    <ellipse cx="180" cy="200" rx="260" ry="9"  fill="#f0d4c0"/>
+    <ellipse cx="600" cy="200" rx="260" ry="9"  fill="#f0d4c0"/>
+    <ellipse cx="380" cy="260" rx="380" ry="8"  fill="#e8c4b8"/>
+  </g>
+
+  <!-- Faint cool wash at the very bottom so the sky reads as
+       "open above, settling into morning haze before the canopy line." -->
+  <rect x="0" y="430" width="768" height="146" fill="#9aa0b8" opacity="0.20"/>
+</svg>

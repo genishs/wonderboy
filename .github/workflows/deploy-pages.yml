@@ -1,8 +1,12 @@
-name: Deploy to GitHub Pages (Release)
+name: Deploy to GitHub Pages (release/gitpages)
+
+# Pages source is the release/gitpages branch.
+# release-master fast-forwards release/gitpages from main on each quartile tag,
+# which triggers this workflow to publish.
 
 on:
   push:
-    branches: [main]
+    branches: [release/gitpages]
   workflow_dispatch:
 
 permissions:
@@ -16,31 +20,31 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build & Deploy Wonder Boy
+    name: Build & Deploy Wonder Boy Tribute
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
-      - name: Checkout main
+      - name: Checkout release/gitpages
         uses: actions/checkout@v4
 
-      - name: Verify game entry point exists
+      - name: Verify game entry points exist
         run: |
           test -f index.html || { echo "ERROR: index.html not found"; exit 1; }
           test -f game.js    || { echo "ERROR: game.js not found";    exit 1; }
-          echo "✓ Game entry points verified"
+          echo "OK: entry points verified"
 
       - name: Print release summary
         run: |
-          echo "=== Wonder Boy Legacy Rebirth — Release ==="
+          echo "=== Wonder Boy Tribute — Release ==="
           echo "Commit : ${{ github.sha }}"
-          echo "Author : ${{ github.actor }}"
+          echo "Actor  : ${{ github.actor }}"
           echo "Date   : $(date -u)"
-          echo "Files  :"
-          find . -name "*.js" ! -path "*/node_modules/*" | sort
-          echo "==========================================="
+          echo "Tags reachable from this commit:"
+          git tag --contains ${{ github.sha }} || true
+          echo "==================================="
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4

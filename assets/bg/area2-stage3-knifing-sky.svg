@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 3 (the Knifing) sky parallax layer — narrow sky strip (scroll 0.0).
+  Phase 4, v1.0. The Knifing is a narrow rock gully; the visible sky is a thin
+  strip pinched between the gully walls. Wind is harsher here — more ember-
+  drift particles. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="knifingSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#5a586a"/>
+      <stop offset="0.25" stop-color="#8e8878"/>
+      <stop offset="0.45" stop-color="#bdb7a7"/>
+      <stop offset="0.55" stop-color="#8e8878"/>
+      <stop offset="1.00" stop-color="#3a384a"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#knifingSky)"/>
+
+  <!-- Narrow sky strip: a brighter horizontal band in the middle, with
+       progressively darker top/bottom. The brightest pixel-band is where
+       the gully opens to actual sky. -->
+  <rect x="0" y="240" width="768" height="60" fill="#e6e1d8" opacity="0.65"/>
+  <rect x="0" y="255" width="768" height="30" fill="#f8d878" opacity="0.35"/>
+
+  <!-- Drifting embers in the gully — more numerous than Stage 2-2 (the wind
+       is stronger). -->
+  <g fill="#e4b25c" opacity="0.85">
+    <circle cx="60" cy="220" r="1.5"/>
+    <circle cx="140" cy="260" r="1.5"/>
+    <circle cx="220" cy="300" r="1.5"/>
+    <circle cx="290" cy="240" r="1.5"/>
+    <circle cx="360" cy="280" r="1.5"/>
+    <circle cx="440" cy="220" r="1.5"/>
+    <circle cx="510" cy="260" r="1.5"/>
+    <circle cx="580" cy="300" r="1.5"/>
+    <circle cx="650" cy="240" r="1.5"/>
+    <circle cx="720" cy="280" r="1.5"/>
+  </g>
+  <g fill="#cc6464" opacity="0.65">
+    <circle cx="200" cy="320" r="1"/>
+    <circle cx="400" cy="350" r="1"/>
+    <circle cx="600" cy="330" r="1"/>
+  </g>
+
+  <!-- Top-of-frame darker gully overhang (suggests gully walls reaching up
+       beyond the visible sky strip). -->
+  <rect x="0" y="0" width="768" height="180" fill="#3a384a" opacity="0.70"/>
+  <path d="M 0,180 L 40,170 L 90,185 L 150,168 L 220,185 L 290,170 L 360,185 L 430,170 L 510,185 L 580,170 L 660,185 L 740,170 L 768,178 L 768,180 Z"
+        fill="#3a384a" opacity="0.65"/>
+</svg>

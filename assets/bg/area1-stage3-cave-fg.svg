@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 3 (cave) foreground parallax layer (Phase 3, v0.75.1). Scroll factor 0.7.
+  Nearer cave wall with rock-and-moss strands — chunkier silhouettes that scroll
+  faster than the mid-layer. Cave-moss-blue-green hanging strands along the
+  upper edge of this layer; a couple of broken stone fragments at the base.
+  Tileable horizontally — strand spacing is even.
+  Colors come from the Phase 3 cave tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Hanging cave-moss strands draping from the upper edge of this layer.
+       Cave-moss-blue-green is the cave's signature green; reads as overgrown
+       cave-mouth foliage seen from inside. -->
+  <g fill="#3a5e58" opacity="0.85">
+    <path d="M -10,440 Q 30,455 50,485 Q 62,510 56,540 L 46,540 Q 42,500 28,485 Q 10,468 -10,468 Z"/>
+    <path d="M 90,440  Q 130,455 148,485 Q 160,510 152,540 L 142,540 Q 140,500 128,485 Q 110,468 90,468 Z"/>
+    <path d="M 260,440 Q 300,455 318,485 Q 330,510 322,540 L 312,540 Q 310,500 298,485 Q 280,468 260,468 Z"/>
+    <path d="M 380,440 Q 415,455 432,485 Q 445,510 438,540 L 428,540 Q 430,500 415,485 Q 398,468 380,468 Z"/>
+    <path d="M 550,440 Q 588,455 606,485 Q 618,510 612,540 L 602,540 Q 600,500 588,485 Q 570,468 550,468 Z"/>
+    <path d="M 680,440 Q 712,455 730,485 Q 742,510 736,540 L 726,540 Q 728,500 714,485 Q 698,468 680,468 Z"/>
+  </g>
+
+  <!-- Cave-moss-blue-green darker under-strands for depth. -->
+  <g fill="#284844" opacity="0.55">
+    <path d="M 30,490 Q 50,510 50,548 L 35,548 Q 25,510 30,490 Z"/>
+    <path d="M 130,490 Q 150,510 150,548 L 135,548 Q 125,510 130,490 Z"/>
+    <path d="M 300,490 Q 320,510 320,548 L 305,548 Q 295,510 300,490 Z"/>
+    <path d="M 420,490 Q 440,510 440,548 L 425,548 Q 415,510 420,490 Z"/>
+    <path d="M 590,490 Q 610,510 610,548 L 595,548 Q 585,510 590,490 Z"/>
+    <path d="M 710,490 Q 730,510 730,548 L 715,548 Q 705,510 710,490 Z"/>
+  </g>
+
+  <!-- Broken cave-stone fragments along the very base — chunky, with cave-
+       stone-shadow underside and wet-cave-stone main face. -->
+  <g>
+    <path d="M 60,548 L 80,532 L 110,536 L 130,548 Z" fill="#6a7878"/>
+    <path d="M 60,548 L 78,538 L 105,538 L 130,548 Z" fill="#c8d4c8" opacity="0.45"/>
+    <path d="M 240,548 L 265,530 L 300,535 L 320,548 Z" fill="#6a7878"/>
+    <path d="M 240,548 L 263,535 L 298,535 L 320,548 Z" fill="#c8d4c8" opacity="0.45"/>
+    <path d="M 440,548 L 460,532 L 495,536 L 520,548 Z" fill="#6a7878"/>
+    <path d="M 440,548 L 458,538 L 492,538 L 520,548 Z" fill="#c8d4c8" opacity="0.45"/>
+    <path d="M 620,548 L 645,530 L 685,535 L 710,548 Z" fill="#6a7878"/>
+    <path d="M 620,548 L 643,535 L 683,535 L 710,548 Z" fill="#c8d4c8" opacity="0.45"/>
+  </g>
+
+  <!-- A few amber-vein pinpoints catching from below — the cave's signature
+       warmth slot, restated here at foreground depth. -->
+  <g fill="#e8a040" opacity="0.85">
+    <circle cx="100" cy="538" r="1.5"/>
+    <circle cx="280" cy="536" r="1.5"/>
+    <circle cx="478" cy="538" r="1.5"/>
+    <circle cx="668" cy="536" r="1.5"/>
+  </g>
+</svg>

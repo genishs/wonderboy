@@ -1,6 +1,5 @@
-const TARGET_FPS        = 60;
-const FRAME_MS          = 1000 / TARGET_FPS;
-const STAGE_CLEAR_DELAY = 2000; // ms
+const TARGET_FPS  = 60;
+const FRAME_MS    = 1000 / TARGET_FPS;
 
 export class GameLoop {
     constructor(systems) {
@@ -8,23 +7,23 @@ export class GameLoop {
         this.running  = false;
         this.lastTime = 0;
         this.accum    = 0;
-        this._frameCount        = 0;
-        this._stageClearTimer   = 0;   // ms remaining for STAGE_CLEAR overlay
-        this._gameOverListening = false;
     }
 
     start() {
         this.running  = true;
         this.lastTime = performance.now();
-        this.systems.state.setGameState('PLAYING');
-        this.systems.audio.playBGM('area1');
+        // v1.0 — state-driven BGM. game.js now drives playBGM('area1') from
+        // a stateChange listener (TITLE → PLAYING) so the title-screen BGM
+        // and gameplay BGM are scoped to their respective states.
+        // GameLoop just kicks the rAF; the initial state is set in game.js
+        // before start() is called.
         requestAnimationFrame(ts => this._tick(ts));
     }
 
     _tick(ts) {
         if (!this.running) return;
 
-        const delta = Math.min(ts - this.lastTime, 50);
+        const delta = Math.min(ts - this.lastTime, 50); // clamp to avoid spiral of death
         this.lastTime = ts;
         this.accum   += delta;
 
@@ -38,53 +37,42 @@ export class GameLoop {
     }
 
     _update(dt) {
-        const { ecs, state, input, physics, levelManager, mechanics, audio } = this.systems;
+        const { ecs, state, input, physics, levelManager, mechanics, audio, transformationSystem, renderer } = this.systems;
 
-        if (state.gameState === 'STAGE_CLEAR') {
-            if (this._stageClearTimer <= 0) this._stageClearTimer = STAGE_CLEAR_DELAY;
-            this._stageClearTimer -= dt * 1000;
-            if (this._stageClearTimer <= 0) {
-                this._stageClearTimer = 0;
-                state.currentArea++;
-                state.setGameState('PLAYING');
-                levelManager.loadLevel(state.currentArea, ecs, state);
-                audio.playBGM('area1');
-            }
-            return;
-        }
-
-        if (state.gameState === 'GAME_OVER') {
-            if (!this._gameOverListening) {
-                this._gameOverListening = true;
-                const handler = () => {
-                    this._gameOverListening = false;
-                    state.reset();
-                    levelManager.loadLevel(1, ecs, state);
-                    audio.playBGM('area1');
-                };
-                window.addEventListener('keydown',     handler, { once: true });
-                window.addEventListener('pointerdown', handler, { once: true });
-            }
-            return;
-        }
-
-        if (state.gameState === 'PAUSED') return;
-
-        input.update();
+        // mechanics.update owns the pause toggle (in the Phase 1 wrapper) so it must
+        // run even when state is PAUSED — otherwise we can pause but never unpause.
         mechanics.update(dt, ecs, state, input);
-        physics.update(dt, ecs, state, levelManager.currentLevel, input);
-        levelManager.update(dt, ecs, state);
-        audio.update(dt, state);
+
+        if (state.gameState !== 'PAUSED') {
+            physics.update(dt, ecs, state, levelManager.currentLevel, input);
+            levelManager.update(dt, ecs, state);
+            
+            // v1.0 — 원작 Wonder Boy 변신 시스템 업데이트
+            if (transformationSystem) {
+                transformationSystem.update(dt);
+            }
+            
+            audio.update(dt, state);
+            if (renderer && typeof renderer.tick === 'function') renderer.tick();
+        }
+
+        // Edge detection requires _prev to reflect the PREVIOUS fixed-step frame.
+        // Calling update() at the END leaves _prev populated correctly for the next
+        // frame — including paused frames so isPressed/isReleased stay correct.
+        input.update();
     }
 
     _render() {
-        const { renderer, ecs, state, levelManager } = this.systems;
+        const { renderer, ecs, state, levelManager, input, transformationSystem } = this.systems;
         renderer.clear();
         renderer.drawBackground(levelManager.scrollX);
         renderer.drawTiles(levelManager.currentLevel, levelManager.scrollX);
-        renderer.drawEntities(ecs, levelManager.scrollX, state.invincibleTimer);
-        renderer.drawHUD(state);
-        this._frameCount++;
+        renderer.drawEntities(ecs, levelManager.scrollX);
+        renderer.drawHUD(state, transformationSystem);
+        // v0.75.1 — visible on-screen touch buttons. Drawn LAST so they sit on
+        // top of HUD chrome and stay tappable even when overlays (PAUSED,
+        // STAGE_TRANSITION, AREA_CLEARED) dim the playfield underneath.
+        renderer.drawTouchControls(input);
     }
 
     pause()  { this.systems.state.setGameState('PAUSED');  }

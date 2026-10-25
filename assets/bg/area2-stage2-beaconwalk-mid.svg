@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 2 (the Beacon Walk) mid parallax layer — far-mesa (scroll 0.3).
+  Phase 4, v1.0. A wider, more present mesa silhouette closer than the
+  distant mountains. The mesa's flat top is where you might post a beacon
+  (foreshadowing the Stage 2-4 pedestal). Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Far mesa silhouettes — flat-topped table mountains. -->
+  <g fill="#6a6457" opacity="0.90">
+    <path d="M -10,440 L 20,340 L 150,340 L 180,420 L 300,440 L 280,330 L 460,330 L 480,400 L 600,440 L 580,310 L 760,310 L 780,440 Z"/>
+  </g>
+
+  <!-- Highlight band on the top of each mesa (the dawn catches the windward
+       edge of each plateau). -->
+  <g fill="#bdb7a7" opacity="0.55">
+    <rect x="20" y="338" width="130" height="6"/>
+    <rect x="280" y="328" width="180" height="6"/>
+    <rect x="580" y="308" width="180" height="6"/>
+  </g>
+
+  <!-- Tiny beacon-tower silhouettes on top of each mesa (the player can see
+       the chain of beacon-towers stretching to the summit). -->
+  <g fill="#3a2e4a">
+    <rect x="78" y="320" width="4" height="20"/>
+    <rect x="76" y="316" width="8" height="6"/>
+    <rect x="378" y="310" width="4" height="22"/>
+    <rect x="376" y="306" width="8" height="6"/>
+    <rect x="678" y="290" width="4" height="22"/>
+    <rect x="676" y="286" width="8" height="6"/>
+  </g>
+  <!-- Tiny amber-dot beacon-flames on top of each tower -->
+  <g fill="#e4b25c">
+    <circle cx="80" cy="314" r="2"/>
+    <circle cx="380" cy="304" r="2"/>
+    <circle cx="680" cy="284" r="2"/>
+  </g>
+
+  <!-- Mid-ground rock silhouettes (closer than the mesas) — the ridge we
+       are walking along extends here. -->
+  <g fill="#8e8878" opacity="0.85">
+    <path d="M 0,470 L 80,450 L 160,475 L 240,450 L 320,475 L 400,450 L 480,475 L 560,450 L 640,475 L 720,450 L 768,475 L 768,576 L 0,576 Z"/>
+  </g>
+</svg>

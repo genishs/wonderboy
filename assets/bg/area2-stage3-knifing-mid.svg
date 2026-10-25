@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 3 (the Knifing) mid parallax layer — rock-wall mid (scroll 0.3).
+  Phase 4, v1.0. The two opposing gully walls reach up the frame, leaving
+  only the central sky strip visible. Tight parallax — walls are closer than
+  Stage 2-2's far-mesa. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Top gully wall (the cliff overhead) — fills the top portion of the
+       frame, with an irregular underside. -->
+  <g fill="#6a6457" opacity="0.95">
+    <path d="M 0,0 L 768,0 L 768,200 L 740,195 L 700,210 L 660,200 L 620,215 L 580,205 L 540,220 L 500,205 L 460,218 L 420,202 L 380,215 L 340,205 L 300,218 L 260,202 L 220,215 L 180,205 L 140,218 L 100,202 L 60,215 L 20,205 L 0,212 Z"/>
+  </g>
+
+  <!-- Shadow on the underside of the overhang (deeper rock-wall shadow). -->
+  <g fill="#5a544a" opacity="0.85">
+    <path d="M 0,200 L 50,206 L 100,202 L 160,210 L 220,204 L 280,212 L 340,205 L 400,213 L 460,205 L 520,213 L 580,205 L 640,213 L 700,205 L 768,210 L 768,230 L 0,230 Z"/>
+  </g>
+
+  <!-- Bottom gully wall (the cliff underfoot) — fills the bottom portion. -->
+  <g fill="#6a6457" opacity="0.95">
+    <path d="M 0,376 L 40,365 L 90,378 L 150,366 L 220,378 L 290,366 L 360,378 L 430,366 L 510,378 L 580,366 L 660,378 L 740,366 L 768,372 L 768,576 L 0,576 Z"/>
+  </g>
+
+  <!-- Pale catchlight on the windward face of the upper gully wall. -->
+  <g fill="#bdb7a7" opacity="0.45">
+    <path d="M 60,170 L 90,160 L 100,168 L 70,178 Z"/>
+    <path d="M 280,165 L 310,155 L 320,163 L 290,173 Z"/>
+    <path d="M 500,165 L 530,155 L 540,163 L 510,173 Z"/>
+    <path d="M 700,165 L 730,155 L 740,163 L 710,173 Z"/>
+  </g>
+
+  <!-- Deep crack vertical lines on the gully walls (texture). -->
+  <g stroke="#3a384a" stroke-width="1" fill="none" opacity="0.65">
+    <path d="M 80,0 L 88,160"/>
+    <path d="M 230,0 L 222,165"/>
+    <path d="M 420,0 L 428,160"/>
+    <path d="M 580,0 L 572,165"/>
+    <path d="M 720,0 L 728,160"/>
+  </g>
+</svg>

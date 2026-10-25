@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 4 (the Reignward) mid parallax layer — beacon-pedestal far
+  (scroll 0.3). Phase 4, v1.0. A wide flat horizon with a far beacon-tower
+  pedestal silhouette in the center-distance. The pedestal is empty here
+  (the Reignwarden's pedestal is foreground); this far pedestal is the
+  ceremonial chain reaching across the ridge. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Far horizon ridge — gentle wave. -->
+  <g fill="#8e8878" opacity="0.90">
+    <path d="M 0,400 L 50,395 L 110,402 L 180,396 L 260,403 L 340,396 L 420,403 L 500,396 L 580,403 L 660,396 L 740,403 L 768,400 L 768,576 L 0,576 Z"/>
+  </g>
+
+  <!-- Mid-distance pedestal silhouette in the center. Two-tier pedestal with
+       a stone cap, but empty on top (no Warden). -->
+  <g fill="#6a6457" opacity="0.95">
+    <rect x="350" y="320" width="68" height="80"/>
+  </g>
+  <g fill="#3a2e4a">
+    <rect x="346" y="316" width="76" height="6"/>
+    <rect x="348" y="395" width="72" height="8"/>
+    <rect x="344" y="403" width="80" height="4"/>
+  </g>
+  <!-- Pedestal cap highlight -->
+  <g fill="#bdb7a7" opacity="0.55">
+    <rect x="352" y="322" width="64" height="6"/>
+  </g>
+  <!-- Empty pedestal top — a small carved depression where a beacon-lens would
+       have sat. A single dawn-amber sigil-fleck remains. -->
+  <rect x="378" y="318" width="12" height="3" fill="#e4b25c"/>
+  <rect x="382" y="319" width="4" height="2" fill="#f8d878"/>
+
+  <!-- A few near-mid rock outcrops on either side of the pedestal. -->
+  <g fill="#6a6457" opacity="0.85">
+    <path d="M 60,400 L 120,395 L 130,400 L 70,400 Z"/>
+    <path d="M 200,398 L 260,392 L 270,400 L 210,400 Z"/>
+    <path d="M 500,398 L 560,392 L 570,400 L 510,400 Z"/>
+    <path d="M 640,400 L 700,395 L 710,400 L 650,400 Z"/>
+  </g>
+
+  <!-- A few mid-distance ember-drifts (calmer than Stage 2-3). -->
+  <g fill="#e4b25c" opacity="0.70">
+    <circle cx="220" cy="360" r="1.5"/>
+    <circle cx="450" cy="370" r="1.5"/>
+    <circle cx="600" cy="365" r="1.5"/>
+  </g>
+</svg>

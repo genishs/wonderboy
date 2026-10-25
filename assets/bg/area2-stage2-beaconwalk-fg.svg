@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 2 (the Beacon Walk) foreground parallax layer — near beacon-tower
+  wrecks (scroll 0.7). Phase 4, v1.0. Foreground silhouettes of broken stone
+  arches and toppled beacon-tower remnants close to the player; dawn-amber
+  lens-fragment glints embedded in the broken stones. Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Toppled stone-arch fragments along the foreground — varied sizes,
+       irregular spacing. Stone-bone deep silhouettes. -->
+  <g fill="#6a6457" opacity="0.90">
+    <!-- Cluster 1 -->
+    <path d="M 20,500 L 80,480 L 100,505 L 70,540 L 30,540 Z"/>
+    <path d="M 90,510 L 130,495 L 140,535 L 100,540 Z"/>
+    <!-- Cluster 2 -->
+    <path d="M 240,505 L 290,490 L 310,525 L 270,540 L 240,540 Z"/>
+    <path d="M 300,515 L 340,500 L 350,540 L 310,540 Z"/>
+    <!-- Cluster 3 -->
+    <path d="M 470,495 L 520,485 L 540,520 L 490,540 L 460,540 Z"/>
+    <path d="M 530,505 L 570,495 L 580,540 L 540,540 Z"/>
+    <!-- Cluster 4 -->
+    <path d="M 660,500 L 720,485 L 740,520 L 700,540 L 660,540 Z"/>
+    <path d="M 725,505 L 760,495 L 768,540 L 730,540 Z"/>
+  </g>
+
+  <!-- Lighter stone-bone catch on the upper sun-facing edges. -->
+  <g fill="#bdb7a7" opacity="0.55">
+    <path d="M 25,495 L 75,478 L 78,485 L 30,500 Z"/>
+    <path d="M 245,500 L 285,488 L 288,495 L 250,508 Z"/>
+    <path d="M 472,490 L 515,483 L 518,490 L 478,498 Z"/>
+    <path d="M 662,495 L 715,483 L 718,490 L 670,500 Z"/>
+  </g>
+
+  <!-- Dawn-amber lens-fragment glints embedded in the cap stones (the
+       beacon-towers used these lenses; now broken, they catch the morning
+       sun). Sparse, deliberate placement. -->
+  <g fill="#e4b25c">
+    <circle cx="80" cy="488" r="3"/>
+    <circle cx="285" cy="497" r="3"/>
+    <circle cx="515" cy="492" r="3"/>
+    <circle cx="715" cy="492" r="3"/>
+  </g>
+  <g fill="#f8d878" opacity="0.85">
+    <circle cx="80" cy="486" r="1.5"/>
+    <circle cx="285" cy="495" r="1.5"/>
+    <circle cx="515" cy="490" r="1.5"/>
+    <circle cx="715" cy="490" r="1.5"/>
+  </g>
+</svg>

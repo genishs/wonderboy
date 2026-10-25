@@ -1,12 +1,13 @@
-name: PR Validation — feature/* → develop
+name: "PR Validation"
 
 on:
   pull_request:
     branches: [develop]
+  workflow_dispatch:
 
 jobs:
   validate:
-    name: Syntax & Structure Check
+    name: Syntax and Structure Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +17,18 @@ jobs:
           echo "=== JavaScript syntax check ==="
           FAIL=0
           while IFS= read -r f; do
-            node --check "$f" && echo "✓ $f" || { echo "✗ $f"; FAIL=1; }
-          done < <(find . -name "*.js" ! -path "*/node_modules/*")
-          [ $FAIL -eq 0 ] && echo "All JS files OK" || exit 1
+            if node --check "$f"; then
+              echo "OK: $f"
+            else
+              echo "BAD: $f"
+              FAIL=1
+            fi
+          done < <(find . -name "*.js" -not -path "./node_modules/*")
+          if [ $FAIL -eq 0 ]; then
+            echo "All JS files OK"
+          else
+            exit 1
+          fi
 
       - name: Verify required file structure
         run: |
@@ -33,29 +43,75 @@ jobs:
             "src/physics/PhysicsEngine.js"
             "src/physics/CollisionSystem.js"
             "src/graphics/Renderer.js"
+            "src/graphics/SpriteCache.js"
+            "src/graphics/TileCache.js"
             "src/levels/LevelManager.js"
             "src/levels/LevelData.js"
             "src/levels/TileMap.js"
+            "src/levels/TestStage.js"
+            "src/levels/StageManager.js"
+            "src/levels/AreaManager.js"
+            "src/levels/area1/index.js"
+            "src/levels/area1/stage1.js"
+            "src/levels/area1/round-1-1.js"
+            "src/levels/area1/round-1-2.js"
+            "src/levels/area1/round-1-3.js"
+            "src/levels/area1/round-1-4.js"
+            "src/levels/area1/stage2/index.js"
+            "src/levels/area1/stage2/round-2-1.js"
+            "src/levels/area1/stage2/round-2-2.js"
+            "src/levels/area1/stage2/round-2-3.js"
+            "src/levels/area1/stage2/round-2-4.js"
+            "src/levels/area1/stage3/index.js"
+            "src/levels/area1/stage3/round-3-1.js"
+            "src/levels/area1/stage3/round-3-2.js"
+            "src/levels/area1/stage3/round-3-3.js"
+            "src/levels/area1/stage3/round-3-4.js"
+            "src/levels/area1/stage4/index.js"
+            "src/levels/area1/stage4/round-4-1.js"
+            "src/levels/area1/stage4/round-4-2.js"
+            "src/levels/area1/stage4/round-4-3.js"
+            "src/levels/area1/stage4/round-4-4.js"
             "src/mechanics/GameMechanics.js"
             "src/mechanics/WeaponSystem.js"
+            "src/mechanics/HeroController.js"
+            "src/mechanics/EnemyAI.js"
+            "src/mechanics/StoneflakeSystem.js"
+            "src/mechanics/SeeddartSystem.js"
+            "src/mechanics/CombatSystem.js"
+            "src/mechanics/HatchetSystem.js"
+            "src/mechanics/HuskSystem.js"
+            "src/mechanics/Phase2EnemyAI.js"
+            "src/mechanics/TriggerSystem.js"
+            "src/mechanics/BossSystem.js"
+            "src/mechanics/StageTransitionSystem.js"
+            "src/config/PhaseOneTunables.js"
+            "src/config/PhaseTwoTunables.js"
+            "src/config/PhaseThreeTunables.js"
             "src/audio/AudioManager.js"
           )
           FAIL=0
           for f in "${files[@]}"; do
-            [ -f "$f" ] && echo "✓ $f" || { echo "✗ MISSING: $f"; FAIL=1; }
+            if [ -f "$f" ]; then
+              echo "OK: $f"
+            else
+              echo "MISSING: $f"
+              FAIL=1
+            fi
           done
-          [ $FAIL -eq 0 ] || exit 1
+          if [ $FAIL -ne 0 ]; then
+            exit 1
+          fi
 
-      - name: Guard: no debugger statements
+      - name: Guard - no debugger statements
         run: |
           if grep -rn "debugger" src/ --include="*.js"; then
             echo "ERROR: Remove debugger statements before merging."
             exit 1
           fi
-          echo "✓ No debugger statements"
+          echo "OK: no debugger statements"
 
-      - name: Guard: no console.error left in production paths
+      - name: Guard - count console.error
         run: |
           COUNT=$(grep -rn "console\.error" src/ --include="*.js" | wc -l)
           echo "console.error occurrences: $COUNT"
-          # Warn only, do not fail (some error logging is acceptable)

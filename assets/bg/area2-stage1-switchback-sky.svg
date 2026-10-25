@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 1 (the Switchback) sky parallax layer — far layer (scroll 0.0).
+  Phase 4, v1.0. Sky-with-canopy-bleed: the upper sky opens but a dark canopy
+  band at the bottom of this layer references where we came from (Area 1's
+  Old Threshold). Mood: morning sun reaching above the canopy line.
+  Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="switchbackSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.00" stop-color="#f8d878"/>
+      <stop offset="0.25" stop-color="#e4b25c"/>
+      <stop offset="0.55" stop-color="#bdb7a7"/>
+      <stop offset="0.80" stop-color="#6a6457"/>
+      <stop offset="1.00" stop-color="#3e5a52"/>
+    </linearGradient>
+    <radialGradient id="sunCatch" cx="0.80" cy="0.15" r="0.20">
+      <stop offset="0.00" stop-color="#fff2c0" stop-opacity="0.90"/>
+      <stop offset="0.50" stop-color="#f8d878" stop-opacity="0.40"/>
+      <stop offset="1.00" stop-color="#f8d878" stop-opacity="0.00"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="768" height="576" fill="url(#switchbackSky)"/>
+  <rect x="0" y="0" width="768" height="576" fill="url(#sunCatch)"/>
+
+  <!-- The morning sun (small disc, upper-right) -->
+  <circle cx="610" cy="92" r="20" fill="#fff2c0"/>
+  <circle cx="606" cy="88" r="6" fill="#ffffff" opacity="0.70"/>
+
+  <!-- Dark canopy band at the bottom — last hint of the Old Threshold below. -->
+  <rect x="0" y="490" width="768" height="86" fill="#1e2032" opacity="0.55"/>
+  <path d="M 0,490 L 30,484 L 70,492 L 110,485 L 160,490 L 220,486 L 280,494 L 340,488 L 400,492 L 460,486 L 520,494 L 580,488 L 640,490 L 700,486 L 768,492 L 768,510 L 0,510 Z"
+        fill="#2a3a3a" opacity="0.85"/>
+</svg>

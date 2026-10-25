@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 2 (shore) foreground parallax layer (Phase 3, v0.75.1). Scroll factor 0.7.
+  Near-coastal dune tufts and tide-line grass; scrolls fast so the player feels
+  movement at ground-near level. Sits below the tile layer; uses the Stage 2
+  shore-moss / cuff-cream / sea-deep palette so it reads as the natural fringe
+  of the wet-shelf-stone tiles above.
+  Colors come from the Phase 3 shore tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Tide-line band: a narrow strip of damp sand where the tide retreats.
+       Sits along the very base; the tiled foreground will cover most of it. -->
+  <rect x="0" y="525" width="768" height="20" fill="#e8d4a0" opacity="0.55"/>
+  <rect x="0" y="545" width="768" height="6"  fill="#8a9a96" opacity="0.60"/>
+
+  <!-- Foreground dune-grass tufts — long blade-ish strokes scattered along
+       the bottom edge. Cool shore-moss green that reads as sun-fed but salty. -->
+  <g stroke="#6a8a4a" stroke-width="2" fill="none">
+    <path d="M 20,565 Q 18,545 14,520"/>
+    <path d="M 32,565 Q 32,548 36,524"/>
+    <path d="M 60,565 Q 60,545 64,518"/>
+    <path d="M 88,565 Q 88,548 84,522"/>
+    <path d="M 130,565 Q 130,545 134,520"/>
+    <path d="M 158,565 Q 158,548 154,524"/>
+    <path d="M 200,565 Q 200,545 204,520"/>
+    <path d="M 250,565 Q 250,548 246,524"/>
+    <path d="M 296,565 Q 296,545 300,520"/>
+    <path d="M 338,565 Q 338,548 334,522"/>
+    <path d="M 380,565 Q 380,545 384,520"/>
+    <path d="M 420,565 Q 420,548 416,524"/>
+    <path d="M 458,565 Q 458,545 462,520"/>
+    <path d="M 504,565 Q 504,548 500,524"/>
+    <path d="M 548,565 Q 548,545 552,520"/>
+    <path d="M 588,565 Q 588,548 584,524"/>
+    <path d="M 630,565 Q 630,545 634,520"/>
+    <path d="M 670,565 Q 670,548 666,522"/>
+    <path d="M 708,565 Q 708,545 712,520"/>
+    <path d="M 748,565 Q 748,548 744,524"/>
+  </g>
+
+  <!-- Dawn-amber tips on a fraction of the tufts — morning light catches the
+       windward blades. Sparse, not on every tuft. -->
+  <g fill="#e8a040">
+    <circle cx="14"  cy="520" r="2"/>
+    <circle cx="64"  cy="518" r="2"/>
+    <circle cx="134" cy="520" r="2"/>
+    <circle cx="204" cy="520" r="2"/>
+    <circle cx="300" cy="520" r="2"/>
+    <circle cx="384" cy="520" r="2"/>
+    <circle cx="462" cy="520" r="2"/>
+    <circle cx="552" cy="520" r="2"/>
+    <circle cx="634" cy="520" r="2"/>
+    <circle cx="712" cy="520" r="2"/>
+  </g>
+
+  <!-- A few small dune-curve shadows pulling cool violet, so the foreground
+       layer doesn't compete with the hero's warm tones. Per world.md:
+       "Shadows are violet-grey, never black." -->
+  <g fill="#3a586a" opacity="0.35">
+    <path d="M 40,560 Q 60,545 80,560 L 80,575 L 40,575 Z"/>
+    <path d="M 220,560 Q 240,545 260,560 L 260,575 L 220,575 Z"/>
+    <path d="M 420,560 Q 440,545 460,560 L 460,575 L 420,575 Z"/>
+    <path d="M 600,560 Q 620,545 640,560 L 640,575 L 600,575 Z"/>
+  </g>
+</svg>

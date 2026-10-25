@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 1 (the Switchback) foreground parallax layer — near switchback
+  stones (scroll 0.7). Phase 4, v1.0. Foreground rock-step lip silhouettes
+  catching morning light, with small moss-tufts at the base (this stage starts
+  at the forest edge; the moss is the last reminder of Area 1).
+  Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Near switchback-stone silhouettes (stone-bone shadow) along the upper
+       edge — angled rock-step lips. -->
+  <g fill="#6a6457" opacity="0.90">
+    <path d="M -10,470 L 30,460 L 70,475 L 110,455 L 150,470 L 200,455 L 260,475 L 310,460 L 360,475 L 410,455 L 470,475 L 520,460 L 580,470 L 640,455 L 700,470 L 768,460 L 768,540 L -10,540 Z"/>
+  </g>
+
+  <!-- Lighter stone-bone catch-lights on the upper rocks — the morning sun
+       reaches the windward edge of each step. -->
+  <g fill="#bdb7a7" opacity="0.50">
+    <path d="M 0,460 L 28,455 L 32,462 L 8,468 Z"/>
+    <path d="M 108,455 L 138,450 L 142,458 L 116,462 Z"/>
+    <path d="M 200,455 L 232,450 L 238,458 L 212,462 Z"/>
+    <path d="M 360,475 L 390,470 L 396,478 L 370,482 Z"/>
+    <path d="M 470,475 L 500,470 L 506,478 L 480,482 Z"/>
+    <path d="M 580,470 L 612,465 L 618,473 L 592,477 Z"/>
+    <path d="M 700,470 L 730,465 L 736,473 L 710,477 Z"/>
+  </g>
+
+  <!-- Small moss-tufts along the lower foreground (the last bit of Area 1's
+       greenery clinging to the stone). Sparser than Area 1, by design. -->
+  <g stroke="#4a7c3a" stroke-width="2" fill="none">
+    <path d="M 36,540 Q 36,528 38,514"/>
+    <path d="M 124,540 Q 124,528 122,516"/>
+    <path d="M 268,540 Q 268,530 270,520"/>
+    <path d="M 388,540 Q 388,528 386,516"/>
+    <path d="M 488,540 Q 488,528 490,516"/>
+    <path d="M 612,540 Q 612,530 614,520"/>
+    <path d="M 712,540 Q 712,528 714,516"/>
+  </g>
+
+  <!-- Sparse pale-moss highlights at the tuft tips -->
+  <g fill="#5a8a4a">
+    <circle cx="38" cy="514" r="1.5"/>
+    <circle cx="270" cy="520" r="1.5"/>
+    <circle cx="490" cy="516" r="1.5"/>
+    <circle cx="614" cy="520" r="1.5"/>
+  </g>
+</svg>

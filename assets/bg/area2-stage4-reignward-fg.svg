@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 2 Stage 4 (the Reignward) foreground parallax layer — near beacon-tower
+  wrecks tightly clustered (scroll 0.7). Phase 4, v1.0. The ceremonial top of
+  the ridge: more wrecks, closer together, warmer dawn-amber palette. This
+  layer wraps the boss arena's left side; the boss pedestal itself is in the
+  tileset (not in this SVG). Tileable horizontally.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Tightly-clustered toppled stone arches along the foreground — denser
+       than Stage 2-2. -->
+  <g fill="#6a6457" opacity="0.92">
+    <!-- Left cluster -->
+    <path d="M 10,490 L 60,475 L 80,510 L 50,540 L 10,540 Z"/>
+    <path d="M 70,500 L 110,488 L 120,540 L 80,540 Z"/>
+    <path d="M 120,488 L 170,478 L 180,520 L 140,540 L 120,540 Z"/>
+    <!-- Middle cluster A -->
+    <path d="M 220,495 L 270,482 L 290,520 L 250,540 L 220,540 Z"/>
+    <path d="M 280,505 L 320,495 L 330,540 L 290,540 Z"/>
+    <path d="M 330,490 L 380,478 L 400,520 L 350,540 L 320,540 Z"/>
+    <!-- Middle cluster B -->
+    <path d="M 430,498 L 480,485 L 500,520 L 460,540 L 420,540 Z"/>
+    <path d="M 490,508 L 530,498 L 540,540 L 500,540 Z"/>
+    <!-- Right cluster -->
+    <path d="M 600,490 L 650,478 L 670,518 L 630,540 L 590,540 Z"/>
+    <path d="M 660,500 L 700,488 L 710,540 L 670,540 Z"/>
+    <path d="M 710,492 L 758,480 L 768,535 L 720,540 Z"/>
+  </g>
+
+  <!-- Lighter warmer-stone catch on the upper sun-facing edges. -->
+  <g fill="#bdb7a7" opacity="0.55">
+    <path d="M 14,485 L 56,470 L 60,478 L 18,492 Z"/>
+    <path d="M 122,484 L 166,474 L 170,482 L 126,492 Z"/>
+    <path d="M 224,490 L 266,478 L 270,485 L 228,498 Z"/>
+    <path d="M 332,485 L 376,474 L 380,482 L 336,492 Z"/>
+    <path d="M 434,494 L 476,482 L 480,488 L 438,500 Z"/>
+    <path d="M 604,485 L 646,474 L 650,482 L 608,492 Z"/>
+    <path d="M 712,488 L 754,476 L 758,484 L 716,494 Z"/>
+  </g>
+
+  <!-- Dawn-amber lens-fragments embedded in the cap stones — brighter than
+       Stage 2-2 (this is the ceremonial top; the lenses survived the wreck). -->
+  <g fill="#e4b25c">
+    <circle cx="60" cy="478" r="4"/>
+    <circle cx="170" cy="478" r="4"/>
+    <circle cx="270" cy="482" r="4"/>
+    <circle cx="380" cy="478" r="4"/>
+    <circle cx="480" cy="485" r="4"/>
+    <circle cx="650" cy="478" r="4"/>
+    <circle cx="755" cy="478" r="4"/>
+  </g>
+  <g fill="#f8d878" opacity="0.95">
+    <circle cx="60" cy="476" r="2"/>
+    <circle cx="170" cy="476" r="2"/>
+    <circle cx="270" cy="480" r="2"/>
+    <circle cx="380" cy="476" r="2"/>
+    <circle cx="480" cy="483" r="2"/>
+    <circle cx="650" cy="476" r="2"/>
+    <circle cx="755" cy="476" r="2"/>
+  </g>
+  <g fill="#fff2c0" opacity="0.85">
+    <circle cx="60" cy="475" r="0.8"/>
+    <circle cx="270" cy="479" r="0.8"/>
+    <circle cx="480" cy="482" r="0.8"/>
+    <circle cx="650" cy="475" r="0.8"/>
+  </g>
+</svg>

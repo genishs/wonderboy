@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  owning agent: design-lead
+  Area 1 Stage 4 (dark forest) foreground parallax layer (Phase 3, v0.75.1). Scroll factor 0.7.
+  Near foliage / vine band — chunky low-canopy silhouettes draping into the
+  player's reading. Cooler tones than the Stage 1 foliage; the foreground here
+  sits in canopy-shadow-violet so the moonlit hero pops against it.
+  Tileable horizontally — frond spacing is regular.
+  Colors come from the Phase 3 dark-forest tileset family (`palette-phase3.md`).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 576" width="768" height="576" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Drooping cool-foliage clusters along the upper edge of this layer, all
+       in canopy-shadow-violet. -->
+  <g fill="#684e6e" opacity="0.85">
+    <path d="M -10,460 Q 30,468 50,488 Q 65,510 60,540 L 50,540 Q 45,505 30,488 Q 10,473 -10,478 Z"/>
+    <path d="M 80,455  Q 110,468 130,495 Q 145,520 138,548 L 128,548 Q 130,510 115,495 Q 100,478 80,478 Z"/>
+    <path d="M 240,460 Q 280,470 300,495 Q 312,520 305,548 L 295,548 Q 298,508 285,495 Q 268,478 250,478 Z"/>
+    <path d="M 360,455 Q 390,468 408,495 Q 420,520 413,548 L 403,548 Q 405,508 390,495 Q 375,478 360,478 Z"/>
+    <path d="M 520,460 Q 560,470 580,495 Q 593,520 585,548 L 575,548 Q 578,508 563,495 Q 545,478 520,478 Z"/>
+    <path d="M 650,455 Q 680,468 700,495 Q 712,520 705,548 L 695,548 Q 698,508 685,495 Q 668,478 650,478 Z"/>
+    <path d="M 740,455 Q 770,468 778,490 L 778,540 L 768,548 Q 770,508 755,492 Q 745,478 740,478 Z"/>
+  </g>
+
+  <!-- Darker velvet under-flame violet shadow stripes for the deepest under-
+       foliage. -->
+  <g fill="#5a4a6e" opacity="0.55">
+    <path d="M 30,500  Q 50,520 50,548  L 35,548  Q 25,520 30,500 Z"/>
+    <path d="M 110,500 Q 130,520 130,548 L 115,548 Q 105,520 110,500 Z"/>
+    <path d="M 270,500 Q 290,520 290,548 L 275,548 Q 265,520 270,500 Z"/>
+    <path d="M 380,500 Q 400,520 400,548 L 385,548 Q 375,520 380,500 Z"/>
+    <path d="M 550,500 Q 570,520 570,548 L 555,548 Q 545,520 550,500 Z"/>
+    <path d="M 675,500 Q 695,520 695,548 L 680,548 Q 670,520 675,500 Z"/>
+  </g>
+
+  <!-- Dark-moss tufts along the very base — these are pulled from the dark-
+       forest moss palette (cooler than Stage 1's tunic moss). -->
+  <g stroke="#3e5a52" stroke-width="2" fill="none">
+    <path d="M 20,548 Q 20,535 22,520"/>
+    <path d="M 36,548 Q 36,538 34,525"/>
+    <path d="M 70,548 Q 70,535 72,518"/>
+    <path d="M 160,548 Q 160,535 162,520"/>
+    <path d="M 222,548 Q 222,535 224,520"/>
+    <path d="M 320,548 Q 320,538 322,525"/>
+    <path d="M 446,548 Q 446,535 444,522"/>
+    <path d="M 510,548 Q 510,535 508,520"/>
+    <path d="M 622,548 Q 622,538 620,524"/>
+    <path d="M 720,548 Q 720,538 722,525"/>
+  </g>
+
+  <!-- Sparse moonlit-silver glints on a fraction of the tufts — the dark
+       forest's signature warmth is the moon's cool silver, NOT dawn-amber.
+       This is per palette-phase3.md: dark-forest signature warmth slot is
+       silver-cream moonlight, not amber. -->
+  <g fill="#cfd8dc">
+    <circle cx="22"  cy="520" r="1.5"/>
+    <circle cx="72"  cy="518" r="1.5"/>
+    <circle cx="162" cy="520" r="1.5"/>
+    <circle cx="322" cy="525" r="1.5"/>
+    <circle cx="508" cy="520" r="1.5"/>
+    <circle cx="620" cy="524" r="1.5"/>
+    <circle cx="722" cy="525" r="1.5"/>
+  </g>
+</svg>

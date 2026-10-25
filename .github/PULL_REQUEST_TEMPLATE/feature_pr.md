@@ -1,21 +1,30 @@
-## 변경 요약
-<!-- 어떤 기능을 구현했는지 간단히 설명 -->
+## Summary
+<!-- 1–3 lines: what this PR delivers and which brief it implements -->
 
-## 담당 에이전트
-- [ ] Agent 1 — System Architect (`src/core/`)
-- [ ] Agent 2 — Physics Engineer (`src/physics/`)
-- [ ] Agent 3 — Graphics Director (`src/graphics/`, `assets/sprites/`)
-- [ ] Agent 4 — Level Design Analyst (`src/levels/`, `assets/levels/`)
-- [ ] Agent 5 — Mechanics Specialist (`src/mechanics/`)
-- [ ] Agent 6 — Audio & FX Manager (`src/audio/`, `assets/audio/`)
+## Authoring agent (one)
+- [ ] story-lead   (`feature/story-*`)
+- [ ] design-lead  (`feature/design-*`)
+- [ ] dev-lead     (`feature/dev-*`)
+- [ ] release-master (`feature/release-*`)
 
-## 체크리스트
-- [ ] JS 문법 오류 없음 (`node --check` 통과)
-- [ ] `debugger` 구문 제거됨
-- [ ] 소유 디렉터리 외 파일 수정 시 아키텍트(Agent 1)와 사전 협의
-- [ ] 원작 원더보이와 동작 비교 확인
+## Phase / brief
+<!-- e.g. "Phase 1, docs/briefs/phase1-cast.md" or "n/a — release tooling" -->
 
-## 테스트 방법
-<!-- 로컬에서 확인한 방법 (예: `python -m http.server` 후 index.html 접근) -->
+## Hand-off / consumers
+<!-- For story PRs: list which Design/Dev decisions this brief unblocks.
+     For design PRs: list which sprite/tile modules + META blocks were added.
+     For dev PRs: list ECS components added/changed and which assets are wired. -->
 
-## 관련 이슈 / 참고
+## Smoke check (dev PRs)
+- [ ] `node --check` passes on every changed `.js`
+- [ ] No `debugger` statements
+- [ ] Loaded the page via `npx serve .` and clicked through the changed feature
+- [ ] No new console errors
+
+## Copyright check
+- [ ] No scraped or traced art / audio
+- [ ] No original-game character names introduced
+- [ ] Reference materials (if any) logged in `docs/story/research-notes.md`
+
+## Open questions for release-master
+<!-- anything you want flagged before merge -->
