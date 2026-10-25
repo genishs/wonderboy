@@ -47,6 +47,8 @@ export const ROUND = Object.freeze({
         // v0.50.2 — Round 1 sign at the START of the stage (col 3, just past
         // the spawn at col 1). The cairn at end of round-1-4 still ends the stage.
         { col: 3, row: 9, kind: 'mile_1' },
+        // v1.0 — 원작 Wonder Boy: 워프게이트 트리거 (변신 폼 획득 + Area 전환)
+        { col: 40, row: 9, kind: 'warp_gate', nextArea: 2 },
     ],
     fires: [],
     spawn: { col: 1, row: 9 },

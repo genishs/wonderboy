@@ -325,9 +325,14 @@ export class Renderer {
     }
 
     // ── HUD ────────────────────────────────────────────────────────────────
-    drawHUD(state) {
+    drawHUD(state, transformationSystem = null) {
         const ctx = this.ctx;
         const PAD = 8;
+
+        // 원작 Wonder Boy HUD (체력/시간 바 및 변신 상태)
+        if (transformationSystem) {
+            this._drawWonderBoyHUD(state, transformationSystem);
+        }
 
         ctx.font = '16px monospace';
         ctx.textAlign = 'left';
@@ -637,6 +642,119 @@ export class Renderer {
         }
 
         void HOLD;   // referenced for documentation; HOLD-phase has alpha=1 above.
+    }
+
+    /**
+     * 원작 Wonder Boy HUD - 체력/시간 바 및 변신 상태 표시
+     * v1.0 — Health bar (top-left) + Time bar (top-center) + Transformation status (top-right)
+     */
+    _drawWonderBoyHUD(state, transformationSystem) {
+        const ctx = this.ctx;
+        const y = 20;
+        const leftMargin = 20;
+        const barWidth = 200;
+        const barHeight = 16;
+        
+        ctx.save();
+        
+        // 1. 체력 바 (Health Bar)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(leftMargin, y, barWidth + 4, barHeight + 4);
+        ctx.fillStyle = '#f8d878'; // sigil-amber for border
+        ctx.fillRect(leftMargin + 2, y + 2, barWidth, barHeight);
+        
+        // 체력 퍼센트 계산 (health doubles as timer in original game)
+        const healthPercent = Math.max(0, (state.hunger / state.maxHunger) * 100);
+        const healthWidth = (barWidth - 4) * (healthPercent / 100);
+        
+        // 체력 색상 - 50% 이상: 초록, 25-50%: 노랑, 25% 이하: 빨강
+        let healthColor = '#4CAF50';
+        if (healthPercent < 50) healthColor = '#FFC107';
+        if (healthPercent < 25) healthColor = '#F44336';
+        
+        ctx.fillStyle = healthColor;
+        ctx.fillRect(leftMargin + 4, y + 4, healthWidth, barHeight - 4);
+        
+        // 체력 텍스트
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`HEALTH ${Math.floor(healthPercent)}%`, leftMargin + barWidth + 10, y + 13);
+        
+        // 2. 시간 바 (Time Bar - same as health in original)
+        const timeY = y + 35;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(leftMargin, timeY, barWidth + 4, barHeight + 4);
+        ctx.fillStyle = '#f8d878';
+        ctx.fillRect(leftMargin + 2, timeY + 2, barWidth, barHeight);
+        
+        // 시간 퍼센트 (health가 time 역할을 함)
+        const timePercent = healthPercent;
+        const timeWidth = (barWidth - 4) * (timePercent / 100);
+        ctx.fillStyle = '#1E90FF';
+        ctx.fillRect(leftMargin + 4, timeY + 4, timeWidth, barHeight - 4);
+        
+        // 시간 텍스트
+        const timeSeconds = Math.floor((state.hunger / state.maxHunger) * 500);
+        ctx.fillText(`TIME ${timeSeconds}s`, leftMargin + barWidth + 10, timeY + 13);
+        
+        // 3. 변신 상태 (Transformation Status)
+        const transformY = y + 70;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(leftMargin, transformY, barWidth + 4, barHeight + 4);
+        ctx.fillStyle = '#f8d878';
+        ctx.fillRect(leftMargin + 2, transformY + 2, barWidth, barHeight);
+        
+        if (transformationSystem && transformationSystem.isTransformed()) {
+            const form = transformationSystem.getCurrentForm();
+            const transformPercent = transformationSystem.getTransformationTimePercent();
+            const transformWidth = (barWidth - 4) * (transformPercent / 100);
+            
+            ctx.fillStyle = '#9C27B0'; // 변신 보라색
+            ctx.fillRect(leftMargin + 4, transformY + 4, transformWidth, barHeight - 4);
+            
+            // 폼 이름 표시
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`FORM: ${form.name}`, leftMargin + barWidth + 10, transformY + 13);
+            
+            // 폼 설명 (간단하게)
+            const formDesc = {
+                'LION': '사자 - 강력한 지상 공격',
+                'EAGLE': '독수리 - 비행 능력',
+                'SEAL': '물개 - 우수한 수영',
+                'PIG': '돼지 - 박치기 공격',
+                'HAWK': '매 - 빠른 비행',
+                'WHALE': '고래 - 물 기반 공격',
+                'DRAGON': '용 - 불 breath'
+            };
+            
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#CCC';
+            ctx.fillText(formDesc[form.id] || '', leftMargin, transformY + 85);
+        } else {
+            ctx.fillStyle = '#888';
+            ctx.fillRect(leftMargin + 4, transformY + 4, barWidth - 4, barHeight - 4);
+            ctx.fillStyle = '#FFF';
+            ctx.textAlign = 'center';
+            ctx.fillText('HUMAN FORM (No transformation)', leftMargin + barWidth / 2, transformY + 13);
+        }
+        
+        // 4. 인형 카운터 (Doll Counter - Area 10 접근 필수)
+        const dollY = y + 105;
+        ctx.fillStyle = '#f8d878';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`DOLLS: ${state.dolls || 0}/10`, leftMargin, dollY);
+        
+        // 5. 점수 (Score)
+        const scoreY = y + 130;
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText(`SCORE: ${state.score || 0}`, leftMargin, scoreY);
+        
+        ctx.restore();
     }
 
     /**

@@ -29,6 +29,8 @@ import { BossSystem }            from './src/mechanics/BossSystem.js';
 import { StageTransitionSystem } from './src/mechanics/StageTransitionSystem.js';
 // v0.75.1 — fruit pickup collection.
 import { ItemSystem }            from './src/mechanics/ItemSystem.js';
+// v1.0 — 원작 Wonder Boy 변신 시스템
+import { TransformationSystem }  from './src/mechanics/TransformationSystem.js';
 
 // Phase 1 sprite modules (kept loaded for retro debug entry)
 import * as heroReedModule       from './assets/sprites/hero-reed.js';
@@ -123,6 +125,9 @@ const bossSystem            = new BossSystem();
 // v0.75.1 — fruit pickup system (dewplum / amberfig vitality restore).
 const itemSystem            = new ItemSystem();
 
+// v1.0 — 원작 Wonder Boy 변신 시스템
+const transformationSystem  = new TransformationSystem();
+
 // Wire renderer references
 renderer.tileCache    = tileCache;
 renderer.parallax     = parallax;
@@ -160,7 +165,7 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
                           || stateArg.gameState === 'CREDITS'
                           || stateArg.gameState === 'TITLE');
 
-        heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, null, hatchetSystem);
+        heroController.update(ecsArg, levelManager.currentLevel, inputArg, stateArg, null, hatchetSystem, transformationSystem);
         if (!respawnLock) {
             hatchetSystem.update(ecsArg, levelManager.currentLevel, stateArg, levelManager.playerEntity);
             huskSystem.update(ecsArg, stateArg, levelManager.playerEntity);
@@ -213,7 +218,7 @@ mechanics.update = (dt, ecsArg, stateArg, inputArg) => {
     _origMechanicsUpdate(dt, ecsArg, stateArg, inputArg);
 };
 
-const gameLoop = new GameLoop({ ecs, state, input, physics, renderer, levelManager, mechanics, audio });
+const gameLoop = new GameLoop({ ecs, state, input, physics, renderer, levelManager, mechanics, audio, transformationSystem });
 
 // ── Init ────────────────────────────────────────────────────────────────────
 //
@@ -373,3 +378,4 @@ window.tileCache    = tileCache;
 // Cleaner than threading the ref through every System.update() signature for a
 // per-event side-effect; matches the existing pattern for `window.ecs` etc.
 window.audio        = audio;
+window.transformationSystem = transformationSystem;

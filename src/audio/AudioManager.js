@@ -318,6 +318,15 @@ export class AudioManager {
             case 'title_confirm':
                 this._note(880, 0.10, now, 'sine', sg);
                 break;
+            
+            // ── v1.0 원작 Wonder Boy 변신 SFX ────────────────────────────
+            case 'transform':
+                this._note(440,  0.05, now,        'sawtooth', sg);
+                this._note(554,  0.05, now + 0.05, 'sawtooth', sg);
+                this._note(659,  0.05, now + 0.10, 'sawtooth', sg);
+                this._note(880,  0.10, now + 0.15, 'sawtooth', sg);
+                this._note(1100, 0.05, now + 0.25, 'sine',     sg);
+                break;
 
             default:
                 // Silent default — unknown SFX names are no-ops.

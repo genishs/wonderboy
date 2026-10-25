@@ -192,6 +192,17 @@ export class AreaManager {
     unlockCamera() {
         this.cameraLocked = false;
     }
+    
+    /**
+     * v1.0 — 원작 Wonder Boy: 워프게이트 통과 후 다음 Area로 이동
+     * 현재 구현: Area 1만 지원하므로 Area 1로 리셋
+     */
+    nextArea() {
+        if (this.areaIndex === 1) {
+            // Area 1에서 워프게이트 통과 후 Area 1로 리셋 (다음 Area 구현 전)
+            this.startArea(1, this.lm.ecs, this.lm.state);
+        }
+    }
 
     /**
      * Per-frame update. Driven from game.js mechanics tick BEFORE StageManager.update,

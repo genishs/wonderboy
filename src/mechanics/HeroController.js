@@ -13,6 +13,7 @@
 //   - 'dying' aiState — death sequence (knockback + fall) before loseLife() fires.
 //   - GAME_OVER continue-input handling: any of jump/attack/sprint resumes via
 //     state.continueRun() and rebuilds the stage from scratch.
+// v1.0:    원작 Wonder Boy 변신 시스템 통합 - 7가지 동물 폼, 워프게이트 변신 아이템 수집
 
 import { HERO }              from '../config/PhaseOneTunables.js';
 import { HERO_P2, ROCK }     from '../config/PhaseTwoTunables.js';
@@ -35,8 +36,9 @@ export class HeroController {
      * @param {StateManager} state
      * @param {*} stoneflakeSystem  Phase 1 projectile (legacy; ignored when hatchetSystem provided)
      * @param {*} hatchetSystem     Phase 2 projectile (preferred when present)
+     * @param {*} transformationSystem Wonder Boy 변신 시스템 (v1.0)
      */
-    update(ecs, level, input, state, stoneflakeSystem, hatchetSystem = null) {
+    update(ecs, level, input, state, stoneflakeSystem, hatchetSystem = null, transformationSystem = null) {
         const players = ecs.query('transform', 'velocity', 'physics', 'player');
         if (!players.length || !level) return;
         const { transform: tf, velocity: v, physics: ph, player: pl } = players[0];
@@ -345,6 +347,32 @@ export class HeroController {
                 state.beginDying({ player: pl, transform: tf, velocity: v });
             } else {
                 state.killHero({ player: pl });
+            }
+        }
+        
+        // v1.0 — 원작 Wonder Boy 변신 시스템: 변신 아이템 충돌 처리
+        if (pl._phase2 && transformationSystem && state.gameState === 'PLAYING') {
+            const items = ecs.query('transform', 'item');
+            const heroX = tf.x + tf.w / 2;
+            const heroY = tf.y + tf.h / 2;
+            
+            for (const item of items) {
+                const ix = item.transform.x + item.transform.w / 2;
+                const iy = item.transform.y + item.transform.h / 2;
+                const dx = heroX - ix;
+                const dy = heroY - iy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < 32) {
+                    // 아이템 충돌 감지 - 변신 아이템인지 확인
+                    if (item.item.type === 'transformation') {
+                        const formId = item.item.transformationForm;
+                        if (formId) {
+                            transformationSystem.transform(formId, pl);
+                            ecs.removeEntity(item.id);
+                        }
+                    }
+                }
             }
         }
     }

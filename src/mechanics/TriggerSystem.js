@@ -5,9 +5,10 @@
 //                     places one, but back-compat preserved)
 //   - stage_exit    → AreaManager.beginStageTransition(tile.nextStage) NEW v0.75
 //   - boss_trigger  → BossSystem.beginFight(...) NEW v0.75
+//   - warp_gate     → TransformationSystem.transformRandomForm() NEW v1.0 (Wonder Boy)
 //
 // Each trigger tile is one-shot via the tile's _consumed flag. The
-// stage_exit / boss_trigger paths are also one-shot per stage load.
+// stage_exit / boss_trigger / warp_gate paths are also one-shot per stage load.
 
 const TILE = 48;
 
@@ -73,6 +74,29 @@ export class TriggerSystem {
                     t._consumed = true;
                     if (bossSystem && typeof bossSystem.beginFight === 'function') {
                         bossSystem.beginFight(ecs, level, am, state);
+                    }
+                    return;
+                }
+                if (kind === 'warp_gate') {
+                    // v1.0 — 원작 Wonder Boy 변신 아이템 획득 (워프게이트)
+                    t._consumed = true;
+                    if (window && window.transformationSystem) {
+                        // 플레이어 엔티티 가져오기
+                        const playerId = levelManager.playerEntity;
+                        if (playerId != null) {
+                            const player = ecs.getComponent(playerId, 'player');
+                            if (player) {
+                                window.transformationSystem.transformRandomForm(player);
+                                // 변신 효과음 재생
+                                if (window && window.audio) {
+                                    window.audio.playSFX('transform');
+                                }
+                            }
+                        }
+                        // 워프게이트 통과 후 다음 Area로 이동 (Area Manager가 처리)
+                        if (am && typeof am.nextArea === 'function') {
+                            am.nextArea();
+                        }
                     }
                     return;
                 }

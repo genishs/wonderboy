@@ -37,7 +37,7 @@ export class GameLoop {
     }
 
     _update(dt) {
-        const { ecs, state, input, physics, levelManager, mechanics, audio, renderer } = this.systems;
+        const { ecs, state, input, physics, levelManager, mechanics, audio, transformationSystem, renderer } = this.systems;
 
         // mechanics.update owns the pause toggle (in the Phase 1 wrapper) so it must
         // run even when state is PAUSED — otherwise we can pause but never unpause.
@@ -46,6 +46,12 @@ export class GameLoop {
         if (state.gameState !== 'PAUSED') {
             physics.update(dt, ecs, state, levelManager.currentLevel, input);
             levelManager.update(dt, ecs, state);
+            
+            // v1.0 — 원작 Wonder Boy 변신 시스템 업데이트
+            if (transformationSystem) {
+                transformationSystem.update(dt);
+            }
+            
             audio.update(dt, state);
             if (renderer && typeof renderer.tick === 'function') renderer.tick();
         }
@@ -57,12 +63,12 @@ export class GameLoop {
     }
 
     _render() {
-        const { renderer, ecs, state, levelManager, input } = this.systems;
+        const { renderer, ecs, state, levelManager, input, transformationSystem } = this.systems;
         renderer.clear();
         renderer.drawBackground(levelManager.scrollX);
         renderer.drawTiles(levelManager.currentLevel, levelManager.scrollX);
         renderer.drawEntities(ecs, levelManager.scrollX);
-        renderer.drawHUD(state);
+        renderer.drawHUD(state, transformationSystem);
         // v0.75.1 — visible on-screen touch buttons. Drawn LAST so they sit on
         // top of HUD chrome and stay tappable even when overlays (PAUSED,
         // STAGE_TRANSITION, AREA_CLEARED) dim the playfield underneath.

@@ -48,6 +48,8 @@ export const TILE_TYPES = Object.freeze({
     MOONLIGHT_STREAK:  115,
     // BOSS_TRIGGER — Stage 4 invisible camera-lock + boss spawn trigger.
     BOSS_TRIGGER:      116,
+    // v1.0 — 원작 Wonder Boy: 워프게이트 (변신 폼 획득 + Area 전환)
+    WARP_GATE:         117,
 });
 
 const SOLID_TYPES = new Set([
@@ -83,6 +85,7 @@ const TILE_KEY_OF = {
     [TILE_TYPES.CRYSTAL_VEIN]:     'crystal_vein',
     [TILE_TYPES.MOONLIGHT_STREAK]: 'moonlight_streak',
     [TILE_TYPES.BOSS_TRIGGER]:     null,        // invisible — no tile art
+    [TILE_TYPES.WARP_GATE]:        'warp_gate', // 원작 Wonder Boy: 워프게이트
 };
 
 const TRIGGER_KIND_OF = {
@@ -94,6 +97,8 @@ const TRIGGER_KIND_OF = {
     // v0.75
     [TILE_TYPES.STAGE_EXIT]:   'stage_exit',
     [TILE_TYPES.BOSS_TRIGGER]: 'boss_trigger',
+    // v1.0 — 원작 Wonder Boy: 워프게이트
+    [TILE_TYPES.WARP_GATE]:    'warp_gate',
 };
 
 export class TileMap {
